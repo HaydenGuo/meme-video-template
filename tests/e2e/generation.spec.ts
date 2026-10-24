@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { formatPrice } from '#/config/site'
+import { formatPrice, site } from '#/config/site'
 import { ORIGIN, buyPackage, credits, devLogin, json, ledger, post, uniqueEmail, uploadPhoto } from './helpers'
 
 type Generation = { id: string; status: string; videoUrl: string | null }
@@ -37,6 +37,7 @@ test('上传校验与越权：伪装 JPEG 返回 415，不能用别人的上传�
 })
 
 test('生成失败自动退回积分，失败任务没有视频', async ({ request }) => {
+  const fullCost = site.durations.find((duration) => duration.id === 'full')!.credits
   await devLogin(request, uniqueEmail('refund'))
   await buyPackage(request, 'starter')
   const { upload } = await json<{ upload: { id: string } }>(uploadPhoto(request), 201)
@@ -44,7 +45,7 @@ test('生成失败自动退回积分，失败任务没有视频', async ({ reque
     post(request, '/api/generations', { uploadId: upload.id, durationId: 'full', mockOutcome: 'fail' }),
     201,
   )
-  expect(await credits(request)).toBe(10)
+  expect(await credits(request)).toBe(25 - fullCost)
 
   await expect
     .poll(async () => (await json<{ generation: Generation }>(request.get(`/api/generations/${generation.id}`))).generation.status, {
@@ -56,8 +57,8 @@ test('生成失败自动退回积分，失败任务没有视频', async ({ reque
   expect(await credits(request)).toBe(25)
   const entries = (await ledger(request)).filter((e) => e.ref_id === generation.id)
   expect(entries.map((e) => [e.reason, e.delta]).sort()).toEqual([
-    ['generation', -15],
-    ['generation_refund', 15],
+    ['generation', -fullCost],
+    ['generation_refund', fullCost],
   ])
   expect((await request.get(`/api/generations/${generation.id}/video`)).status()).toBe(404)
 })

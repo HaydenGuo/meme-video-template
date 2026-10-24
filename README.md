@@ -1,6 +1,6 @@
 # Meme Video Template
 
-GitHub → Cloudflare push deployment is available in [deployment setup](docs/cloudflare-auto-deploy.md). Enable the repository variable only after production resources and secrets are configured.
+GitHub → Cloudflare push deployment is available in [deployment setup](docs/cloudflare-auto-deploy.md). Automatic deployment uses the exact commit that passed CI on main. Enable the repository variable only after production resources and secrets are configured.
 
 Referral rewards are 10% of the credits on a friend's first paid order, rounded down (25 credits → 2, 60 → 6). Configure `referralRewardPercent` from 0–100. Existing awarded amounts and refund clawbacks remain fixed. Legacy fixed-credit settings are ignored; no past rewards are recalculated.
 

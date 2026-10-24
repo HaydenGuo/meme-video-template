@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { site } from '#/config/site'
 import { ORIGIN, buyPackage, content, credits, devLogin, json, ledger, post, uniqueEmail, uploadPhoto } from './helpers'
 
 type Generation = { id: string; status: string }
@@ -79,23 +80,25 @@ test('积分批次：先扣快到期的补发积分，失败原路退回，到�
 })
 
 test('并发扣费：余额只够一次时同时发起两个生成，一个成功一个 402，余额不为负', async ({ request, playwright }) => {
+  const fullCost = site.durations.find((duration) => duration.id === 'full')!.credits
+  const initialBalance = fullCost * 2 - 1
   const { id: userId } = await devLogin(request, uniqueEmail('race'))
   await buyPackage(request, 'starter') // 25
   const admin = await playwright.request.newContext({ baseURL: ORIGIN })
   try {
     await devLogin(admin, ADMIN_EMAIL)
-    await json(post(admin, `/api/admin/users/${userId}/credits`, { delta: 4, note: 'e2e 限时', expiresInDays: 1 }))
+    await json(post(admin, `/api/admin/users/${userId}/credits`, { delta: initialBalance - 25, note: 'e2e 限时', expiresInDays: 1 }))
   } finally {
     await admin.dispose()
   }
-  expect(await credits(request)).toBe(29)
+  expect(await credits(request)).toBe(initialBalance)
 
   const { upload } = await json<{ upload: { id: string } }>(uploadPhoto(request), 201)
-  const body = { uploadId: upload.id, durationId: 'full', mockOutcome: 'hang' } // 15 积分
+  const body = { uploadId: upload.id, durationId: 'full', mockOutcome: 'hang' }
   const results = await Promise.all([post(request, '/api/generations', body), post(request, '/api/generations', body)])
   expect(results.map((r) => r.status()).sort()).toEqual([201, 402])
-  expect(await credits(request)).toBe(14)
+  expect(await credits(request)).toBe(initialBalance - fullCost)
   const entries = await ledger(request)
-  expect(entries.filter((e) => e.reason === 'generation').map((e) => e.delta)).toEqual([-15])
-  expect(entries.reduce((sum, e) => sum + e.delta, 0)).toBe(14)
+  expect(entries.filter((e) => e.reason === 'generation').map((e) => e.delta)).toEqual([-fullCost])
+  expect(entries.reduce((sum, e) => sum + e.delta, 0)).toBe(initialBalance - fullCost)
 })

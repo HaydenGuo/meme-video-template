@@ -1,6 +1,6 @@
 # Meme Video Template（梗视频站模板）
 
-支持 GitHub → Cloudflare 推送发布，见[自动部署配置](docs/cloudflare-auto-deploy.md)。生产资源和密钥配置完成后再启用仓库变量。
+支持 GitHub → Cloudflare 推送发布，见[自动部署配置](docs/cloudflare-auto-deploy.md)。自动部署仅发布 main 上通过 CI 的确切提交。生产资源和密钥配置完成后再启用仓库变量。
 
 邀请奖励改为好友首单所购积分的 10%，向下取整（25 积分奖励 2、60 积分奖励 6）。配置项 `referralRewardPercent` 范围 0–100，0 为暂停。已发奖励和退款回收仍使用原记录金额，不追溯重算；旧固定积分运营设置不再读取。
 
