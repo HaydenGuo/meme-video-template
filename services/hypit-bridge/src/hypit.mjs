@@ -31,7 +31,7 @@ export function createHypitRunner(config) {
     async prepare(job, template, dir) {
       await mkdir(dir, { recursive: true })
       const passthrough = config.mode === 'passthrough'
-      const composition = template.workflow ? remixComposition(job, template, passthrough ? 'prepared.media' : 'generated.video') : null
+      const composition = template.workflow ? remixComposition(job, template, passthrough ? 'reference' : 'generated.video') : null
       if (template.workflow) {
         const input = await probe(resolve(dir, 'source.mp4'))
         const length = Number(input.format?.duration)
@@ -46,7 +46,7 @@ export function createHypitRunner(config) {
 <svml>
   <import as="media" from="@hypit/media@1"/>
 ${composition?.imports ?? ''}
-${passthrough ? `  <import as="time" from="@hypit/timeline-author@1"/>
+${passthrough ? composition ? '  <media:Video id="reference" src="./source.mp4"/>' : `  <import as="time" from="@hypit/timeline-author@1"/>
   <import as="mediaop" from="@hypit/media-operations@1"/>
   <media:Video id="reference" src="./source.mp4"/>
   <time:Clock id="clock" frame-rate="24"/>
