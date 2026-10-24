@@ -1,5 +1,7 @@
 # Meme Video Template
 
+The hero shows only the original reference video; AI results remain in the examples section.
+
 Example videos use manual playback with native pause, seeking, sound and fullscreen controls. Hero badges remain visible; material provenance stays in configuration instead of appearing below the hero videos.
 
 Use one AI-generated source mark for all header, browser/search, Apple and manifest icons through the [brand asset workflow](docs/brand-assets.md). New site profiles accept `media.brandIcon`.

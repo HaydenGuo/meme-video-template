@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { ArrowRight, Camera, Check, Clock, Coins, Film, Flame, ShieldCheck, Smartphone, Sparkles, X } from 'lucide-react'
+import { ArrowRight, Camera, Check, Clock, Coins, Film, Flame, ShieldCheck, Smartphone, X } from 'lucide-react'
 import { Faq, faqJsonLd } from '#/components/Faq'
 import { Generator } from '#/components/Generator'
 import { Pricing } from '#/components/Pricing'
@@ -47,20 +47,8 @@ function Home() {
             <span className="chip w-fit">
               <Flame className="size-4 text-accent" /> {c.hero.badge}
             </span>
-            <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                <VideoCard video={ex.original.video} poster={ex.original.poster} label={c.hero.original} />
-              {ex.aiVersions.map((v) => (
-                <VideoCard
-                  key={v.video}
-                  video={v.video}
-                  poster={v.poster}
-                  label={
-                    <>
-                      <Sparkles className="size-3" /> {c.hero.aiVersion}
-                    </>
-                  }
-                />
-              ))}
+            <div className="mx-auto w-full max-w-sm">
+              <VideoCard video={ex.original.video} poster={ex.original.poster} label={c.hero.original} />
             </div>
             <div className="flex flex-wrap justify-center gap-2">
               {c.hero.chips.map((chip) => (

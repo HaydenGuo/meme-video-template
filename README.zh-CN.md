@@ -1,5 +1,7 @@
 # Meme Video Template（梗视频站模板）
 
+首屏只展示原版参考视频，AI 成片继续在下方示例区展示。
+
 示例视频改为手动播放，提供原生暂停、进度、声音和全屏控件。首屏保留角标，素材来源保存在配置中，不再显示视频下方说明。
 
 品牌图标支持[同源 AI 图标流程](docs/brand-assets.md)：资料填写 `media.brandIcon`，从一张 AI 源图派生导航 Logo、浏览器/Google favicon、Apple 和 Manifest 图标。
