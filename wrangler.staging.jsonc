@@ -20,6 +20,7 @@
     "AUTH_ENABLED": "true",
     "GENERATION_ENABLED": "true",
     "PAYMENTS_ENABLED": "true",
+    "SHOWCASE_AUTH_ENABLED": "false",
     // staging 按生产行为运行（禁用 mock 和开发登录），但 robots.txt 禁止抓取
     "APP_ENV": "staging",
     // 部署前把 SUBDOMAIN 换成账号的 workers.dev 子域名（Dashboard → Workers & Pages 右侧可见）

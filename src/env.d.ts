@@ -4,6 +4,14 @@ interface Env {
   AUTH_ENABLED?: string
   GENERATION_ENABLED?: string
   PAYMENTS_ENABLED?: string
+  SHOWCASE_AUTH_ENABLED?: string
+  SESSION_SECRET?: string
+  GOOGLE_CLIENT_SECRET?: string
+  WAFFO_MERCHANT_ID?: string
+  WAFFO_PRIVATE_KEY?: string
+  DODO_API_KEY?: string
+  DODO_WEBHOOK_SECRET?: string
+  FAL_KEY?: string
   HYPIT_BRIDGE_TOKEN?: string
   TURNSTILE_SECRET_KEY?: string
   OPENAI_API_KEY?: string

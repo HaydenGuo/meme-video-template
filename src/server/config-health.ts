@@ -48,14 +48,19 @@ const PLACEHOLDER_HOSTS = /(^|\.)(example\.(com|org|net)|localhost)$|^127\.|SUBD
 
 const text = (value: string | undefined) => value?.replace(/^\uFEFF+/, '').trim() ?? ''
 
-export const FEATURE_FLAGS = ['SHOWCASE_MODE', 'AUTH_ENABLED', 'GENERATION_ENABLED', 'PAYMENTS_ENABLED'] as const
+export const FEATURE_FLAGS = ['SHOWCASE_MODE', 'SHOWCASE_AUTH_ENABLED', 'AUTH_ENABLED', 'GENERATION_ENABLED', 'PAYMENTS_ENABLED'] as const
 
 // 未设置的新开关沿用旧站行为；显式拼错的值按关闭处理，由 doctor 阻止发布。
 // 保持无 import，让运行时、doctor 和初始化脚本共用相同解释。
 export function resolveFeatures(vars: Partial<Record<typeof FEATURE_FLAGS[number], string>>) {
   const showcase = vars.SHOWCASE_MODE !== undefined && text(vars.SHOWCASE_MODE) !== 'false'
-  const enabled = (key: typeof FEATURE_FLAGS[number]) => !showcase && (vars[key] === undefined || text(vars[key]) === 'true')
-  return { showcase, auth: enabled('AUTH_ENABLED'), generation: enabled('GENERATION_ENABLED'), payments: enabled('PAYMENTS_ENABLED') }
+  const enabled = (key: typeof FEATURE_FLAGS[number]) => vars[key] === undefined || text(vars[key]) === 'true'
+  return {
+    showcase,
+    auth: enabled('AUTH_ENABLED') && (!showcase || text(vars.SHOWCASE_AUTH_ENABLED) === 'true'),
+    generation: !showcase && enabled('GENERATION_ENABLED'),
+    payments: !showcase && enabled('PAYMENTS_ENABLED'),
+  }
 }
 
 function hostOf(url: string) {
@@ -110,7 +115,7 @@ export function checkConfig(input: ConfigInput): ConfigIssue[] {
 
   // 展示模式由 API、队列、定时任务共同封锁业务动作，未接通的服务商无需伪配凭据。
   const { showcase } = features
-  if (showcase) warn('SHOWCASE_MODE', '展示发布：注册、上传、生成、购买及后台操作均关闭；队列和定时任务暂停')
+  if (showcase) warn('SHOWCASE_MODE', features.auth ? '展示发布：账户已开放，上传、生成、购买及后台操作关闭；队列和定时任务暂停' : '展示发布：注册、上传、生成、购买及后台操作均关闭；队列和定时任务暂停')
   if (!showcase && !features.auth) warn('AUTH_ENABLED', '新登录与注册关闭，已有会话仍可使用')
   if (!showcase && !features.generation) warn('GENERATION_ENABLED', '新上传与生成关闭，已有任务继续处理，须保留原视频服务凭据')
   if (!showcase && !features.payments) warn('PAYMENTS_ENABLED', '新购买关闭，已有订单和订阅仍需原支付凭据、回调与对账')

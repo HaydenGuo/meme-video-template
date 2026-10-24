@@ -59,6 +59,7 @@ export type PublicUser = {
 export type ClientConfig = {
   features?: { auth: boolean; generation: boolean; payments: boolean }
   showcase?: boolean
+  authEnabled?: boolean
   emailPassword: boolean
   emailVerification: boolean
   googleClientId: string | null
@@ -71,7 +72,10 @@ export type ClientConfig = {
 
 // 未读到公共配置时不开放付费或上传入口；兼容旧 Worker 没有独立开关的响应。
 export function featureEnabled(config: ClientConfig | null, feature: 'auth' | 'generation' | 'payments') {
-  return config !== null && !config.showcase && config.features?.[feature] !== false
+  if (!config) return false
+  if (config.features) return config.features[feature] === true
+  if (config.showcase) return feature === 'auth' && config.authEnabled === true
+  return feature !== 'auth' || config.authEnabled !== false
 }
 
 export type Generation = {

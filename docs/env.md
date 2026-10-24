@@ -87,7 +87,7 @@ Hypit 可选接入：`VIDEO_PROVIDER=hypit`，新增 `HYPIT_BRIDGE_URL`（Bridge
 | `AUTH_ENABLED=false` | 关闭新的登录、注册和密码重置；既有会话与退出仍可用 |
 | `GENERATION_ENABLED=false` | 关闭新上传和提交；已有任务继续处理，查看、下载与失败退款照常 |
 | `PAYMENTS_ENABLED=false` | 关闭新结账；已有订单回调、对账、退款与订阅管理照常 |
-| `SHOWCASE_MODE=true` | 覆盖前三个开关，进入仅展示状态 |
+| `SHOWCASE_MODE=true` | 关闭生成和购买；默认也关闭账户，可用 `SHOWCASE_AUTH_ENABLED=true` 开放账户，但仍受 `AUTH_ENABLED` 控制 |
 
 新开关未设置时兼容旧站默认开放。配置值只支持字符串 `true` / `false`；拼写错误时 doctor 报错、运行时关闭对应入口。前台按 `/api/me` 返回的开关控制按钮，服务端在读取业务数据和调用服务商前再次拦截。
 
@@ -97,6 +97,10 @@ doctor 只要求开启功能对应的服务商凭据。关闭开关不会删除�
 
 ### 展示发布
 
-`SHOWCASE_MODE=true` 可先上线介绍和案例。API 仅开放 `/api/me` 与 `/api/health`，其它 API 返回 503（调试接口返回 404）；不运行队列业务和定时任务。前端隐藏登录并禁用上传、生成与购买。此时 doctor 不要求未启用业务的服务商凭据，但仍检查 HTTPS、会话密钥、资源绑定和迁移。不要将它当作完整生成服务的验收。
+`SHOWCASE_MODE=true` 可先上线介绍和案例。默认 API 仅开放 `/api/me` 与 `/api/health`，其它 API 返回 503（调试接口返回 404）；不运行队列业务和定时任务。默认隐藏登录并禁用上传、生成与购买。此时 doctor 不要求未启用业务的服务商凭据，但仍检查 HTTPS、会话密钥、资源绑定和迁移。不要将它当作完整生成服务的验收。
+
+展示站可额外设置 `SHOWCASE_AUTH_ENABLED=true` 且保持 `AUTH_ENABLED=true`，开放正式登录、退出、账户删除及账户页所需的只读接口。此时需要正常配置 Google OAuth 或真实邮箱验证发信服务；Google 回调为当前 origin 的 `/api/auth/google/callback`。生成、充值、兑换、调试接口和后台仍关闭，会话密钥保持本站独立且稳定。
+
+阶段命令会将 `SHOWCASE_AUTH_ENABLED` 重置为 `false`，使预设结果确定；需要展示站登录时再显式开启它。同步模板到现有站点时保留本站开关，不用模板默认值覆盖。
 
 离开展示模式时，设回 `false` 并按阶段开启其它三个开关，通过 doctor 再发布。已有队列消息会每小时重试且可能耗尽重试次数，切换前应确认无历史任务；展示模式不适合暂停已有活跃订单的站点，应使用独立开关。

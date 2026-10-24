@@ -1,10 +1,10 @@
 // 初始化与后续切换共用：模式只决定入口开放程度，不自动选择生产服务商或创建云资源。
 export const LAUNCH_MODES = {
-  local: { SHOWCASE_MODE: 'false', AUTH_ENABLED: 'true', GENERATION_ENABLED: 'true', PAYMENTS_ENABLED: 'true' },
-  showcase: { SHOWCASE_MODE: 'true', AUTH_ENABLED: 'false', GENERATION_ENABLED: 'false', PAYMENTS_ENABLED: 'false' },
-  accounts: { SHOWCASE_MODE: 'false', AUTH_ENABLED: 'true', GENERATION_ENABLED: 'false', PAYMENTS_ENABLED: 'false' },
-  generate: { SHOWCASE_MODE: 'false', AUTH_ENABLED: 'true', GENERATION_ENABLED: 'true', PAYMENTS_ENABLED: 'false' },
-  full: { SHOWCASE_MODE: 'false', AUTH_ENABLED: 'true', GENERATION_ENABLED: 'true', PAYMENTS_ENABLED: 'true' },
+  local: { SHOWCASE_AUTH_ENABLED: 'false', SHOWCASE_MODE: 'false', AUTH_ENABLED: 'true', GENERATION_ENABLED: 'true', PAYMENTS_ENABLED: 'true' },
+  showcase: { SHOWCASE_AUTH_ENABLED: 'false', SHOWCASE_MODE: 'true', AUTH_ENABLED: 'false', GENERATION_ENABLED: 'false', PAYMENTS_ENABLED: 'false' },
+  accounts: { SHOWCASE_AUTH_ENABLED: 'false', SHOWCASE_MODE: 'false', AUTH_ENABLED: 'true', GENERATION_ENABLED: 'false', PAYMENTS_ENABLED: 'false' },
+  generate: { SHOWCASE_AUTH_ENABLED: 'false', SHOWCASE_MODE: 'false', AUTH_ENABLED: 'true', GENERATION_ENABLED: 'true', PAYMENTS_ENABLED: 'false' },
+  full: { SHOWCASE_AUTH_ENABLED: 'false', SHOWCASE_MODE: 'false', AUTH_ENABLED: 'true', GENERATION_ENABLED: 'true', PAYMENTS_ENABLED: 'true' },
 }
 
 export function launchVars(mode) {
