@@ -55,7 +55,9 @@ export function createHypitRunner(config) {
         if (!Number.isFinite(length) || Math.abs(length - job.durationSeconds) > 0.1 || !input.streams?.some((s) => s.codec_type === 'video') || !input.streams.some((s) => s.codec_type === 'audio')) throw new Error('Reference duration or soundtrack invalid')
         const expected = template.referenceHashes?.[job.durationSeconds]
         const actual = createHash('sha256').update(await readFile(resolve(dir, 'source.mp4'))).digest('hex')
-        if (!expected || actual !== expected) throw new Error('Reference differs from approved template')
+        // 滚动更新允许少量已批准版本同时存在，避免 Worker 与 VPS 切换期间哈希失配。
+        const approved = Array.isArray(expected) ? expected : [expected]
+        if (!approved.length || approved.length > 4 || approved.some(hash => typeof hash !== 'string' || !/^[a-f0-9]{64}$/.test(hash)) || !approved.includes(actual)) throw new Error('Reference differs from approved template')
         const image = await probe(resolve(dir, 'image.png'))
         if (!image.streams?.some((s) => s.codec_type === 'video' && s.width > 0 && s.height > 0)) throw new Error('Invalid portrait')
       }
