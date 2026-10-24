@@ -11,6 +11,10 @@ type Reports = {
 
 // 广告/渠道落地 → 注册 → 下单 → 付款，来源贯穿全链路；direct 回访不覆盖最近一次有来源的触达
 test('来源归因：UTM 落地后 direct 回访，注册与订单仍记在原渠道，报表与 CSV 可见', async ({ page, playwright }) => {
+  // 此用例验证已同意统计的访客；派生站启用 GA4 后也遵守同意前不写归因 Cookie 的规则。
+  await page.addInitScript(() => localStorage.setItem('consent.analytics', 'granted'))
+  // 测试只验本站归因，不向派生站的真实 Google 属性发送事件。
+  await page.route('https://www.googletagmanager.com/**', (route) => route.abort())
   const campaign = `e2e-${Date.now().toString(36)}`
   const source = `e2e${Math.random().toString(36).slice(2, 8)}`
   const visit = page.waitForResponse((r) => r.url().endsWith('/api/t/visit') && r.request().method() === 'POST')
