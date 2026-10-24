@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { ErrorText, GoogleIcon, LocalLink, LogoMark, Spinner } from '#/components/ui'
-import { api, errorCode } from '#/lib/api'
+import { api, errorCode, featureEnabled } from '#/lib/api'
 import { getContent, localeFromParam, pageHead, useContent, useLocale, useLocalePath } from '#/lib/i18n'
 import { safeRedirectPath } from '#/lib/redirect'
 import { useSession } from '#/lib/session'
@@ -117,7 +117,7 @@ function SignInPage() {
     }
   }
 
-  if (config?.showcase && !config.authEnabled) return <main className="container-page py-24 text-center"><h1 className="font-display text-3xl">{c.common.comingSoon}</h1><p className="my-6">{c.common.showcaseNotice}</p><LocalLink to="/">{c.common.home}</LocalLink></main>
+  if (!loading && !featureEnabled(config, 'auth')) return <main className="container-page py-24 text-center"><h1 className="font-display text-3xl">{c.common.comingSoon}</h1><p className="my-6">{c.common.signInUnavailable}</p><LocalLink to="/">{c.common.home}</LocalLink></main>
   return (
     <div className="container-page grid max-w-md place-items-center py-20">
       <div className="card w-full space-y-6 p-8 text-center">

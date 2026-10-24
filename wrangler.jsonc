@@ -14,6 +14,9 @@
   },
   "vars": {
     "SHOWCASE_MODE": "false",
+    "AUTH_ENABLED": "true",
+    "GENERATION_ENABLED": "true",
+    "PAYMENTS_ENABLED": "true",
     "SHOWCASE_AUTH_ENABLED": "false",
     "APP_ENV": "development",
     "SITE_URL": "http://localhost:3000",

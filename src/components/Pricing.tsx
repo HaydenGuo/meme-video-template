@@ -2,7 +2,7 @@ import { useRouterState } from '@tanstack/react-router'
 import { Check } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { anchorPrice, formatPrice, sellingPlans, site, type SubscriptionPlan } from '#/config/site'
-import { api, errorCode } from '#/lib/api'
+import { api, errorCode, featureEnabled } from '#/lib/api'
 import { track } from '#/lib/attribution'
 import { useContent, useLocale, useLocalePath } from '#/lib/i18n'
 import { signInHref, useSession } from '#/lib/session'
@@ -15,10 +15,12 @@ export function Pricing() {
   const lp = useLocalePath()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const { user, config, loading } = useSession()
+  const canBuy = featureEnabled(config, 'payments') && (!!user || featureEnabled(config, 'auth'))
   const [pending, setPending] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   async function buy(packageId: string) {
+    if (!canBuy) return
     if (!user) {
       location.href = signInHref(config, pathname, lp('/sign-in'))
       return
@@ -48,11 +50,11 @@ export function Pricing() {
         type="button"
         onClick={() => buy(id)}
         // 会话还在加载时 user 为空，此时点击会把已登录用户误送去登录页
-        disabled={pending !== null || loading || config?.showcase}
+        disabled={pending !== null || loading || !canBuy}
         className={`${primary ? 'btn-primary' : 'btn-ghost'} mt-auto w-full`}
         data-testid={`buy-${id}`}
       >
-        {config?.showcase ? c.common.comingSoon : pending === id ? (
+        {!loading && !canBuy ? c.common.comingSoon : pending === id ? (
           <>
             <Spinner /> {p.buying}
           </>

@@ -1,4 +1,5 @@
 import handler from '@tanstack/react-start/server-entry'
+import { resolveFeatures } from './server/config-health'
 import { runHealthCheck } from './server/alerts'
 import { app } from './server/app'
 import { runDailyBackup } from './server/backup'
@@ -61,14 +62,14 @@ export default {
 
   async queue(batch: MessageBatch<VideoJobMessage>, env: Env) {
     // 保留已有消息，展示模式不得运行服务商或改变积分。
-    if (env.SHOWCASE_MODE === 'true') { batch.retryAll({ delaySeconds: 3600 }); return }
+    if (resolveFeatures(env).showcase) { batch.retryAll({ delaySeconds: 3600 }); return }
     // 死信队列按约定以 -dlq 结尾（wrangler.jsonc 的 dead_letter_queue）
     if (batch.queue.endsWith('-dlq')) await handleDeadLetterBatch(batch, env)
     else await handleQueueBatch(batch, env)
   },
 
   async scheduled(_controller: ScheduledController, env: Env, ctx: ExecutionContext) {
-    if (env.SHOWCASE_MODE === 'true') return
+    if (resolveFeatures(env).showcase) return
     ctx.waitUntil(runScheduledMaintenance(env))
     ctx.waitUntil(runNotificationCron(env))
     ctx.waitUntil(runHealthCheck(env).catch((error) => console.error('[alert] health check failed', error)))

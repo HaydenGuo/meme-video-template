@@ -450,6 +450,7 @@ export function zh(s: S): Content {
     },
     common: {
       comingSoon: '暂未开放',
+      signInUnavailable: '登录暂未开放，可继续浏览梗介绍和案例。',
       showcaseNotice: '可浏览梗介绍与案例，注册、视频生成和购买暂未开放。',
       showcaseAuthNotice: '视频生成和购买暂未开放。',
       loading: '加载中…',

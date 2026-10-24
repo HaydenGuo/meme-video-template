@@ -3,7 +3,7 @@
 `.github/workflows/deploy.yml` 在 `main` 的 CI 成功后发布该次检查对应的提交，也允许从 `main` 手动触发。模板默认关闭，站点完成配置后开启。
 
 1. 在 Cloudflare 建立该站独立的 D1、R2、KV 和队列，将实际绑定写入 `wrangler.jsonc`。
-2. 配置生产环境、实际服务商和站点地址；运行 `npm run doctor -- --offline`。
+2. 配置生产环境、实际服务商和站点地址，并按 [分阶段发布](env.md#分阶段发布) 选择开放程度。可先用 `SHOWCASE_MODE=true` 发布新站介绍与案例，或关闭 `PAYMENTS_ENABLED` 延后充值；运行 `npm run doctor -- --offline`。不要关闭已有订单需要的回调与凭据。
 3. 用 `scripts/sync-secrets.mjs` 将运行时密钥直接传给 Worker，密钥文件不要提交 Git。
 4. 在 GitHub 的 `production` environment 设置 `CLOUDFLARE_API_TOKEN` 和 `CLOUDFLARE_ACCOUNT_ID`。API token 限定目标账户，包含 Workers、D1、KV、R2、Queues 的必要编辑权限；不要使用本机 Wrangler OAuth 登录令牌代替 CI token。
 5. 将仓库变量 `CLOUDFLARE_AUTO_DEPLOY` 设为 `true`。

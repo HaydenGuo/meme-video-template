@@ -1,6 +1,9 @@
 // 可选 secret：没写进 .dev.vars 时 `npm run cf:types` 不会生成它们，这里补上类型
 interface Env {
   SHOWCASE_MODE?: string
+  AUTH_ENABLED?: string
+  GENERATION_ENABLED?: string
+  PAYMENTS_ENABLED?: string
   SHOWCASE_AUTH_ENABLED?: string
   SESSION_SECRET?: string
   GOOGLE_CLIENT_SECRET?: string

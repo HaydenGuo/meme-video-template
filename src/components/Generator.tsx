@@ -2,7 +2,7 @@ import { useRouterState } from '@tanstack/react-router'
 import { CircleAlert, CircleCheck, Download, Film, Upload } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { site } from '#/config/site'
-import { api, errorCode, isActiveGeneration, type Generation } from '#/lib/api'
+import { api, errorCode, featureEnabled, isActiveGeneration, type Generation } from '#/lib/api'
 import { track } from '#/lib/attribution'
 import { useContent, useLocale, useLocalePath } from '#/lib/i18n'
 import { signInHref, useSession } from '#/lib/session'
@@ -19,6 +19,9 @@ export function Generator() {
   const locale = useLocale()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const { user, config, loading, refresh } = useSession()
+  const generationEnabled = featureEnabled(config, 'generation')
+  const authEnabled = featureEnabled(config, 'auth')
+  const paymentsEnabled = featureEnabled(config, 'payments')
   const inputRef = useRef<HTMLInputElement>(null)
   const [photo, setPhoto] = useState<Photo | null>(null)
   const [uploading, setUploading] = useState(false)
@@ -67,6 +70,7 @@ export function Generator() {
   }
 
   async function selectFile(file: File | undefined) {
+    if (!generationEnabled) return
     if (!file) return
     setError(null)
     if (!(site.upload.contentTypes as readonly string[]).includes(file.type)) return setError('unsupported_file_type')
@@ -84,6 +88,7 @@ export function Generator() {
   }
 
   async function generate() {
+    if (!generationEnabled) return
     if (!photo) return setError('invalid_upload')
     setError(null)
     setSubmitting(true)
@@ -132,6 +137,7 @@ export function Generator() {
             tabIndex={-1}
             aria-label={g.dropTitle}
             data-testid="photo-input"
+            disabled={busy || loading || !generationEnabled}
             onChange={(event) => {
               void selectFile(event.target.files?.[0])
               event.target.value = ''
@@ -139,7 +145,7 @@ export function Generator() {
           />
           <button
             type="button"
-            disabled={busy || loading || config?.showcase}
+            disabled={busy || loading || !generationEnabled}
             onClick={() => inputRef.current?.click()}
             onDragOver={(event) => {
               event.preventDefault()
@@ -191,7 +197,7 @@ export function Generator() {
                   type="button"
                   role="radio"
                   aria-checked={active}
-                  disabled={busy || loading || config?.showcase}
+                  disabled={busy || loading || !generationEnabled}
                   data-testid={`duration-${d.id}`}
                   onClick={() => setDurationId(d.id)}
                   className={`rounded-lg px-2 py-2 text-center transition ${active ? 'bg-card shadow-sm ring-1 ring-line' : 'text-muted hover:text-fg'}`}
@@ -216,7 +222,7 @@ export function Generator() {
                 type="button"
                 role="radio"
                 aria-checked={aspectRatio === ratio}
-                disabled={busy || loading || config?.showcase || generation !== null}
+                disabled={busy || loading || !generationEnabled || generation !== null}
                 onClick={() => setAspectRatio(ratio)}
                 className={`flex items-center justify-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold transition ${aspectRatio === ratio ? 'bg-card shadow-sm ring-1 ring-line' : 'text-muted hover:text-fg'}`}
               >
@@ -238,7 +244,7 @@ export function Generator() {
             onChange={(event) => setBackgroundDescription(event.target.value)}
             maxLength={500}
             rows={3}
-            disabled={busy || loading || config?.showcase || generation !== null}
+            disabled={busy || loading || !generationEnabled || generation !== null}
             placeholder={g.backgroundPlaceholder}
             aria-describedby="background-hint"
             className="w-full resize-y rounded-xl border border-line bg-bg-soft px-4 py-3 text-sm text-fg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-60"
@@ -259,7 +265,7 @@ export function Generator() {
 
         {/* CTA */}
         <div className="space-y-2">
-          {config?.showcase ? (
+          {!loading && (!generationEnabled || (!user && !authEnabled) || (shortfall > 0 && !paymentsEnabled)) ? (
             <button type="button" disabled className="btn-primary w-full py-3.5">{c.common.comingSoon}</button>
           ) : loading ? (
             <div className="btn-primary w-full py-3.5 opacity-60">
