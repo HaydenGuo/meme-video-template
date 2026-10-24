@@ -15,6 +15,7 @@
 - 可选 `media.brandIcon`：至少 512×512 的正方形 AI PNG；统一派生整站品牌图标，见 [品牌图标流程](brand-assets.md)。
 - `media.credit`：来源署名；确认可用后设 `authorized=true`。
 - 可选品牌、域名、端口、平台、客服邮箱和生成提示词 `prompt`。域名不填时使用 `<slug>.example.com` 并列为待办。
+- 可选 `launch`：默认 `local`；`showcase`（仅展示）、`accounts`（仅账户）、`generate`（账户与生成，暂不充值）、`full`（完整）。线上阶段写入 production 与 HTTPS 地址，并选用 Hypit、Waffo、OpenAI 配置名称；不会自动创建这些服务的资源或凭据，必须通过 doctor 后才能上线。
 
 三个素材路径都相对于资料 JSON 所在目录，也支持绝对路径。当前为人物照片参考视频模板；宠物、多人、非人物梗需要另外适配模型与上传规则。
 
@@ -52,9 +53,11 @@ npm run dev
 - 将梗介绍写入配置、首屏和趋势指南；生成与照片、时长、比例、积分和下载步骤一致的中英文操作指南。通用 FAQ、法律和场景文案沿用模板，事实/翻译/SEO 仍需审阅。
 - 转码原片和真实 AI 示例，生成视频封面、照片、1200×630 OG 图和通用播放图标；展示均引用 `public/site-init/` 的本次素材。三个创意场景暂复用同一真实示例，不伪造额外样片。
 - 生成 5/12/15 秒参考视频；固定每秒 1 积分，积分包 $9.90/25 和 $19.90/60，关闭新订阅。
-- 设置本地 URL、管理员邮箱、Google 配置和 Bridge 站点 ID；私有密钥仅写入已被 Git 忽略的 `.dev.vars`。默认视频和支付保持 mock，避免初次启动产生真实费用。
+- 按 `launch` 设置功能开关、环境和 URL，同时写入管理员邮箱、Google 配置和 Bridge 站点 ID；私有密钥仅写入已被 Git 忽略的 `.dev.vars`。默认 `local` 使用 mock，不产生生成费用；线上阶段不使用 mock，尚缺的服务通过 doctor 检查。
 - 输出 `bridge-site.json`，作为 VPS Bridge 的 `sites` 属性下的站点片段。需与现有站点合并后重启；不会覆盖正在运行的 Bridge。
 - 输出 `.site-initialized.json`：模板 commit、输入指纹、生成素材哈希、本地导入状态及待办；状态固定为待审阅，不宣称生产可用。
+
+初始化后可用 `npm run site:mode -- generate` 在本地预览下一阶段，追加 `--apply` 修改本地功能开关，不会部署或覆盖凭据。该命令不替换环境和 URL；正式上线前另行设置 `APP_ENV` 与 HTTPS `SITE_URL`。详见 [环境配置](env.md)。
 
 ## 防止覆盖与失败恢复
 

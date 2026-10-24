@@ -7,6 +7,7 @@ import { dirname, resolve, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import ts from 'typescript'
 import { generateBrandAssets } from './generate-brand-assets.mjs'
+import { launchVars, patchWranglerVars } from './launch-config.mjs'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const args = process.argv.slice(2)
@@ -27,6 +28,8 @@ if (local && !apply) throw new Error('--local 需要同时提供 --apply')
 if (!option('--profile')) throw new Error(usage)
 const profilePath = resolve(option('--profile'))
 const profile = JSON.parse(readFileSync(profilePath, 'utf8'))
+const launch = profile.launch ?? 'local'
+const features = launchVars(launch)
 const services = option('--services') ? JSON.parse(readFileSync(resolve(option('--services')), 'utf8')) : {}
 const digest = (value) => createHash('sha256').update(value).digest('hex')
 const text = (value, name) => {
@@ -104,10 +107,11 @@ const pending = [
   '配置真实邮件域名、图片审核及 Turnstile；生产前运行 doctor 并完成登录/充值/生成验证',
   '人工审阅梗资料、翻译、指南和展示素材；脚本不代表 SEO 或真实生成验收通过',
 ]
-if (!credentials.googleClientId) pending.push('补充 Google 凭据：当前仅普通邮箱和本地开发登录可用')
+pending.push(`当前上线阶段：${launch}。仅核验已开放功能；关闭新购买时保留已有支付回调与凭据`)
+if (!credentials.googleClientId) pending.push('尚未配置 Google；开启登录前需接通 Google 或已验证发件域的邮箱注册。本地开发可使用调试登录')
 pending.push('将生成的 Bridge 站点片段合并进 VPS Bridge 配置并重启；复核模型预算后才运行真实生成')
 if (domain.endsWith('.example.com')) pending.push('当前域名为占位值，上线前替换正式域名及相关回调/发件地址')
-console.log(JSON.stringify({ mode: apply ? 'apply' : 'preview', keyword, slug, domain, localUrl: origin,
+console.log(JSON.stringify({ mode: apply ? 'apply' : 'preview', keyword, slug, domain, launch, features, localUrl: origin,
   assets: Object.keys(media), durations, packages: ['25 / $9.90', '60 / $19.90'],
   googleConfigured: Boolean(credentials.googleClientId), bridgeConfigured: Boolean(credentials.hypitBridgeToken), pending }, null, 2))
 if (!apply) { console.log('\n仅预览，未写文件。确认资料后加 --apply；加 --local 导入本地数据库与素材。'); process.exit(0) }
@@ -232,15 +236,13 @@ for (const locale of ['en', 'zh']) {
   })
 }
 let wrangler = readFileSync(join(stage, 'wrangler.jsonc'), 'utf8')
-const vars = { SITE_URL: origin, HYPIT_SITE_ID: slug, HYPIT_BRIDGE_URL: bridge.origin,
+const vars = { ...features, SITE_URL: launch === 'local' ? origin : `https://${domain}`, HYPIT_SITE_ID: slug, HYPIT_BRIDGE_URL: bridge.origin,
   ADMIN_EMAILS: adminEmail, GOOGLE_CLIENT_ID: credentials.googleClientId,
-  // 没有显式确认 Bridge 的模型与预算时保持本地 mock，避免第一次启动就付费生成。
-  VIDEO_PROVIDER: 'mock', PAYMENT_PROVIDER: 'mock', APP_ENV: 'development' }
-for (const [key, value] of Object.entries(vars)) {
-  const regex = new RegExp(`("${key}"\\s*:\\s*)"[^"\\n]*"`, 'g')
-  if ([...wrangler.matchAll(regex)].length !== 1) throw new Error(`wrangler vars 无法唯一定位 ${key}`)
-  wrangler = wrangler.replace(regex, (_, prefix) => prefix + JSON.stringify(value))
-}
+  // 本地默认 mock；线上阶段指定真实服务商名称，但还须接通凭据、模型与预算并通过 doctor。
+  VIDEO_PROVIDER: launch === 'local' ? 'mock' : 'hypit', PAYMENT_PROVIDER: launch === 'local' ? 'mock' : 'waffo',
+  MODERATION_PROVIDER: launch === 'local' ? 'mock' : 'openai', EMAIL_FROM: launch === 'local' ? `noreply@${domain}` : '',
+  APP_ENV: launch === 'local' ? 'development' : 'production' }
+wrangler = patchWranglerVars(wrangler, vars)
 writeFileSync(join(stage, 'wrangler.jsonc'), wrangler)
 const pkg = JSON.parse(readFileSync(join(stage, 'package.json'), 'utf8'))
 pkg.scripts.dev = `vite dev --host 127.0.0.1 --port ${port} --strictPort`
@@ -253,8 +255,8 @@ const secrets = { SESSION_SECRET: randomBytes(48).toString('hex'),
   ...(credentials.googleClientSecret ? { GOOGLE_CLIENT_SECRET: credentials.googleClientSecret } : {}),
   ...(credentials.hypitBridgeToken ? { HYPIT_BRIDGE_TOKEN: credentials.hypitBridgeToken } : {}) }
 const envText = Object.entries(secrets).map(([key, value]) => `${key}=${JSON.stringify(value)}`).join('\n') + '\n'
-const report = { version: 1, fingerprint, templateCommit: commit, initializedAt: new Date().toISOString(), keyword, domain,
-  status: 'LOCAL_CONFIGURED_REVIEW_REQUIRED', localSeeded: false, pending,
+const report = { version: 1, fingerprint, templateCommit: commit, initializedAt: new Date().toISOString(), keyword, domain, launch, features,
+  status: launch === 'local' ? 'LOCAL_CONFIGURED_REVIEW_REQUIRED' : 'PRODUCTION_CONFIGURED_REVIEW_REQUIRED', localSeeded: false, pending,
   assets: Object.fromEntries([...files].filter((f) => /\.(mp4|jpg|png|svg)$/.test(f)).map((f) => [f, digest(readFileSync(join(stage, f)))])) }
 const bridgeFragment = { [slug]: { mediaOrigins: [origin, `https://${domain}`], templates: { [templateId]: {
   durations, model: 'mini', resolution: '720p', aspectRatio, imagePersonReference: true, videoPersonReference: true,
@@ -300,4 +302,4 @@ if (local) {
   report.localSeeded = true
   writeFileSync(statePath, JSON.stringify(report, null, 2) + '\n')
 }
-console.log(`\n初始化已写入。运行 npm run dev 打开 ${origin}。凭据仅写入忽略文件 .dev.vars；待接通项见 .site-initialized.json，Bridge 片段见 bridge-site.json。`)
+console.log(`\n初始化已写入。${launch === 'local' ? `运行 npm run dev 打开 ${origin}。` : '已选择线上配置：先接通所选阶段的服务与云资源，再运行 npm run doctor；尚未部署。'}凭据仅写入忽略文件 .dev.vars；待接通项见 .site-initialized.json，Bridge 片段见 bridge-site.json。`)

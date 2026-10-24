@@ -17,13 +17,15 @@ test('未登录与普通用户进不了后台，后台接口同样拒绝', async
   expect((await post(page.request, '/api/admin/users/x/credits', { delta: 100, note: 'self' })).status()).toBe(403)
 })
 
-// 本地 Worker 读取的密钥（.dev.vars，没有时 wrangler 也不会注入）：只用于断言接口没有回传它们的值
+// .dev.vars 也可覆盖公开 vars；只检查 .dev.vars.example 登记的 secret，避免把配置诊断误报为泄露。
+// 密钥登记名单与 sync-secrets 的输入约束一致，不按响应内容排除任何实际 secret。
 function localSecrets() {
   if (!existsSync('.dev.vars')) return {}
+  const secretNames = new Set([...readFileSync('.dev.vars.example', 'utf8').matchAll(/^\s*#?\s*([A-Z][A-Z0-9_]*)=/gm)].map((m) => m[1]))
   const pairs = readFileSync('.dev.vars', 'utf8')
     .split(/\r?\n/)
     .map((line) => line.match(/^([A-Z0-9_]+)=(.*)$/))
-    .filter((m): m is RegExpMatchArray => Boolean(m))
+    .filter((m): m is RegExpMatchArray => Boolean(m && secretNames.has(m[1])))
   return Object.fromEntries(pairs.map((m) => [m[1]!, m[2]!.replace(/^(['"])(.*)\1$/, '$2')]))
 }
 

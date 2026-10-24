@@ -48,6 +48,21 @@ const PLACEHOLDER_HOSTS = /(^|\.)(example\.(com|org|net)|localhost)$|^127\.|SUBD
 
 const text = (value: string | undefined) => value?.replace(/^\uFEFF+/, '').trim() ?? ''
 
+export const FEATURE_FLAGS = ['SHOWCASE_MODE', 'SHOWCASE_AUTH_ENABLED', 'AUTH_ENABLED', 'GENERATION_ENABLED', 'PAYMENTS_ENABLED'] as const
+
+// 未设置的新开关沿用旧站行为；显式拼错的值按关闭处理，由 doctor 阻止发布。
+// 保持无 import，让运行时、doctor 和初始化脚本共用相同解释。
+export function resolveFeatures(vars: Partial<Record<typeof FEATURE_FLAGS[number], string>>) {
+  const showcase = vars.SHOWCASE_MODE !== undefined && text(vars.SHOWCASE_MODE) !== 'false'
+  const enabled = (key: typeof FEATURE_FLAGS[number]) => vars[key] === undefined || text(vars[key]) === 'true'
+  return {
+    showcase,
+    auth: enabled('AUTH_ENABLED') && (!showcase || text(vars.SHOWCASE_AUTH_ENABLED) === 'true'),
+    generation: !showcase && enabled('GENERATION_ENABLED'),
+    payments: !showcase && enabled('PAYMENTS_ENABLED'),
+  }
+}
+
 function hostOf(url: string) {
   try {
     return new URL(url).hostname.toLowerCase()
@@ -64,6 +79,10 @@ export function checkConfig(input: ConfigInput): ConfigIssue[] {
   const error = (key: string, message: string) => issues.push({ level: 'error', key, message })
   const warn = (key: string, message: string) => issues.push({ level: 'warn', key, message })
   const vars = (name: string) => text(input.vars[name])
+  for (const key of FEATURE_FLAGS) {
+    if (input.vars[key] !== undefined && !['true', 'false'].includes(vars(key))) error(key, `${key} 必须是 true 或 false`)
+  }
+  const features = resolveFeatures(input.vars)
   const requireSecrets = (names: string[], reason: string) => {
     for (const name of names) {
       const value = input.secrets[name]
@@ -95,17 +114,18 @@ export function checkConfig(input: ConfigInput): ConfigIssue[] {
   if (missingBindings.length) error('bindings', `缺少绑定：${missingBindings.join('、')}`)
 
   // 展示模式由 API、队列、定时任务共同封锁业务动作，未接通的服务商无需伪配凭据。
-  const showcase = vars('SHOWCASE_MODE') === 'true'
-  const showcaseAuth = vars('SHOWCASE_AUTH_ENABLED') === 'true'
-  if (showcase) warn('SHOWCASE_MODE', showcaseAuth ? '展示发布：账户已开放，上传、生成、购买及后台操作关闭；队列和定时任务暂停' : '展示发布：注册、上传、生成、购买及后台操作均关闭；队列和定时任务暂停')
-  if (!showcase || showcaseAuth) {
-  // Google 可选；新用户也能通过已配置发件服务的邮箱注册。
-  if (!vars('GOOGLE_CLIENT_ID')) {
-    warn('GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_ID 为空：Google 登录按钮不可用')
-    if (!vars('EMAIL_FROM') || !input.bindings.includes('EMAIL')) error('auth', 'Google 和邮箱验证均未配置：新用户无法注册')
-  }
-  else requireSecrets(['GOOGLE_CLIENT_SECRET'], 'Google 登录')
-
+  const { showcase } = features
+  if (showcase) warn('SHOWCASE_MODE', features.auth ? '展示发布：账户已开放，上传、生成、购买及后台操作关闭；队列和定时任务暂停' : '展示发布：注册、上传、生成、购买及后台操作均关闭；队列和定时任务暂停')
+  if (!showcase && !features.auth) warn('AUTH_ENABLED', '新登录与注册关闭，已有会话仍可使用')
+  if (!showcase && !features.generation) warn('GENERATION_ENABLED', '新上传与生成关闭，已有任务继续处理，须保留原视频服务凭据')
+  if (!showcase && !features.payments) warn('PAYMENTS_ENABLED', '新购买关闭，已有订单和订阅仍需原支付凭据、回调与对账')
+  if (features.auth) {
+    // Google 可选；新用户也能通过已配置发件服务的邮箱注册。
+    if (!vars('GOOGLE_CLIENT_ID')) {
+      warn('GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_ID 为空：Google 登录按钮不可用')
+      if (!vars('EMAIL_FROM') || !input.bindings.includes('EMAIL')) error('auth', 'Google 和邮箱验证均未配置：新用户无法注册')
+    }
+    else requireSecrets(['GOOGLE_CLIENT_SECRET'], 'Google 登录')
   }
   const sessionSecret = input.secrets.SESSION_SECRET
   if (typeof sessionSecret === 'string' && text(sessionSecret) && isWeakSessionSecret(text(sessionSecret))) {
@@ -114,58 +134,59 @@ export function checkConfig(input: ConfigInput): ConfigIssue[] {
     requireSecrets(['SESSION_SECRET'], '签名图片地址和视频服务商回调')
   }
 
-  if (!showcase) {
-  const payment = vars('PAYMENT_PROVIDER')
-  if (payment === 'mock') error('PAYMENT_PROVIDER', 'PAYMENT_PROVIDER=mock：生产环境下单会返回 503')
-  else if (!PAYMENT_SECRETS[payment]) error('PAYMENT_PROVIDER', `未知的 PAYMENT_PROVIDER=${payment || '(空)'}，可选 waffo、dodo`)
-  else {
-    requireSecrets(PAYMENT_SECRETS[payment], `${payment} 支付`)
-    const productsKey = `${payment.toUpperCase()}_PRODUCTS`
-    let products: Record<string, unknown> = {}
-    try {
-      const parsed: unknown = JSON.parse(vars(productsKey) || '{}')
-      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) products = parsed as Record<string, unknown>
-      else error(productsKey, `${productsKey} 必须是 JSON 对象`)
-    } catch {
-      error(productsKey, `${productsKey} 不是合法 JSON`)
+  if (features.payments) {
+    const payment = vars('PAYMENT_PROVIDER')
+    if (payment === 'mock') error('PAYMENT_PROVIDER', 'PAYMENT_PROVIDER=mock：生产环境下单会返回 503')
+    else if (!PAYMENT_SECRETS[payment]) error('PAYMENT_PROVIDER', `未知的 PAYMENT_PROVIDER=${payment || '(空)'}，可选 waffo、dodo`)
+    else {
+      requireSecrets(PAYMENT_SECRETS[payment], `${payment} 支付`)
+      const productsKey = `${payment.toUpperCase()}_PRODUCTS`
+      let products: Record<string, unknown> = {}
+      try {
+        const parsed: unknown = JSON.parse(vars(productsKey) || '{}')
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) products = parsed as Record<string, unknown>
+        else error(productsKey, `${productsKey} 必须是 JSON 对象`)
+      } catch {
+        error(productsKey, `${productsKey} 不是合法 JSON`)
+      }
+      const missing = input.packageIds.filter((id) => typeof products[id] !== 'string' || !products[id])
+      if (missing.length) error(productsKey, `${productsKey} 缺少积分包的商品 id：${missing.join('、')}`)
+      const planIds = input.planIds ?? []
+      const missingPlans = planIds.filter((id) => typeof products[id] !== 'string' || !products[id])
+      if (missingPlans.length) error(productsKey, `${productsKey} 缺少订阅套餐的商品 id：${missingPlans.join('、')}（订阅商品要按周期单独建）`)
+      // Waffo 的客户门户（换卡、恢复订阅）要店铺 ID；没有它扣款失败的用户无法自助更新付款方式
+      if (payment === 'waffo' && planIds.length && !vars('WAFFO_STORE_ID')) {
+        error('WAFFO_STORE_ID', 'WAFFO_STORE_ID 为空：开了订阅时，账单页的“管理付款”打不开，扣款失败的用户无法换卡')
+      }
+      const live = payment === 'waffo' ? ['prod', 'production'].includes(vars('WAFFO_ENVIRONMENT')) : vars('DODO_ENVIRONMENT') === 'live'
+      const envKey = `${payment.toUpperCase()}_ENVIRONMENT`
+      if (production && !live) warn(envKey, `${envKey}=${vars(envKey) || '(空)'}：仍是 test 模式，不会真实收款`)
+      if (!production && live) warn(envKey, `${envKey} 是正式模式，但 APP_ENV 不是 production：预发应使用 test 店铺`)
     }
-    const missing = input.packageIds.filter((id) => typeof products[id] !== 'string' || !products[id])
-    if (missing.length) error(productsKey, `${productsKey} 缺少积分包的商品 id：${missing.join('、')}`)
-    const planIds = input.planIds ?? []
-    const missingPlans = planIds.filter((id) => typeof products[id] !== 'string' || !products[id])
-    if (missingPlans.length) error(productsKey, `${productsKey} 缺少订阅套餐的商品 id：${missingPlans.join('、')}（订阅商品要按周期单独建）`)
-    // Waffo 的客户门户（换卡、恢复订阅）要店铺 ID；没有它扣款失败的用户无法自助更新付款方式
-    if (payment === 'waffo' && planIds.length && !vars('WAFFO_STORE_ID')) {
-      error('WAFFO_STORE_ID', 'WAFFO_STORE_ID 为空：开了订阅时，账单页的“管理付款”打不开，扣款失败的用户无法换卡')
-    }
-    const live = payment === 'waffo' ? ['prod', 'production'].includes(vars('WAFFO_ENVIRONMENT')) : vars('DODO_ENVIRONMENT') === 'live'
-    const envKey = `${payment.toUpperCase()}_ENVIRONMENT`
-    if (production && !live) warn(envKey, `${envKey}=${vars(envKey) || '(空)'}：仍是 test 模式，不会真实收款`)
-    if (!production && live) warn(envKey, `${envKey} 是正式模式，但 APP_ENV 不是 production：预发应使用 test 店铺`)
   }
 
-  const video = vars('VIDEO_PROVIDER')
-  if (video === 'mock') error('VIDEO_PROVIDER', 'VIDEO_PROVIDER=mock：生产环境提交生成会返回 503')
-  else if (!VIDEO_SECRETS[video]) error('VIDEO_PROVIDER', `未知的 VIDEO_PROVIDER=${video || '(空)'}，可选 fal、yir、hypit`)
-  else requireSecrets(VIDEO_SECRETS[video], `${video} 视频生成`)
-  if (video === 'hypit') {
-    try {
-      const bridge = new URL(vars('HYPIT_BRIDGE_URL'))
-      if (bridge.protocol !== 'https:' || bridge.username || bridge.password || bridge.pathname !== '/' || bridge.search || bridge.hash || PLACEHOLDER_HOSTS.test(bridge.hostname)) throw new Error()
-    } catch {
-      error('HYPIT_BRIDGE_URL', 'Hypit Bridge 上线地址必须为 HTTPS origin，不能带路径、凭据或查询参数')
+  if (features.generation) {
+    const video = vars('VIDEO_PROVIDER')
+    if (video === 'mock') error('VIDEO_PROVIDER', 'VIDEO_PROVIDER=mock：生产环境提交生成会返回 503')
+    else if (!VIDEO_SECRETS[video]) error('VIDEO_PROVIDER', `未知的 VIDEO_PROVIDER=${video || '(空)'}，可选 fal、yir、hypit`)
+    else requireSecrets(VIDEO_SECRETS[video], `${video} 视频生成`)
+    if (video === 'hypit') {
+      try {
+        const bridge = new URL(vars('HYPIT_BRIDGE_URL'))
+        if (bridge.protocol !== 'https:' || bridge.username || bridge.password || bridge.pathname !== '/' || bridge.search || bridge.hash || PLACEHOLDER_HOSTS.test(bridge.hostname)) throw new Error()
+      } catch {
+        error('HYPIT_BRIDGE_URL', 'Hypit Bridge 上线地址必须为 HTTPS origin，不能带路径、凭据或查询参数')
+      }
+      if (!/^[a-z0-9][a-z0-9_-]{0,63}$/.test(vars('HYPIT_SITE_ID'))) error('HYPIT_SITE_ID', 'Hypit 站点标识不能为空，且只能包含小写字母、数字、下划线和连字符')
+      const bridgeToken = input.secrets.HYPIT_BRIDGE_TOKEN
+      if (typeof bridgeToken === 'string' && text(bridgeToken).length < 32) error('HYPIT_BRIDGE_TOKEN', 'Hypit Bridge 访问令牌至少 32 个随机字符')
     }
-    if (!/^[a-z0-9][a-z0-9_-]{0,63}$/.test(vars('HYPIT_SITE_ID'))) error('HYPIT_SITE_ID', 'Hypit 站点标识不能为空，且只能包含小写字母、数字、下划线和连字符')
-    const bridgeToken = input.secrets.HYPIT_BRIDGE_TOKEN
-    if (typeof bridgeToken === 'string' && text(bridgeToken).length < 32) error('HYPIT_BRIDGE_TOKEN', 'Hypit Bridge 访问令牌至少 32 个随机字符')
-  }
 
-  const moderation = vars('MODERATION_PROVIDER')
-  if (moderation === 'mock') error('MODERATION_PROVIDER', 'MODERATION_PROVIDER=mock：生产环境上传图片一律返回 503')
-  else if (!MODERATION_SECRETS[moderation]) error('MODERATION_PROVIDER', `未知的 MODERATION_PROVIDER=${moderation || '(空)'}，可选 openai、none`)
-  else if (moderation === 'none') warn('MODERATION_PROVIDER', 'MODERATION_PROVIDER=none：上传图片不做审核')
-  else requireSecrets(MODERATION_SECRETS[moderation], '图片审核')
-
+    const moderation = vars('MODERATION_PROVIDER')
+    if (moderation === 'mock') error('MODERATION_PROVIDER', 'MODERATION_PROVIDER=mock：生产环境上传图片一律返回 503')
+    else if (!MODERATION_SECRETS[moderation]) error('MODERATION_PROVIDER', `未知的 MODERATION_PROVIDER=${moderation || '(空)'}，可选 openai、none`)
+    else if (moderation === 'none') warn('MODERATION_PROVIDER', 'MODERATION_PROVIDER=none：上传图片不做审核')
+    else requireSecrets(MODERATION_SECRETS[moderation], '图片审核')
   }
   if (vars('TURNSTILE_SITE_KEY')) requireSecrets(['TURNSTILE_SECRET_KEY'], 'Turnstile')
   else warn('TURNSTILE_SITE_KEY', 'TURNSTILE_SITE_KEY 为空：留言和举报表单没有人机校验，只靠限流')

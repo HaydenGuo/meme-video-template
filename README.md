@@ -470,6 +470,10 @@ tests/                  unit, e2e (mock providers), smoke (post-deploy), sandbox
 ## License
 
 [MIT](LICENSE)
-# Preview launch
+## Launch in stages
 
-Set `SHOWCASE_MODE=true` to publish content and examples before service credentials are ready. Sign-up, uploads, generation and purchases stay closed; queues and scheduled tasks pause. Set it to `false` only after completing the full deployment doctor. See [environment settings](docs/env.md).
+Control sign-in, new video submissions and new purchases independently with `AUTH_ENABLED`, `GENERATION_ENABLED` and `PAYMENTS_ENABLED`. Disabled checkout keeps existing payment callbacks and subscription management running. Unset flags preserve existing behavior; invalid values fail closed and are rejected by doctor.
+
+Choose `launch` in the initialization profile (`local`, `showcase`, `accounts`, `generate`, `full`). After initialization, `npm run site:mode -- generate` previews a launch with purchases closed; append `--apply` to update local flags. It does not deploy or provision credentials. Configure the environment and URL, then run doctor before publishing.
+
+`SHOWCASE_MODE=true` closes uploads, generation and purchases and pauses queues and scheduled tasks. Accounts are closed by default; `SHOWCASE_AUTH_ENABLED=true` can open them while `AUTH_ENABLED` remains enabled. Use showcase mode for a new launch, not for pausing a site with active orders or jobs. See [environment settings](docs/env.md).
