@@ -51,7 +51,7 @@ jobs:
           # 派生站会改写 ADMIN_EMAILS；测试环境固定使用用例中的管理员身份。
           printf '\nADMIN_EMAILS=admin@example.com\n' >> .dev.vars
           # 发布配置可以是正式服务商或展示模式；本地用例始终使用隔离的开发环境。
-          printf '\nSHOWCASE_MODE=false\nAPP_ENV=development\nSITE_URL=http://127.0.0.1:3000\nPAYMENT_PROVIDER=mock\nVIDEO_PROVIDER=mock\nMODERATION_PROVIDER=mock\n' >> .dev.vars
+          printf '\nSHOWCASE_MODE=false\nAUTH_ENABLED=true\nGENERATION_ENABLED=true\nPAYMENTS_ENABLED=true\nAPP_ENV=development\nSITE_URL=http://127.0.0.1:3000\nPAYMENT_PROVIDER=mock\nVIDEO_PROVIDER=mock\nMODERATION_PROVIDER=mock\n' >> .dev.vars
       - run: npm run seed:local
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v7

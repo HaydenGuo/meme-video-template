@@ -469,6 +469,7 @@ export function en(s: S) {
     },
     common: {
       comingSoon: 'Coming soon',
+      signInUnavailable: 'Sign-in is not available yet. You can still explore the meme and examples.',
       showcaseNotice: 'Explore the meme and examples. Sign-up, video creation and purchases are coming soon.',
       loading: 'Loading…',
       retry: 'Try again',

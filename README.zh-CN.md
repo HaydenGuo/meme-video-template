@@ -465,6 +465,10 @@ tests/                  unit（单元）、e2e（mock 服务商）、smoke（部
 ## 许可证
 
 [MIT](LICENSE)
-# 展示发布
+## 分阶段发布
 
-`SHOWCASE_MODE=true` 可先发布介绍和案例，关闭注册、上传、生成与购买，并暂停队列和定时任务。服务接通并通过完整 doctor 后再设为 `false`。见 [环境配置](docs/env.md)。
+`AUTH_ENABLED`、`GENERATION_ENABLED`、`PAYMENTS_ENABLED` 分别控制新登录、上传生成和新购买。关闭新购买仍处理已有订单回调与订阅管理；未设置开关兼容旧站行为，拼错的值会关闭对应入口并由 doctor 报错。
+
+初始化资料可选 `launch`：`local`、`showcase`、`accounts`、`generate`、`full`。初始化后运行 `npm run site:mode -- generate` 预览“开放登录生成、暂不充值”，追加 `--apply` 更新本地开关。命令不部署或生成服务凭据，设置正确环境与 URL 并通过 doctor 后再发布。
+
+`SHOWCASE_MODE=true` 可先发布介绍和案例，同时关闭所有业务入口并暂停队列和定时任务。它适合新站，不适合暂停有活跃订单或任务的站点。见 [环境配置](docs/env.md)。

@@ -80,8 +80,23 @@ Hypit 可选接入：`VIDEO_PROVIDER=hypit`，新增 `HYPIT_BRIDGE_URL`（Bridge
 3. 运行 `npm run cf:types`，重新生成 `worker-configuration.d.ts`。没写进 `.dev.vars` 的可选 secret，在 `src/env.d.ts` 里手动补上类型。
 4. 在 `src/server/config-health.ts` 里加上线检查规则，在 `tests/unit/config-health.test.ts` 里加用例。
 5. 更新本文件。
-# 展示发布
+## 分阶段发布
+
+| 环境变量 | 关闭时的行为 |
+| --- | --- |
+| `AUTH_ENABLED=false` | 关闭新的登录、注册和密码重置；既有会话与退出仍可用 |
+| `GENERATION_ENABLED=false` | 关闭新上传和提交；已有任务继续处理，查看、下载与失败退款照常 |
+| `PAYMENTS_ENABLED=false` | 关闭新结账；已有订单回调、对账、退款与订阅管理照常 |
+| `SHOWCASE_MODE=true` | 覆盖前三个开关，进入仅展示状态 |
+
+新开关未设置时兼容旧站默认开放。配置值只支持字符串 `true` / `false`；拼写错误时 doctor 报错、运行时关闭对应入口。前台按 `/api/me` 返回的开关控制按钮，服务端在读取业务数据和调用服务商前再次拦截。
+
+`npm run site:mode -- generate` 预览“登录和生成开放、充值关闭”，追加 `--apply` 写入本地 `wrangler.jsonc`。`accounts` 只开放账户，`full` 全部开放，`showcase` 仅展示，`local` 用于本地开发。可在开发环境准备各阶段的开关；`local` 只接受 development 环境。命令不部署，不修改 `APP_ENV`、URL 或凭据；正式上线仍需设置正确的生产/预发环境，并通过 `npm run doctor`。
+
+doctor 只要求开启功能对应的服务商凭据。关闭开关不会删除已有密钥；有历史订单、订阅或任务时必须保留原服务商凭据，才能继续处理后台业务。
+
+### 展示发布
 
 `SHOWCASE_MODE=true` 可先上线介绍和案例。API 仅开放 `/api/me` 与 `/api/health`，其它 API 返回 503（调试接口返回 404）；不运行队列业务和定时任务。前端隐藏登录并禁用上传、生成与购买。此时 doctor 不要求未启用业务的服务商凭据，但仍检查 HTTPS、会话密钥、资源绑定和迁移。不要将它当作完整生成服务的验收。
 
-接通登录、发信、视频、审核、支付后，设回 `false`，通过完整 doctor 再发布。已有队列消息会每小时重试，切换前应确认无历史任务；不适合暂停已有活跃订单的站点。
+离开展示模式时，设回 `false` 并按阶段开启其它三个开关，通过 doctor 再发布。已有队列消息会每小时重试且可能耗尽重试次数，切换前应确认无历史任务；展示模式不适合暂停已有活跃订单的站点，应使用独立开关。

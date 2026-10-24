@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { resolveFeatures } from './config-health'
 import type { ContentfulStatusCode } from 'hono/utils/http-status'
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import { findDuration, findPackage, findPlan, isLocale, localePath, sellingPlans, site } from '#/config/site'
@@ -72,19 +73,28 @@ app.onError((error, c) => {
 // CSRF：有副作用的请求必须同源（webhook 除外，它们有各自的签名校验；CSP 报告和前端错误上报由浏览器发出，
 // 不一定带 Origin，只写日志）
 app.use('/api/*', async (c, next) => {
+  const features = resolveFeatures(c.env)
   // 展示发布只开放健康和公共配置读取；在鉴权、数据库和外部 API 前拦截所有其它动作。
-  if (c.env.SHOWCASE_MODE === 'true' && !['/api/health', '/api/me'].includes(c.req.path)) {
+  if (features.showcase && !['/api/health', '/api/me'].includes(c.req.path)) {
     const hidden = c.req.path.startsWith('/api/dev/') || c.req.path.startsWith('/api/mock-payments/') || c.req.path === '/api/auth/dev-login'
     return c.json({ error: hidden ? 'not_found' : 'service_unavailable' }, hidden ? 404 : 503)
   }
   const method = c.req.method
+  // 只关新业务入口；已有任务、订单回调、退款、下载与订阅管理继续运行。
+  const authAction = c.req.path.startsWith('/api/auth/') && c.req.path !== '/api/auth/logout'
+  const generationAction = method === 'POST' && ['/api/uploads', '/api/generations'].includes(c.req.path)
+  const paymentAction = method === 'POST' && c.req.path === '/api/checkout'
+  if ((!features.auth && authAction) || (!features.generation && generationAction) || (!features.payments && paymentAction)) {
+    if (c.req.path === '/api/auth/dev-login') return c.json({ error: 'not_found' }, 404)
+    return c.json({ error: 'service_unavailable' }, 503)
+  }
   const external = c.req.path.startsWith('/api/webhooks/') || c.req.path === CSP_REPORT_PATH || c.req.path === CLIENT_ERROR_PATH
   if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS' && !external) {
     const origin = c.req.header('origin')
     const allowed = [new URL(c.req.url).origin, new URL(c.env.SITE_URL).origin]
     if (!origin || !allowed.includes(origin)) throw new ApiError(403, 'bad_origin')
   }
-  c.set('user', external || c.env.SHOWCASE_MODE === 'true' ? null : await loadSessionUser(c))
+  c.set('user', external || features.showcase ? null : await loadSessionUser(c))
   await next()
 })
 
@@ -114,7 +124,10 @@ app.post(CLIENT_ERROR_PATH, async (c) => {
 })
 
 app.get('/api/me', async (c) => {
-  if (c.env.SHOWCASE_MODE === 'true') return c.json({ user: null, config: {
+  c.header('Cache-Control', 'no-store')
+  const features = resolveFeatures(c.env)
+  if (features.showcase) return c.json({ user: null, config: {
+    features,
     showcase: true, googleClientId: null, devLogin: false, emailPassword: false, emailVerification: false,
     paymentProvider: 'disabled', turnstileSiteKey: null,
     notice: { maintenance: false, announcement: {} },
@@ -123,11 +136,12 @@ app.get('/api/me', async (c) => {
   return c.json({
     user: user ? publicUser(user) : null,
     config: {
-      googleClientId: googleClientId(c.env) ?? null,
-      devLogin: !isProduction(c.env),
-      emailPassword: emailPasswordEnabled(c.env),
-      emailVerification: emailVerificationEnabled(c.env, isLocalDevRequest(c)),
-      paymentProvider: c.env.PAYMENT_PROVIDER,
+      features,
+      googleClientId: features.auth ? googleClientId(c.env) ?? null : null,
+      devLogin: features.auth && !isProduction(c.env),
+      emailPassword: features.auth && emailPasswordEnabled(c.env),
+      emailVerification: features.auth && emailVerificationEnabled(c.env, isLocalDevRequest(c)),
+      paymentProvider: features.payments ? c.env.PAYMENT_PROVIDER : 'disabled',
       turnstileSiteKey: turnstileSiteKey(c.env),
       notice: publicNotice(await getSettings(c.env)),
     },

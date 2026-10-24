@@ -14,6 +14,9 @@
   },
   "vars": {
     "SHOWCASE_MODE": "false",
+    "AUTH_ENABLED": "true",
+    "GENERATION_ENABLED": "true",
+    "PAYMENTS_ENABLED": "true",
     "APP_ENV": "development",
     "SITE_URL": "http://localhost:3000",
     // waffo | dodo | mock（mock 只允许非 production）

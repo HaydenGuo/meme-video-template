@@ -57,6 +57,7 @@ export type PublicUser = {
 }
 
 export type ClientConfig = {
+  features?: { auth: boolean; generation: boolean; payments: boolean }
   showcase?: boolean
   emailPassword: boolean
   emailVerification: boolean
@@ -66,6 +67,11 @@ export type ClientConfig = {
   turnstileSiteKey: string | null
   // 后台运营参数里的维护模式和全站公告（按语言，空字符串表示不显示）
   notice: { maintenance: boolean; announcement: Partial<Record<string, string>> }
+}
+
+// 未读到公共配置时不开放付费或上传入口；兼容旧 Worker 没有独立开关的响应。
+export function featureEnabled(config: ClientConfig | null, feature: 'auth' | 'generation' | 'payments') {
+  return config !== null && !config.showcase && config.features?.[feature] !== false
 }
 
 export type Generation = {

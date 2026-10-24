@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react'
 import { LocalLink, Spinner } from '#/components/ui'
 import { getContent, localeFromParam, stripLocale, useContent, useLocalePath } from '#/lib/i18n'
 import { signInHref, useSession } from '#/lib/session'
+import { featureEnabled } from '#/lib/api'
 
 export const Route = createFileRoute('/{-$locale}/dashboard')({
   head: ({ params }) => ({
@@ -53,12 +54,12 @@ function DashboardLayout() {
           <span className="chip font-semibold" data-testid="dashboard-credits">
             {c.nav.credits(user.credits)}
           </span>
-          <LocalLink to="/pricing" className="btn-ghost px-4 py-2">
+          {featureEnabled(config, 'payments') ? <LocalLink to="/pricing" className="btn-ghost px-4 py-2">
             {d.buyCredits}
-          </LocalLink>
-          <a href={`${lp('/')}#create`} className="btn-primary px-4 py-2">
+          </LocalLink> : null}
+          {featureEnabled(config, 'generation') ? <a href={`${lp('/')}#create`} className="btn-primary px-4 py-2">
             <Plus className="size-4" /> {d.newVideo}
-          </a>
+          </a> : null}
         </div>
       </div>
       <nav className="mt-8 flex gap-6 border-b border-line">
