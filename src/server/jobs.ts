@@ -135,6 +135,7 @@ async function submitGeneration(env: Env, generation: GenerationRow) {
       generationId: generation.id,
       durationSeconds: generation.duration_seconds,
       aspectRatio: baseMeta.aspectRatio === '16:9' ? '16:9' : '9:16',
+      backgroundDescription: typeof baseMeta.backgroundDescription === 'string' ? baseMeta.backgroundDescription : undefined,
       imageUrl: await signedUploadUrl(env, upload.id, Date.parse(generation.created_at)),
       sourceVideoUrl: templateSourceUrl(env, duration.source),
       sourceVideoKey: `templates/${duration.source}`,

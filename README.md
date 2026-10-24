@@ -1,5 +1,7 @@
 # Meme Video Template
 
+The generator has an optional background description (up to 500 characters). Blank keeps the meme's original prompt; Hypit and yir append the custom background to the prompt. The description is stored with the task for retries. fal rejects custom backgrounds before charging credits.
+
 All examples share a two-column video grid with 16:9 cards; videos fit inside without cropping, and mobile uses one column.
 
 Add video-only cases in `site.examples.gallery`; each entry sets its original aspect ratio and uses manual playback controls.

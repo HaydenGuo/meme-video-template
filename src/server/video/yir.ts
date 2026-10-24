@@ -49,7 +49,9 @@ export function createYirProvider(env: Env): VideoProvider {
         model,
         input: {
           type: 'reference',
-          prompt,
+          prompt: input.backgroundDescription
+            ? `${prompt}\n\nBackground setting (replace the reference background only; keep the character, choreography and camera movement): ${input.backgroundDescription}`
+            : prompt,
           references: [
             { role: 'reference_image', url: input.imageUrl },
             { role: 'reference_video', url: input.sourceVideoUrl },

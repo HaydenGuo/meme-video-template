@@ -361,7 +361,9 @@ app.post('/api/generations', async (c) => {
   const settings = await getSettings(c.env)
   assertOpen(settings, user)
   await rateLimit(c.env.GENERATE_LIMITER, user.id)
-  const body = await readJson<{ uploadId: string; durationId: string; aspectRatio?: string; mockOutcome: string; locale: string }>(c)
+  const body = await readJson<{ uploadId: string; durationId: string; aspectRatio?: string; backgroundDescription?: unknown; mockOutcome: string; locale: string }>(c)
+  if (body.backgroundDescription !== undefined && (typeof body.backgroundDescription !== 'string' || body.backgroundDescription.length > 500 || /[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(body.backgroundDescription))) throw new ApiError(400, 'invalid_background_description')
+  const backgroundDescription = typeof body.backgroundDescription === 'string' ? body.backgroundDescription.trim() : ''
   const aspectRatio = body.aspectRatio ?? '9:16'
   if (aspectRatio !== '9:16' && aspectRatio !== '16:9') throw new ApiError(400, 'invalid_aspect_ratio')
   const duration = findDuration(body.durationId ?? '')
@@ -383,8 +385,9 @@ app.post('/api/generations', async (c) => {
 
   const providerId = activeVideoProviderId(c.env)
   if (providerId === 'fal' && aspectRatio !== '9:16') throw new ApiError(400, 'aspect_ratio_unavailable')
+  if (providerId === 'fal' && backgroundDescription) throw new ApiError(400, 'background_unavailable')
   const mockOutcome = providerId === 'mock' && (body.mockOutcome === 'fail' || body.mockOutcome === 'hang') ? body.mockOutcome : null
-  const meta = JSON.stringify({ aspectRatio, ...(mockOutcome ? { mockOutcome } : {}) })
+  const meta = JSON.stringify({ aspectRatio, ...(backgroundDescription ? { backgroundDescription } : {}), ...(mockOutcome ? { mockOutcome } : {}) })
   const id = createId('gen')
   const now = nowIso()
   try {

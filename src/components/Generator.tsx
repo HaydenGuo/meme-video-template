@@ -25,6 +25,7 @@ export function Generator() {
   const [dragging, setDragging] = useState(false)
   const [durationId, setDurationId] = useState<string>(site.durations[site.durations.length - 1]!.id)
   const [consent, setConsent] = useState(false)
+  const [backgroundDescription, setBackgroundDescription] = useState('')
   const [aspectRatio, setAspectRatio] = useState<'9:16' | '16:9'>(site.template.aspectRatio as '9:16' | '16:9')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -89,7 +90,7 @@ export function Generator() {
     try {
       const uploadId = photo.uploadId ?? (await upload(photo.file))
       if (!photo.uploadId) setPhoto({ ...photo, uploadId })
-      const data = await api<{ generation: Generation }>('/api/generations', { json: { uploadId, durationId, aspectRatio, locale } })
+      const data = await api<{ generation: Generation }>('/api/generations', { json: { uploadId, durationId, aspectRatio, backgroundDescription: backgroundDescription.trim(), locale } })
       track('generate_video', { duration_id: durationId, credits: data.generation.creditsCost })
       setGeneration(data.generation)
       await refresh()
@@ -225,6 +226,24 @@ export function Generator() {
               </button>
             ))}
           </div>
+        </section>
+
+        <section className="space-y-3">
+          <label htmlFor="background-description" className="block">
+            <StepTitle n={4}>{g.stepBackground}</StepTitle>
+          </label>
+          <textarea
+            id="background-description"
+            value={backgroundDescription}
+            onChange={(event) => setBackgroundDescription(event.target.value)}
+            maxLength={500}
+            rows={3}
+            disabled={busy || generation !== null}
+            placeholder={g.backgroundPlaceholder}
+            aria-describedby="background-hint"
+            className="w-full resize-y rounded-xl border border-line bg-bg-soft px-4 py-3 text-sm text-fg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-60"
+          />
+          <p id="background-hint" className="text-xs leading-5 text-muted">{g.backgroundHint}</p>
         </section>
 
         <label className="flex items-start gap-3 text-xs leading-5 text-muted">

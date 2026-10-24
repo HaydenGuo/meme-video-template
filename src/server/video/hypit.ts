@@ -45,6 +45,7 @@ export function createHypitProvider(env: Env): VideoProvider {
         templateId: site.video.hypit.templateId,
         durationSeconds: input.durationSeconds,
         aspectRatio: input.aspectRatio ?? '9:16',
+        ...(input.backgroundDescription ? { backgroundDescription: input.backgroundDescription } : {}),
         imageUrl: input.imageUrl,
         sourceVideoUrl: input.sourceVideoUrl,
       })

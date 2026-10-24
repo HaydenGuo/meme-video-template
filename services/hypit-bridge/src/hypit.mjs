@@ -39,6 +39,10 @@ export function createHypitRunner(config) {
     async prepare(job, template, dir) {
       await mkdir(dir, { recursive: true })
       const passthrough = config.mode === 'passthrough'
+      const background = job.backgroundDescription?.trim()
+      const prompt = background
+        ? `${template.prompt}\n\nBackground setting (replace the reference background only; keep the character, choreography and camera movement): ${background}`
+        : template.prompt
       const composition = template.workflow ? remixComposition(job, template, passthrough ? 'reference' : 'generated.video') : null
       if (template.workflow) {
         const input = await probe(resolve(dir, 'source.mp4'))
@@ -63,7 +67,7 @@ ${passthrough ? composition ? '  <media:Video id="reference" src="./source.mp4"/
   <import as="seedance" from="@hypit/seedance@1"/>
   <media:Video id="reference" src="./source.mp4"/>
   <media:Image id="portrait" src="./image.png" media-type="${xml(job.imageMediaType ?? 'image/png')}"/>
-  <text:Value id="direction">${xml(template.prompt)}</text:Value>
+  <text:Value id="direction">${xml(prompt)}</text:Value>
   <seedance:ReferenceVideo id="generated" model="${xml(template.model)}" prompt={direction} duration="${job.durationSeconds}" resolution="${xml(template.resolution)}" aspect-ratio="${xml(job.aspectRatio ?? template.aspectRatio)}" generate-audio="false">
     <seedance:Reference image={portrait} person-reference="${template.imagePersonReference === true}"/>
     <seedance:Reference video={reference} person-reference="${template.videoPersonReference === true}"/>

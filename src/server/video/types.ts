@@ -2,6 +2,7 @@ export interface VideoSubmitInput {
   generationId: string
   durationSeconds: number
   aspectRatio?: '9:16' | '16:9'
+  backgroundDescription?: string
   imageUrl: string
   sourceVideoUrl: string
   sourceVideoKey: string

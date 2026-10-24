@@ -58,6 +58,7 @@ export async function createBridge(config, { token, outputSecret, runner } = {})
     const template = site?.templates[body.templateId]
     if (!template || !template.durations.includes(body.durationSeconds)) throw fault(400, 'template_not_allowed')
     if (body.aspectRatio !== undefined && !['9:16', '16:9'].includes(body.aspectRatio)) throw fault(400, 'invalid_aspect_ratio')
+    if (body.backgroundDescription !== undefined && (typeof body.backgroundDescription !== 'string' || body.backgroundDescription.length > 500 || /[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(body.backgroundDescription))) throw fault(400, 'invalid_background_description')
     for (const key of ['imageUrl', 'sourceVideoUrl']) {
       let url
       try { url = new URL(body[key]) } catch { throw fault(400, 'invalid_media') }
@@ -65,7 +66,10 @@ export async function createBridge(config, { token, outputSecret, runner } = {})
       const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
       if (url.protocol !== 'https:' && !(local && loopback && url.protocol === 'http:')) throw fault(400, 'media_not_allowed')
     }
-    return { input: Object.fromEntries(['generationId', 'siteId', 'templateId', 'durationSeconds', 'aspectRatio', 'imageUrl', 'sourceVideoUrl'].map((key) => [key, body[key]])), template }
+    const input = Object.fromEntries(['generationId', 'siteId', 'templateId', 'durationSeconds', 'aspectRatio', 'imageUrl', 'sourceVideoUrl'].map((key) => [key, body[key]]))
+    // 空白与未填写使用相同任务指纹；自定义背景随任务持久保存，重试时不改变。
+    if (body.backgroundDescription?.trim()) input.backgroundDescription = body.backgroundDescription.trim()
+    return { input, template }
   }
 
   async function download(url, path, maxBytes, mediaType) {
