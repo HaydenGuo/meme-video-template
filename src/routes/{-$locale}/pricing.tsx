@@ -29,7 +29,6 @@ function PricingPage() {
       <div>
         <Breadcrumbs items={breadcrumbItems(c)} />
         <div className="mx-auto mb-12 max-w-2xl text-center">
-          <p className="eyebrow text-accent-text">{c.pricing.eyebrow}</p>
           <h1 className="mt-3 font-display text-5xl">{c.pricing.title}</h1>
           <p className="mt-4 text-muted">{c.pricing.subtitle}</p>
         </div>

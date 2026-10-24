@@ -9,7 +9,6 @@ export function Faq() {
     <div className="grid gap-10 md:grid-cols-[1fr_1.6fr]">
       <div className="space-y-4">
         <h2 className="font-display text-4xl leading-tight">{f.title}</h2>
-        <p className="text-muted">{f.body}</p>
         <LocalLink to="/contact" className="btn-ghost">
           {f.cta}
         </LocalLink>

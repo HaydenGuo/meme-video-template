@@ -300,7 +300,6 @@ export function Generator() {
         {generation?.status !== 'succeeded' || !generation.videoUrl ? (
           <div className={`mx-auto flex w-full flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-line bg-bg-soft px-6 text-center ${aspectRatio === '9:16' ? 'aspect-[9/16] max-w-[260px]' : 'aspect-video'}`}>
             <Film className="size-9 text-muted" aria-hidden />
-            {!generation ? <p className="text-sm leading-6 text-muted">{photo ? g.previewPending : g.previewEmpty}</p> : null}
           </div>
         ) : null}
         <div aria-live="polite">

@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { ArrowRight, Camera, Check, Clock, Coins, Film, Flame, ShieldCheck, Smartphone, X } from 'lucide-react'
+import { ArrowRight, Camera, Check, Clock, Coins, Film, ShieldCheck, Smartphone, X } from 'lucide-react'
 import { Faq, faqJsonLd } from '#/components/Faq'
 import { Generator } from '#/components/Generator'
 import { Pricing } from '#/components/Pricing'
@@ -37,25 +37,13 @@ function Home() {
         <div className="hero-glow pointer-events-none absolute inset-0" aria-hidden />
         <div className="container-page relative grid gap-10 py-10 lg:grid-cols-[minmax(0,430px)_1fr] lg:gap-16 lg:py-14">
           <div className="flex flex-col justify-center space-y-5" data-testid="keyword-intro">
-            <p className="eyebrow text-accent-text">{c.whatIs.title}</p>
             <h1 className="font-display text-5xl leading-[1.04] tracking-tight sm:text-6xl">{c.hero.title}</h1>
-            <p className="text-lg leading-8 text-muted">{c.whatIs.paragraphs[0]}</p>
             <p className="text-lg leading-8 text-muted">{c.hero.subtitle}</p>
             <a href="#create" className="btn-primary w-fit">{c.finalCta.cta} <ArrowRight className="size-4" /></a>
           </div>
           <div className="flex flex-col justify-center gap-5">
-            <span className="chip w-fit">
-              <Flame className="size-4 text-accent" /> {c.hero.badge}
-            </span>
             <div className="mx-auto w-full max-w-sm">
               <VideoCard video={ex.original.video} poster={ex.original.poster} label={c.hero.original} />
-            </div>
-            <div className="flex flex-wrap justify-center gap-2">
-              {c.hero.chips.map((chip) => (
-                <span key={chip} className="chip">
-                  {chip}
-                </span>
-              ))}
             </div>
             <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm font-medium">
               <LocalLink to={articlePath('trend')} className="inline-flex items-center gap-1.5 hover:text-accent">
@@ -80,7 +68,6 @@ function Home() {
       {c.problem ? (
         <section id="problem" className="scroll-mt-20 border-t border-line py-20">
           <div className="container-page">
-            <p className="eyebrow text-accent-text">{c.problem.eyebrow}</p>
             <h2 className="mt-3 max-w-2xl font-display text-4xl leading-tight sm:text-5xl">{c.problem.title}</h2>
             <div className="mt-12 grid gap-5 md:grid-cols-3">
               {c.problem.items.map((item) => (
@@ -98,7 +85,6 @@ function Home() {
       {c.withWithout ? (
         <section id="compare" className="scroll-mt-20 border-t border-line bg-bg-soft/60 py-20">
           <div className="container-page max-w-4xl">
-            <p className="eyebrow text-accent-text">{c.withWithout.eyebrow}</p>
             <h2 className="mt-3 font-display text-4xl leading-tight sm:text-5xl">{c.withWithout.title}</h2>
             <table className="mt-10 w-full table-fixed overflow-hidden rounded-2xl bg-card text-left ring-1 ring-line">
               <thead>
@@ -135,7 +121,6 @@ function Home() {
       {/* How to：三步流程（关键词 H2；HowTo 富结果已下线，只用语义化有序列表） */}
       <section id="how-it-works" className="scroll-mt-20 border-t border-line py-20">
         <div className="container-page">
-          <p className="eyebrow text-accent-text">{c.howTo.eyebrow}</p>
           <h2 className="mt-3 max-w-2xl font-display text-4xl leading-tight sm:text-5xl">{c.howTo.title}</h2>
           <ol className="mt-12 grid gap-5 md:grid-cols-3">
             {c.howTo.steps.map((step, index) => (
@@ -161,9 +146,7 @@ function Home() {
       <section id="examples" className="scroll-mt-20 border-t border-line bg-bg-soft/60 py-20">
         <div className="container-page">
           <div className="space-y-4">
-            <p className="eyebrow text-accent-text">{c.madeWith.eyebrow}</p>
             <h2 className="font-display text-4xl leading-tight sm:text-5xl">{c.madeWith.title}</h2>
-            <p className="max-w-md text-lg leading-8 text-muted">{c.madeWith.body}</p>
           </div>
           <div className="mt-12 grid gap-6 sm:grid-cols-2">
             {[ex.madeWith, ...ex.additional, ...ex.gallery].map((example) => (
@@ -183,7 +166,6 @@ function Home() {
       {/* What is：解释趋势本身，承接 "what is {keyword}" 信息型搜索 */}
       <section id="about" className="scroll-mt-20 py-20">
         <div className="container-page max-w-3xl">
-          <p className="eyebrow text-accent-text">{c.whatIs.eyebrow}</p>
           <h2 className="mt-3 font-display text-4xl leading-tight sm:text-5xl">{c.whatIs.title}</h2>
           {c.whatIs.paragraphs.map((paragraph) => (
             <p key={paragraph} className="mt-5 text-lg leading-8 text-muted">
@@ -199,7 +181,6 @@ function Home() {
       {/* Features */}
       <section id="features" className="scroll-mt-20 border-t border-line py-20">
         <div className="container-page">
-          <p className="eyebrow text-accent-text">{c.features.eyebrow}</p>
           <h2 className="mt-3 max-w-2xl font-display text-4xl leading-tight sm:text-5xl">{c.features.title}</h2>
           <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {c.features.items.map((item, index) => {
@@ -221,7 +202,6 @@ function Home() {
       {/* Ideas：左右交替 */}
       <section className="border-t border-line py-20">
         <div className="container-page">
-          <p className="eyebrow text-accent-text">{c.ideas.eyebrow}</p>
           <h2 className="mt-3 font-display text-4xl leading-tight sm:text-5xl">{c.ideas.title}</h2>
           <div className="mt-14 space-y-20">
             {c.ideas.items.map((idea, index) => {
@@ -234,7 +214,6 @@ function Home() {
                     <VideoCard video={media.video} poster={media.poster} />
                   </div>
                   <div className="space-y-4">
-                    <span className="font-display text-5xl text-accent">0{index + 1}</span>
                     <h3 className="font-display text-3xl">{idea.title}</h3>
                     <p className="max-w-md text-lg leading-8 text-muted">{idea.body}</p>
                     <a href="#create" className="inline-flex items-center gap-1.5 text-sm font-semibold hover:text-accent">
@@ -252,7 +231,6 @@ function Home() {
       <section id="pricing" className="scroll-mt-20 border-t border-line bg-bg-soft/60 py-20">
         <div className="container-page">
           <div className="mx-auto mb-12 max-w-2xl text-center">
-            <p className="eyebrow text-accent-text">{c.pricing.eyebrow}</p>
             <h2 className="mt-3 font-display text-4xl sm:text-5xl">{c.pricing.title}</h2>
             <p className="mt-4 text-muted">{c.pricing.subtitle}</p>
           </div>
@@ -277,7 +255,6 @@ function Home() {
             />
             <div className="relative space-y-5">
               <h2 className="font-display text-4xl leading-tight sm:text-5xl">{c.finalCta.title}</h2>
-              <p className="mx-auto max-w-xl opacity-80">{c.finalCta.body}</p>
               <a href="#create" className="btn mt-2 bg-ink-fg text-ink hover:opacity-90">
                 {c.finalCta.cta} · {formatPrice(site.packages[0]!.priceCents, site.packages[0]!.currency)}+
               </a>

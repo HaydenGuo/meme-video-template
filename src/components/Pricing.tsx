@@ -17,7 +17,6 @@ export function Pricing() {
   const { user, config, loading } = useSession()
   const [pending, setPending] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const shortest = site.durations[0]!
 
   async function buy(packageId: string) {
     if (!user) {
@@ -83,7 +82,6 @@ export function Pricing() {
       ) : null}
       <div className={`mx-auto grid gap-5 ${site.packages.length === 2 ? 'max-w-3xl md:grid-cols-2' : 'md:grid-cols-3'}`}>
         {site.packages.map((pack) => {
-          const info = p.packages[pack.id] ?? { name: pack.id, tagline: '' }
           const highlight = 'highlight' in pack && pack.highlight
           const anchor = anchorPrice(pack)
           return (
@@ -95,8 +93,7 @@ export function Pricing() {
               {highlight ? (
                 <span className="absolute -top-3 left-6 rounded-full bg-ink px-3 py-1 text-xs font-semibold text-ink-fg">{p.popular}</span>
               ) : null}
-              <h3 className="font-display text-2xl">{info.name}</h3>
-              <p className="mt-1 text-sm text-muted">{info.tagline}</p>
+              <h3 className="font-display text-2xl">{p.credits(pack.credits)}</h3>
               <p className="mt-6 flex flex-wrap items-baseline gap-x-2 gap-y-1">
                 <span className="font-display text-4xl">{formatPrice(pack.priceCents, pack.currency)}</span>
                 {anchor ? (
@@ -109,20 +106,18 @@ export function Pricing() {
                   </>
                 ) : null}
               </p>
-              <p className="mt-1 text-sm font-semibold">{p.credits(pack.credits)}</p>
-              <p className="text-xs text-muted">{p.approx(Math.floor(pack.credits / shortest.credits), shortest.seconds)}</p>
-              <ul className="my-6 space-y-2.5 text-sm">
-                {p.bullets.map((bullet) => (
-                  <li key={bullet} className="flex items-start gap-2">
-                    <Check className="mt-0.5 size-4 shrink-0 text-emerald-600" /> {bullet}
-                  </li>
-                ))}
-              </ul>
-              {buyButton(pack.id, !!highlight, p.buy)}
+              <div className="mt-6">{buyButton(pack.id, !!highlight, p.buy)}</div>
             </div>
           )
         })}
       </div>
+      <ul className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-muted">
+        {p.bullets.map((bullet) => (
+          <li key={bullet} className="flex items-center gap-2">
+            <Check className="size-4 shrink-0 text-emerald-600" aria-hidden /> {bullet}
+          </li>
+        ))}
+      </ul>
       <ErrorText code={error} />
       <p className="text-center text-xs text-muted">{p.note}</p>
     </div>

@@ -24,7 +24,6 @@ function GuidesPage() {
     <div className="container-page max-w-4xl py-16">
       <Breadcrumbs items={[{ name: c.guides.title, path: '/guides' }]} />
       <h1 className="font-display text-5xl leading-tight">{c.guides.title}</h1>
-      <p className="mt-4 max-w-2xl text-lg leading-8 text-muted">{c.guides.intro}</p>
       <div className="mt-10">
         <ArticleCards articles={ARTICLES} headingLevel={2} />
       </div>
