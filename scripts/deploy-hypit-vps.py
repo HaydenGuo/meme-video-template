@@ -10,7 +10,6 @@ import re
 import secrets
 import shutil
 import subprocess
-import tarfile
 import time
 import urllib.request
 
@@ -48,8 +47,8 @@ if not node_root.exists():
     urllib.request.urlretrieve(base + archive, target)
     if hashlib.sha256(target.read_bytes()).hexdigest() != expected:
         raise SystemExit('Node SHA256 mismatch')
-    with tarfile.open(target) as tar:
-        tar.extractall('/opt', filter='data')
+    # Debian 12 的 Python 3.11 没有 extractall(filter=...)；只解包校验后的官方归档。
+    run('tar', '--extract', '--xz', '--file', str(target), '--directory', '/opt', '--no-same-owner')
 for binary in ['node', 'npm', 'npx']:
     target = Path('/usr/local/bin') / binary
     desired = node_root / 'bin' / binary
