@@ -8,7 +8,7 @@ export function remixComposition(job, template, pictureSource) {
   const starts = cuts.filter((n) => n < end)
   const windows = starts.map((start, i) => ({ id: `shot${i}`, start, length: (starts[i + 1] ?? end) - start }))
   const landscape = (job.aspectRatio ?? template.aspectRatio) === '16:9'
-  return `
+  return { imports: `
   <import as="mediaop" from="@hypit/media-operations@1"/>
   <import as="time" from="@hypit/timeline-author@1"/>
   <import as="space" from="@hypit/spatial@1"/>
@@ -16,7 +16,7 @@ export function remixComposition(job, template, pictureSource) {
   <import as="audio" from="@hypit/audio-track@1"/>
   <import as="film" from="@hypit/film@1"/>
   <import as="html" from="@hypit/html-video@1"/>
-  <import as="look" source="./look.svs"/>
+  <import as="look" source="./look.svs"/>`, body: `
   <time:Clock id="clock" frame-rate="30"/>
   <mediaop:Normalize id="picture-media" source={${pictureSource}} clock={clock} video="primary-moving" audio="none" span-authority="video"/>
   <mediaop:Normalize id="music-media" source={reference} clock={clock} video="none" audio="default" span-authority="audio"/>
@@ -34,5 +34,5 @@ ${windows.map((w) => `    <visual:Clip id="${w.id}" media={picture-media.media} 
   <film:Film id="main" canvas={canvas.canvas} timeline={program.timeline} appearance={look.film.main}>
     <film:Track source={picture.visual}/><film:Track source={music.audio}/>
   </film:Film>
-  <html:Video id="final" composition={main.composition} timeline={program.timeline}/>`
+  <html:Video id="final" composition={main.composition} timeline={program.timeline}/>` }
 }

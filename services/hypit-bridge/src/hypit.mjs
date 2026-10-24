@@ -31,6 +31,7 @@ export function createHypitRunner(config) {
     async prepare(job, template, dir) {
       await mkdir(dir, { recursive: true })
       const passthrough = config.mode === 'passthrough'
+      const composition = template.workflow ? remixComposition(job, template, passthrough ? 'prepared.media' : 'generated.video') : null
       if (template.workflow) {
         const input = await probe(resolve(dir, 'source.mp4'))
         const length = Number(input.format?.duration)
@@ -44,6 +45,7 @@ export function createHypitRunner(config) {
       const source = `<?svml using="@hypit/markup@1"?>
 <svml>
   <import as="media" from="@hypit/media@1"/>
+${composition?.imports ?? ''}
 ${passthrough ? `  <import as="time" from="@hypit/timeline-author@1"/>
   <import as="mediaop" from="@hypit/media-operations@1"/>
   <media:Video id="reference" src="./source.mp4"/>
@@ -58,7 +60,7 @@ ${passthrough ? `  <import as="time" from="@hypit/timeline-author@1"/>
     <seedance:Reference image={portrait} person-reference="${template.imagePersonReference === true}"/>
     <seedance:Reference video={reference} person-reference="${template.videoPersonReference === true}"/>
   </seedance:ReferenceVideo>`}
-${template.workflow ? remixComposition(job, template, passthrough ? 'prepared.media' : 'generated.video') : ''}
+${composition?.body ?? ''}
 </svml>`
       const output = template.workflow ? 'final.video' : passthrough ? 'prepared.video' : 'generated.video'
       if (template.workflow) await writeFile(resolve(dir, 'look.svs'), '<?svml using="@hypit/recipe@1"?>\n<sheet version="1">film.main { background: #090D14; }</sheet>')
