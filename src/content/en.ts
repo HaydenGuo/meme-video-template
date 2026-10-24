@@ -604,6 +604,7 @@ export function en(s: S) {
           review.operator,
           review.model,
           review.rights,
+          ...review.terms,
           { h: 'Using the service', p: [`${b} lets you create short AI videos from a photo. You must be at least 18 years old, or the age of majority where you live, to use it.`] },
           { h: 'Your content and consent', p: ['Only upload photos of yourself or of adults who have given you permission. Do not upload photos of minors, celebrities or public figures, and do not use the service to harass, impersonate or deceive anyone. We may remove content and close accounts that break these rules.'] },
           { h: 'Generated videos', p: ['You may use the videos you create for personal and social media purposes. AI output can contain mistakes; review a video before sharing it. The site identifies generated results as AI media. Downloads may not contain a permanent AI label: disclose that the video is AI-generated when sharing it and never present it as authentic footage.'] },
