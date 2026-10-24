@@ -12,6 +12,7 @@
 - `aspectRatio`：默认画幅，`16:9` 或 `9:16`。固定分镜/原声工程配置见 [固定 Hypit 流程](fixed-hypit-workflow.md)。
 - `media.exampleVideo`：已制作的 AI 示例视频，不会以原片冒充 AI 成片。
 - `media.photo`：示例成片使用的照片。
+- 可选 `media.brandIcon`：至少 512×512 的正方形 AI PNG；统一派生整站品牌图标，见 [品牌图标流程](brand-assets.md)。
 - `media.credit`：来源署名；确认可用后设 `authorized=true`。
 - 可选品牌、域名、端口、平台、客服邮箱和生成提示词 `prompt`。域名不填时使用 `<slug>.example.com` 并列为待办。
 

@@ -6,6 +6,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync, copyFileSync, statS
 import { dirname, resolve, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import ts from 'typescript'
+import { generateBrandAssets } from './generate-brand-assets.mjs'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const args = process.argv.slice(2)
@@ -47,6 +48,10 @@ const media = Object.fromEntries(['sourceVideo', 'exampleVideo', 'photo'].map((k
   if (!statSync(path).isFile()) throw new Error(`素材不是文件：${key}`)
   return [key, path]
 }))
+if (profile.media.brandIcon) {
+  media.brandIcon = resolve(dirname(profilePath), text(profile.media.brandIcon, 'media.brandIcon'))
+  if (!statSync(media.brandIcon).isFile()) throw new Error('品牌源图不是文件')
+}
 const brand = profile.brandName ?? `${keyword} AI`
 text(brand, 'brandName')
 const supportEmail = profile.supportEmail ?? `support@${domain}`
@@ -183,11 +188,14 @@ for (const file of ['original.mp4', 'ai.mp4', 'original.jpg', 'ai.jpg', 'photo.j
 const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#ec2776"/><path d="M26 17v30l24-15z" fill="white"/></svg>'
 writeFileSync(join(stage, 'public/favicon.svg'), svg)
 files.add('public/favicon.svg')
+const brandAssets = media.brandIcon ? generateBrandAssets({ source: media.brandIcon, root: stage, brandName: brand }) : null
+for (const file of brandAssets?.files ?? []) files.add(file)
 const sample = { photo: '/site-init/photo.jpg', video: '/site-init/ai.mp4', poster: '/site-init/ai.jpg' }
 editObject('src/config/site.ts', 'site', {
   keyword, brandName: brand, supportEmail, trendPlatform: text(profile.platform ?? 'TikTok', 'platform'),
   logoMark: profile.logoMark ?? slug.split('-').map((word) => word[0]).join('').slice(0, 2).toUpperCase(),
   keywordOverview: overview, ogImage: '/site-init/og.png',
+  branding: brandAssets?.branding ?? null,
   'template.fullSeconds': fullSeconds, 'template.aspectRatio': aspectRatio,
   'seo.secondaryKeywords': [`${keyword} AI`, `${keyword} video`, `${keyword} meme`],
   examples: { original: { video: '/site-init/original.mp4', poster: '/site-init/original.jpg', credit },

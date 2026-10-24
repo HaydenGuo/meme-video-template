@@ -1,5 +1,7 @@
 # Meme Video Template（梗视频站模板）
 
+品牌图标支持[同源 AI 图标流程](docs/brand-assets.md)：资料填写 `media.brandIcon`，从一张 AI 源图派生导航 Logo、浏览器/Google favicon、Apple 和 Manifest 图标。
+
 支持无需语言模型现场调试的[固定 Hypit 复刻流程](docs/fixed-hypit-workflow.md)：按站点锁定提示词、参考片哈希和分镜参数，自动生成并合成原声；初始化可设置 5/12/14 等时长。
 
 共用 VPS 的提前配置、模型 API 资料和部署脚本见 [Hypit VPS 部署](docs/hypit-vps.md)。

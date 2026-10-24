@@ -21,6 +21,8 @@ export const site = {
   },
   brandName: 'Neon Shuffle AI',
   logoMark: 'NS',
+  // 同一个 AI 品牌源图派生所有图标；未生成品牌资源时保留模板回退。
+  branding: null as { icon: string; favicon: string; appleTouchIcon: string; manifest: string } | null,
   domain: 'example.com',
   supportEmail: 'support@example.com',
   // 社媒平台名称（用于 “Viral on TikTok” 之类标签）

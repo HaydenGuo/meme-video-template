@@ -16,6 +16,7 @@ export function LocalLink({ to, children, ...rest }: Omit<ComponentProps<'a'>, '
 }
 
 export function LogoMark({ className = 'size-9 text-sm' }: { className?: string }) {
+  if (site.branding) return <img src={site.branding.icon} alt="" aria-hidden width={512} height={512} className={`shrink-0 rounded-xl object-contain ${className}`} />
   return (
     <span
       aria-hidden

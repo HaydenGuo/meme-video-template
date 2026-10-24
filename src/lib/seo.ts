@@ -17,7 +17,7 @@ function organization() {
     '@id': ORG_ID,
     name: site.brandName,
     url: absoluteUrl('/'),
-    logo: absoluteUrl('/favicon.svg'),
+    logo: absoluteUrl(site.branding?.icon ?? '/favicon.svg'),
     email: site.supportEmail,
     ...(site.seo.sameAs.length ? { sameAs: site.seo.sameAs } : {}),
   }
@@ -102,7 +102,7 @@ export function articleJsonLd(
     dateModified: dates.updatedAt,
     image: [absoluteUrl(site.ogImage)],
     author: publisherRef,
-    publisher: { ...publisherRef, logo: { '@type': 'ImageObject', url: absoluteUrl('/favicon.svg') } },
+    publisher: { ...publisherRef, logo: { '@type': 'ImageObject', url: absoluteUrl(site.branding?.icon ?? '/favicon.svg') } },
     mainEntityOfPage: absoluteUrl(localePath(locale, path)),
   }
 }

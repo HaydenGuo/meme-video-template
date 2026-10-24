@@ -1,5 +1,7 @@
 # Meme Video Template
 
+Use one AI-generated source mark for all header, browser/search, Apple and manifest icons through the [brand asset workflow](docs/brand-assets.md). New site profiles accept `media.brandIcon`.
+
 The [fixed Hypit workflow](docs/fixed-hypit-workflow.md) locks each meme's prompt, reference hashes and shot windows, then generates and composes the soundtrack without an interactive language model. Initialization supports custom duration tiers such as 5/12/14 seconds.
 
 See [shared Hypit VPS deployment](docs/hypit-vps.md) for provisioning the runtime services, reusable defaults and the provider API information still required.
