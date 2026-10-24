@@ -6,6 +6,7 @@ import { ErrorText, Spinner } from '#/components/ui'
 import { api, errorCode } from '#/lib/api'
 import { getContent, localeFromParam, pageHead, useContent, useLocale } from '#/lib/i18n'
 import { useSession } from '#/lib/session'
+import { site } from '#/config/site'
 
 export const Route = createFileRoute('/{-$locale}/report')({
   head: ({ params }) => {
@@ -62,6 +63,7 @@ function ReportPage() {
     <div className="container-page max-w-2xl py-16">
       <h1 className="font-display text-5xl">{t.title}</h1>
       <p className="mt-4 text-muted">{t.body}</p>
+      <p className="mt-3 text-sm text-muted">{t.emailAlternative}{' '}<a href={`mailto:${site.supportEmail}?subject=Content%20Report`} className="underline">{site.supportEmail}</a></p>
       <p className="mt-3 text-sm text-muted">
         {t.urgent}{' '}
         <a href="https://report.cybertip.org/" target="_blank" rel="noreferrer" className="underline">

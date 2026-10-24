@@ -1,6 +1,7 @@
 // 简体中文文案，结构必须与 en.ts 一致（由 Content 类型约束）
 import type { site as Site } from '#/config/site'
 import type { Content } from './en'
+import { reviewPoliciesZh } from './review-policies-zh'
 
 type S = typeof Site
 
@@ -9,6 +10,7 @@ export function zh(s: S): Content {
   // 是否在卖订阅（site.subscriptionsEnabled 且有套餐），决定订阅相关文案是否出现
   const subs = s.subscriptionsEnabled && s.plans.length > 0
   const b = s.brandName
+  const review = reviewPoliciesZh(s)
   const { uploadDays, outputDays } = s.retention
   const photoRetention = uploadDays > 0 ? `在上传 ${uploadDays} 天后自动删除` : '保留到你主动删除为止'
   const videoRetention = outputDays > 0 ? `在完成 ${outputDays} 天后自动删除` : '保留到你主动删除为止'
@@ -163,8 +165,8 @@ export function zh(s: S): Content {
       buying: '正在打开支付页…',
       credits: (n: number) => `${n} 积分`,
       approx: (videos: number, seconds: number) => `约 ${videos} 条 ${seconds} 秒视频`,
-      bullets: ['积分永不过期', '支持全部时长', '高清 MP4 下载，无水印', '生成失败自动退积分'],
-      note: '价格以美元计，税费由支付合作方在结账时计算。',
+      bullets: ['购买的积分不过期', '支持所列时长', 'MP4 下载', '生成失败退积分'],
+      note: `一次性购买${subs ? '' : '，无自动续费'}。价格以美元计，适用税费与最终总额在付款前显示。购买开放后由 ${s.business.paymentProcessor} 处理收银台；未使用的积分包可在购买后 14 天内申请退款。`,
       guide: `购买前先看：怎样做出效果好的 ${k} 视频`,
       packages: {
         starter: { name: '入门包', tagline: '先试试热门玩法' },
@@ -221,6 +223,8 @@ export function zh(s: S): Content {
       cta: '立即制作',
     },
     footer: {
+      operator: s.business.operatorName ? `经营者：${s.business.operatorName}` : '',
+      aup: '可接受使用政策',
       statement: `${b} 是独立项目，与 ${s.trendPlatform} 及原视频创作者无任何关联。`,
       resources: '资源',
       legal: '法律',
@@ -424,7 +428,8 @@ export function zh(s: S): Content {
       } as Record<string, string>,
       details: '补充说明（可选）',
       isDepicted: '我是视频中的本人，或已获得本人授权代为举报。',
-      attest: '我善意地相信该内容是在未经当事人同意的情况下制作或传播的，并保证本举报中的信息真实准确。',
+      attest: '我善意地相信所举报内容侵犯权利或违反可接受使用政策，并保证本举报中的信息真实准确。',
+      emailAlternative: '也可发送主题为“Content Report”的邮件，附上内容链接和补充说明：',
       submit: '提交举报',
       sent: (id: string) => `已收到举报，编号 ${id}。如需补充信息，我们会通过上面的邮箱联系你。`,
       urgent: '如有人身处危险，请立即联系当地紧急服务。涉及儿童性虐待的内容，请同时向 NCMEC CyberTipline 或所在国家/地区的举报热线报告。',
@@ -530,14 +535,16 @@ export function zh(s: S): Content {
       account_conflict: `这个邮箱已绑定另一个 Google 账号。请用那个账号登录，或发邮件至 ${s.supportEmail} 联系我们。`,
     } as Record<string, string>,
     legal: {
-      updated: '2026-10-21',
+      updated: '2026-10-24',
+      aup: review.aup,
       privacy: {
         title: '隐私政策',
         sections: [
+          ...review.privacy,
           { h: '我们收集哪些信息', p: [`使用 Google 登录时，我们获取你的姓名、已验证邮箱和头像。使用邮箱和密码注册时，我们保存已验证邮箱及加盐后的密码哈希，不保存明文密码；邮箱验证挑战在 10 分钟后过期。制作视频时，我们保存你上传的照片和生成的视频。支付信息由支付合作方处理，${b} 不会接触你的卡号。`] },
-          { h: '我们如何使用', p: ['照片仅用于生成你请求的视频。邮箱用于账户运营、发送收据和服务通知（例如视频生成完成、你提交的举报已处理）以及回复客服请求。我们不发送营销邮件。我们不出售个人数据，也不会用你的照片训练模型。'] },
+          { h: '我们如何使用', p: ['生成开放后，提交的素材与背景描述用于你请求的视频。邮箱用于账户运营、服务通知及客服回复，通知投递取决于已配置的邮件服务。我们不发送营销邮件，不出售个人数据，也不用你的照片训练自己的模型；上游服务有各自的数据政策，我们不承诺未经核实的上游全面禁止训练。会话 IP 和浏览器信息用于账户安全，提交的举报及联系资料用于处理相应请求。'] },
           { h: '存储与保留', p: [`文件加密存储在我们的基础设施服务商处。上传的照片${photoRetention}，生成的视频${videoRetention}；你也可以提前删除它们或注销账号。订单与支付记录按税务和财务要求保留。注销账号后，我们只保留邮箱地址的单向哈希，用于防止同一邮箱重复领取注册赠送。`] },
-          { h: '安全检查', p: ['照片在使用前可能经过自动内容安全分类器检查，结果只用于执行内容规则，不作他用。公开表单使用防机器人服务保护，该服务可能处理你的 IP 地址和浏览器信号。'] },
+          { h: '安全检查', p: ['当前预览关闭视频生成；开放前须配置上传素材、提示词及成片检查。目前不宣称已具备完整自动审核。公开表单有限流；如启用 Cloudflare Turnstile，它还会处理 IP 地址和浏览器信号以识别机器人。'] },
           {
             h: 'Cookie 与统计',
             p: [
@@ -564,13 +571,15 @@ export function zh(s: S): Content {
                 },
               ]
             : []),
-          { h: '服务提供方', p: [`我们只使用少量数据处理方：云托管、存储与邮件发送、仅为你的请求处理照片的 AI 渲染服务、内容安全分类服务，以及作为记录商户（Merchant of Record）的支付服务${ga4Id || cfBeaconToken ? '；另有上文所述的统计服务' : ''}。`] },
           { h: '你的权利', p: [`你可以随时下载或删除视频，也可以在“设置”中导出个人数据（JSON）或注销账号。其他隐私请求请发送邮件至 ${s.supportEmail}。`] },
         ],
       },
       terms: {
         title: '服务条款',
         sections: [
+          review.operator,
+          review.model,
+          review.rights,
           { h: '使用服务', p: [`${b} 让你通过一张照片制作 AI 短视频。你必须年满 18 周岁（或所在地法定成年年龄）才能使用。`] },
           { h: '内容与授权', p: ['只能上传你本人或已获得许可的成年人的照片。禁止上传未成年人、明星或公众人物的照片，禁止利用本服务骚扰、冒充或欺骗他人。我们有权删除违规内容并关闭相关账号。'] },
           { h: '生成的视频', p: ['你可以将生成的视频用于个人和社交媒体用途。AI 输出可能存在瑕疵，分享前请先检查。视频带有“AI 生成”标识：分享时请保留标识并注明为 AI 生成，不得冒充真实事件的录像。'] },
@@ -578,14 +587,14 @@ export function zh(s: S): Content {
           {
             h: '积分与支付',
             p: [
-              '积分包为一次性购买。积分不可兑换现金，积分包的积分在服务运营期间不会过期。支付由作为记录商户的合作方处理，其条款同样适用。',
+              `积分包为一次性购买，以美元计价：${s.packages.map((pack) => `${pack.credits} 积分 / $${(pack.priceCents / 100).toFixed(2)}`).join('；')}。每秒视频消耗 1 积分；积分不可兑换现金，购买的积分在服务运营期间不过期。适用税费与最终总额在付款前显示。${subs ? '' : '无订阅或自动续费。'}购买功能开放前不提供收银台。`,
               subs
                 ? '订阅在每个计费周期（月或年）结束时按你订阅时的价格自动续费，直到你取消。你可以随时在账户的“账单”页取消，取消在当期结束时生效，当期结束前套餐仍然有效。订阅积分每月发放一次（年付按月分次发放），当月结束时作废，不累积到下月。'
                 : '',
             ].filter(Boolean),
           },
           { h: '可用性与责任', p: ['我们尽力保证服务可用，但按“现状”提供。在法律允许的范围内，我们的责任以你在索赔前 12 个月内支付的金额为限。'] },
-          { h: '条款变更', p: ['我们可能更新本条款。更新后继续使用即表示你接受新条款。'] },
+          { h: '消费者权利与条款变更', p: [`本条款不排除适用法律赋予你的强制性消费者权利。购买前请阅读退款政策；重大变更会公布新的生效日期。争议或权利请求请联系 ${s.supportEmail}。`] },
         ],
       },
       refund: {
@@ -605,7 +614,8 @@ export function zh(s: S): Content {
               ]
             : []),
           { h: '质量问题', p: ['如果成片明显损坏（例如文件损坏或人脸缺失），请带上视频 ID 联系我们，审核后会退还对应积分。'] },
-          { h: '退款方式', p: ['审核通过的退款将经由支付合作方原路退回，到账可能需要 5–10 个工作日。'] },
+          { h: '退款方式', p: [`审核通过的现金退款通过 ${s.business.paymentProcessor} 原路退回，处理后到账可能需要 5–10 个工作日。退还积分不等于现金退款；现金退款对应的购买积分及相关邀请奖励会收回，避免重复使用。未付款的收银台可直接取消，不收费。`] },
+          { h: '不满意时联系我们', p: [`不满意请邮件联系 ${s.supportEmail}，附上订单号、视频编号和问题说明，不要发送银行卡资料。质量问题逐项审核，不承诺完全相同的复刻，也不保证所有主观偏好均可退款。本政策不限制适用法律赋予的消费者权利。`] },
         ],
       },
     },

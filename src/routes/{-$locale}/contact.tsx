@@ -6,6 +6,7 @@ import { ErrorText, LocalLink, Spinner } from '#/components/ui'
 import { api, errorCode } from '#/lib/api'
 import { getContent, localeFromParam, pageHead, useContent } from '#/lib/i18n'
 import { useSession } from '#/lib/session'
+import { site } from '#/config/site'
 
 export const Route = createFileRoute('/{-$locale}/contact')({
   head: ({ params }) => {
@@ -52,6 +53,7 @@ function ContactPage() {
     <div className="container-page max-w-2xl py-16">
       <h1 className="font-display text-5xl">{t.title}</h1>
       <p className="mt-4 text-muted">{t.body}</p>
+      <a href={`mailto:${site.supportEmail}`} className="mt-3 inline-block font-semibold underline">{site.supportEmail}</a>
       <LocalLink to="/guides" className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold hover:text-accent">
         {t.guides} <ArrowRight className="size-4" />
       </LocalLink>

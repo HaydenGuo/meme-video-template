@@ -25,6 +25,13 @@ export const site = {
   branding: null as { icon: string; favicon: string; appleTouchIcon: string; manifest: string } | null,
   domain: 'example.com',
   supportEmail: 'support@example.com',
+  // 经营与模型披露：只填写已核实的信息；空字段不对外编造主体或模型。
+  business: {
+    operatorName: '' as string,
+    videoModel: '' as string,
+    videoProcessor: '' as string,
+    paymentProcessor: 'Waffo Pancake' as string,
+  },
   // 社媒平台名称（用于 “Viral on TikTok” 之类标签）
   trendPlatform: 'TikTok',
   ogImage: '/og.png',
