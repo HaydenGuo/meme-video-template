@@ -1,5 +1,7 @@
 # Meme Video Template
 
+Add video-only cases in `site.examples.gallery`; each entry sets its original aspect ratio and uses manual playback controls.
+
 The hero shows only the original reference video; AI results remain in the examples section.
 
 Example videos use manual playback with native pause, seeking, sound and fullscreen controls. Hero badges remain visible; material provenance stays in configuration instead of appearing below the hero videos.

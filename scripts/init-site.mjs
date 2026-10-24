@@ -199,7 +199,7 @@ editObject('src/config/site.ts', 'site', {
   'template.fullSeconds': fullSeconds, 'template.aspectRatio': aspectRatio,
   'seo.secondaryKeywords': [`${keyword} AI`, `${keyword} video`, `${keyword} meme`],
   examples: { original: { video: '/site-init/original.mp4', poster: '/site-init/original.jpg', credit },
-    aiVersions: [{ video: sample.video, poster: sample.poster, credit }], madeWith: sample, additional: [], ideas: [sample, sample, sample] },
+    aiVersions: [{ video: sample.video, poster: sample.poster, credit }], madeWith: sample, additional: [], gallery: [], ideas: [sample, sample, sample] },
   durations: durations.map((seconds, i) => ({ id: ['short', 'medium', 'full'][i], seconds, credits: seconds,
     source: `${templateId}-${seconds}s.mp4`, ...(seconds === fullSeconds ? { isFull: true } : {}) })),
   packages: [{ id: 'starter', credits: 25, priceCents: 990, currency: 'USD' }, { id: 'party', credits: 60, priceCents: 1990, currency: 'USD', highlight: true }],

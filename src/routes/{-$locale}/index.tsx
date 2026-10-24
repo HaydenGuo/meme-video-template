@@ -181,6 +181,19 @@ function Home() {
             ))}
           </div>
         </div>
+        {ex.gallery.length > 0 ? (
+          <div className="container-page mt-12 grid gap-6 sm:grid-cols-2">
+            {ex.gallery.map((example) => (
+              <VideoCard
+                key={example.video}
+                video={example.video}
+                poster={example.poster}
+                aspectRatio={example.aspectRatio}
+                label={c.hero.aiVersion}
+              />
+            ))}
+          </div>
+        ) : null}
       </section>
 
       {/* What is：解释趋势本身，承接 "what is {keyword}" 信息型搜索 */}

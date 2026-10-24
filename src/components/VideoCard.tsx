@@ -6,17 +6,19 @@ export function VideoCard({
   poster,
   label,
   credit,
+  aspectRatio = '9 / 16',
   className = '',
 }: {
   video: string
   poster: string
   label?: ReactNode
   credit?: string
+  aspectRatio?: string
   className?: string
 }) {
   return (
     <figure className={className}>
-      <div className="relative aspect-[9/16] overflow-hidden rounded-2xl bg-bg-soft shadow-sm ring-1 ring-line">
+      <div style={{ aspectRatio }} className="relative overflow-hidden rounded-2xl bg-bg-soft shadow-sm ring-1 ring-line">
         <video
           src={video}
           poster={poster}
