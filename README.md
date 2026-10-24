@@ -1,5 +1,7 @@
 # Meme Video Template
 
+All examples share a two-column video grid with 16:9 cards; videos fit inside without cropping, and mobile uses one column.
+
 Add video-only cases in `site.examples.gallery`; each entry sets its original aspect ratio and uses manual playback controls.
 
 The hero shows only the original reference video; AI results remain in the examples section.

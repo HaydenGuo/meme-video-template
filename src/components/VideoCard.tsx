@@ -7,6 +7,7 @@ export function VideoCard({
   label,
   credit,
   aspectRatio = '9 / 16',
+  fit = 'cover',
   className = '',
 }: {
   video: string
@@ -14,6 +15,7 @@ export function VideoCard({
   label?: ReactNode
   credit?: string
   aspectRatio?: string
+  fit?: 'cover' | 'contain'
   className?: string
 }) {
   return (
@@ -26,7 +28,7 @@ export function VideoCard({
           loop
           playsInline
           preload="metadata"
-          className="size-full object-cover"
+          className={`size-full ${fit === 'contain' ? 'object-contain' : 'object-cover'}`}
         />
         {label ? (
           <span className="pointer-events-none absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-full bg-black/70 px-2.5 py-1 text-xs font-semibold text-white backdrop-blur">

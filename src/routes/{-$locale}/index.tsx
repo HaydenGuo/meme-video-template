@@ -157,43 +157,27 @@ function Home() {
         </div>
       </section>
 
-      {/* Made with：照片 → 成片 */}
+      {/* 示例统一展示为视频网格。 */}
       <section id="examples" className="scroll-mt-20 border-t border-line bg-bg-soft/60 py-20">
-        <div className="container-page grid items-center gap-12 lg:grid-cols-[1fr_1.1fr]">
+        <div className="container-page">
           <div className="space-y-4">
             <p className="eyebrow text-accent-text">{c.madeWith.eyebrow}</p>
             <h2 className="font-display text-4xl leading-tight sm:text-5xl">{c.madeWith.title}</h2>
             <p className="max-w-md text-lg leading-8 text-muted">{c.madeWith.body}</p>
           </div>
-          <div className="space-y-10">
-            {[ex.madeWith, ...ex.additional].map((example) => (
-          <div key={example.video} className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-            <figure>
-              <img src={example.photo} alt={c.alt.inputPhoto} loading="lazy" className="aspect-[3/4] w-full rounded-2xl object-cover ring-1 ring-line" />
-              <figcaption className="mt-2 text-center text-xs text-muted">{c.madeWith.photoLabel}</figcaption>
-            </figure>
-            <ArrowRight className="size-6 text-muted" aria-hidden />
-            <div>
-              <VideoCard video={example.video} poster={example.poster} />
-              <p className="mt-2 text-center text-xs text-muted">{c.madeWith.resultLabel}</p>
-            </div>
-          </div>
-            ))}
-          </div>
-        </div>
-        {ex.gallery.length > 0 ? (
-          <div className="container-page mt-12 grid gap-6 sm:grid-cols-2">
-            {ex.gallery.map((example) => (
+          <div className="mt-12 grid gap-6 sm:grid-cols-2">
+            {[ex.madeWith, ...ex.additional, ...ex.gallery].map((example) => (
               <VideoCard
                 key={example.video}
                 video={example.video}
                 poster={example.poster}
-                aspectRatio={example.aspectRatio}
+                aspectRatio="16 / 9"
+                fit="contain"
                 label={c.hero.aiVersion}
               />
             ))}
           </div>
-        ) : null}
+        </div>
       </section>
 
       {/* What is：解释趋势本身，承接 "what is {keyword}" 信息型搜索 */}
