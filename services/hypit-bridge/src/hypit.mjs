@@ -4,7 +4,7 @@ import { mkdir, writeFile, readFile } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import { resolve } from 'node:path'
 import { remixComposition } from './workflow.mjs'
-import { composeVideoPrompt, scanWaffoPrompt } from './prompt-safety.mjs'
+import { composeVideoPrompt, scanLocalPrompt } from './prompt-safety.mjs'
 
 const exec = promisify(execFile)
 const xml = (text) => String(text).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' })[c])
@@ -43,7 +43,7 @@ export function createHypitRunner(config) {
       const background = job.backgroundDescription?.trim()
       const prompt = composeVideoPrompt(template.prompt, background)
       if (!passthrough) {
-        const verdict = await scanWaffoPrompt({ merchantId: process.env.WAFFO_MERCHANT_ID, privateKey: process.env.WAFFO_PRIVATE_KEY, prompt })
+        const verdict = await scanLocalPrompt(prompt, background ?? '')
         await writeFile(resolve(dir, 'prompt-review.json'), JSON.stringify(verdict), { mode: 0o600 })
         if (verdict.action !== 'allow') throw new Error(verdict.action === 'review' ? 'prompt_review_required' : 'prompt_blocked')
       }

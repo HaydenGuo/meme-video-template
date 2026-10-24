@@ -43,7 +43,7 @@
     "TURNSTILE_SITE_KEY": "",
     // 有 OPENAI_API_KEY 后改为 openai
     "MODERATION_PROVIDER": "none",
-    "PROMPT_SCAN_PROVIDER": "waffo"
+    "PROMPT_SCAN_PROVIDER": "local"
   },
   "d1_databases": [
     {

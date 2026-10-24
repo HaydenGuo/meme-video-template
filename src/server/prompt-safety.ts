@@ -1,15 +1,15 @@
-import { composeVideoPrompt, PromptSafetyError, scanWaffoPrompt } from '../../services/hypit-bridge/src/prompt-safety.mjs'
+import { composeVideoPrompt, PromptSafetyError, scanLocalPrompt, scanWaffoPrompt } from '../../services/hypit-bridge/src/prompt-safety.mjs'
 import { site } from '#/config/site'
 import { ApiError, cleanSecret, isProduction } from './util'
 
 // 扣积分前检查用户生成意图；Bridge 仍须扫描其服务端模板合成的完整提示词。
 export async function checkGenerationPrompt(env: Env, provider: string, background: string, locale = 'en') {
-  const mode = env.PROMPT_SCAN_PROVIDER ?? (isProduction(env) ? 'waffo' : 'mock')
+  const mode = env.PROMPT_SCAN_PROVIDER ?? (isProduction(env) ? 'local' : 'mock')
   if (mode === 'mock' && !isProduction(env)) return undefined
-  if (mode !== 'waffo') throw new ApiError(503, 'prompt_scan_not_configured')
+  if (!['local', 'waffo'].includes(mode)) throw new ApiError(503, 'prompt_scan_not_configured')
   const base = provider === 'yir' ? site.video.yir.prompt : `Create an AI ${site.keyword} video using the supplied adult portrait and approved reference template.`
   try {
-    const verdict = await scanWaffoPrompt({
+    const verdict = mode === 'local' ? await scanLocalPrompt(composeVideoPrompt(base, background), background) : await scanWaffoPrompt({
       merchantId: cleanSecret(env.WAFFO_MERCHANT_ID), privateKey: cleanSecret(env.WAFFO_PRIVATE_KEY),
       prompt: composeVideoPrompt(base, background), locale,
     })

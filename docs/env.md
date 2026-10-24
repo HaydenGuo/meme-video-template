@@ -107,4 +107,4 @@ doctor 只要求开启功能对应的服务商凭据。关闭开关不会删除�
 
 ## 提示词扫描
 
-`PROMPT_SCAN_PROVIDER=waffo`：正式生成必需，使用 `WAFFO_MERCHANT_ID`、`WAFFO_PRIVATE_KEY`，与充值开关独立。`mock` 仅允许本地开发。关闭生成时不运行扫描，doctor 不要求该功能凭据。Hypit Bridge 的服务进程也要注入这两个密钥，详情见 [内容安全](content-safety.md)。
+`PROMPT_SCAN_PROVIDER=local`：默认本站关键词预检，不依赖外部接口；`waffo` 为可选外部扫描，需要 WAFFO_MERCHANT_ID 和 WAFFO_PRIVATE_KEY。mock 仅用于本地。Bridge 对用户背景描述执行相同的本地规则，生成服务商继续执行自身审核。

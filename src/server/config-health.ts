@@ -166,8 +166,8 @@ export function checkConfig(input: ConfigInput): ConfigIssue[] {
   }
 
   if (features.generation) {
-    if ((vars('PROMPT_SCAN_PROVIDER') || 'waffo') !== 'waffo') error('PROMPT_SCAN_PROVIDER', '正式生成必须启用 Waffo 提示词扫描，不能使用 mock 或关闭扫描')
-    else requireSecrets(['WAFFO_MERCHANT_ID', 'WAFFO_PRIVATE_KEY'], '提示词扫描（与充值开关独立）')
+    if (!['local', 'waffo'].includes(vars('PROMPT_SCAN_PROVIDER') || 'local')) error('PROMPT_SCAN_PROVIDER', '正式生成须启用 local 关键词预检或 waffo 扫描')
+    else if (vars('PROMPT_SCAN_PROVIDER') === 'waffo') requireSecrets(['WAFFO_MERCHANT_ID', 'WAFFO_PRIVATE_KEY'], '提示词扫描（可选）')
     const video = vars('VIDEO_PROVIDER')
     if (video === 'mock') error('VIDEO_PROVIDER', 'VIDEO_PROVIDER=mock：生产环境提交生成会返回 503')
     else if (!VIDEO_SECRETS[video]) error('VIDEO_PROVIDER', `未知的 VIDEO_PROVIDER=${video || '(空)'}，可选 fal、yir、hypit`)

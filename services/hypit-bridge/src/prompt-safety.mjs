@@ -13,6 +13,21 @@ export class PromptSafetyError extends Error {
   }
 }
 
+// 仅扫描用户输入；固定模板和禁止事项不作为用户生成意图匹配。
+export async function scanLocalPrompt(prompt, userText = '') {
+  if (typeof prompt !== 'string' || !prompt.trim() || [...prompt].length > 10000) throw new PromptSafetyError('invalid_generation_prompt')
+  const text = userText.normalize('NFKC').toLowerCase()
+  const rules = [
+    ['public_figure', /\b(celebrity|celebrities|influencer|politician|public figure|taylor swift|donald trump|elon musk)\b|明星|名人|网红|政治人物|公众人物/iu],
+    ['sexual_content', /\b(nude|naked|porn|sexual|sex scene|nsfw)\b|裸体|裸露|色情|性交/iu],
+    ['minors', /\b(child|children|underage|minor|schoolgirl|schoolboy)\b|未成年|儿童|小学生/iu],
+    ['violence', /\b(gore|beheading|torture)\b|血腥|斩首|虐杀/iu],
+    ['unauthorized_use', /\b(deepfake|without consent|stolen photo|copyright infringement)\b|未经授权|盗用照片|侵犯版权|换脸冒充/iu],
+  ]
+  const match = rules.find(([, pattern]) => pattern.test(text))
+  return { action: match ? 'block' : 'allow', requestId: crypto.randomUUID(), reasonCode: match?.[0] ?? 'keyword_check_passed', semanticStatus: 'keyword_only', promptHash: base64(await crypto.subtle.digest('SHA-256', encode(prompt))) }
+}
+
 const encode = (value) => new TextEncoder().encode(value)
 const base64 = (value) => btoa(String.fromCharCode(...new Uint8Array(value)))
 const decode = (value) => Uint8Array.from(atob(value), (c) => c.charCodeAt(0))

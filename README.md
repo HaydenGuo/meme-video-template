@@ -1,6 +1,6 @@
 # Meme Video Template
 
-Generation requests run Waffo prompt checks before credits are charged; YIR and Hypit also check the composed prompt before model submission. For Seedance integrations, the model provider handles input and output safety, public-figure and copyright-risk filtering. The K/DA Firestarter operator reports strict enforcement in tests of its current channel; other channels require their own validation. Photo rules prohibit public figures and unauthorized copyrighted material. Production generation needs Waffo signing credentials even when purchases are disabled. See [content safety and provider references](docs/content-safety.md).
+Generation uses server-side keyword prechecks and provider safety checks. Default generation does not depend on Waffo credentials. See [content safety](docs/content-safety.md).
 
 Public AUP, terms, privacy and refund pages are linked from the footer and pricing page. Set verified operator, model, processing provider and merchant-of-record details in `site.business`. Preview mode accepts support and content reports with the normal CSRF, validation and rate limits. Published policy copy currently describes a preview: update it against the actual workflow before enabling paid generation. Policy pages alone do not establish payment eligibility or functioning prompt/output moderation.
 
@@ -479,3 +479,5 @@ Control sign-in, new video submissions and new purchases independently with `AUT
 Choose `launch` in the initialization profile (`local`, `showcase`, `accounts`, `generate`, `full`). After initialization, `npm run site:mode -- generate` previews a launch with purchases closed; append `--apply` to update local flags. It does not deploy or provision credentials. Configure the environment and URL, then run doctor before publishing.
 
 `SHOWCASE_MODE=true` closes uploads, generation and purchases and pauses queues and scheduled tasks. Accounts are closed by default; `SHOWCASE_AUTH_ENABLED=true` can open them while `AUTH_ENABLED` remains enabled. Use showcase mode for a new launch, not for pausing a site with active orders or jobs. See [environment settings](docs/env.md).
+
+Generation uses server-side keyword prechecks and the generation provider’s safety checks. Waffo prompt scanning is optional; checkout is configured separately.

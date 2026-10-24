@@ -1,6 +1,6 @@
 # Meme Video Template（梗视频站模板）
 
-生成请求在扣积分前执行 Waffo 提示词扫描；YIR 和 Hypit 在提交模型前再次检查完整提示词。接入 Seedance 时，由模型服务商执行输入素材与成片的安全、公众人物及版权风险过滤。K/DA Firestarter 站主反馈当前渠道测试严格执行审核，其他渠道应单独验证。统一禁止公众人物照片及未经授权的版权素材。即使充值关闭，正式生成也需要 Waffo 签名凭据。见[内容安全与服务商官方依据](docs/content-safety.md)。
+生成请求在扣积分前执行本站关键词预检，Hypit 提交前执行相同规则，Seedance 服务商执行自身审核。拒绝时停止，不绕过；用户须确认授权。默认不依赖 Waffo 扫描接口或支付凭据。见[内容安全](docs/content-safety.md)。
 
 新增公开 AUP 及价格、条款、隐私和退款页之间的链接；`site.business` 填写已核实的经营者、模型、处理方与记录商户。展示模式开放客服和内容举报，继续校验 CSRF、字段与限流。政策当前如实描述预览状态，开放付费生成前须按实际流程更新；页面完善不等于具备支付准入或已接通提示词及成片审核。
 
@@ -478,3 +478,5 @@ tests/                  unit（单元）、e2e（mock 服务商）、smoke（部
 初始化资料可选 `launch`：`local`、`showcase`、`accounts`、`generate`、`full`。初始化后运行 `npm run site:mode -- generate` 预览“开放登录生成、暂不充值”，追加 `--apply` 更新本地开关。命令不部署或生成服务凭据，设置正确环境与 URL 并通过 doctor 后再发布。
 
 `SHOWCASE_MODE=true` 可先发布介绍和案例，关闭上传、生成与购买并暂停队列和定时任务。账户默认关闭，可在 `AUTH_ENABLED` 开启时用 `SHOWCASE_AUTH_ENABLED=true` 开放。它适合新站，不适合暂停有活跃订单或任务的站点。见 [环境配置](docs/env.md)。
+
+生成使用本站关键词预检与生成服务商审核；Waffo 提示词扫描为可选项，充值独立配置。

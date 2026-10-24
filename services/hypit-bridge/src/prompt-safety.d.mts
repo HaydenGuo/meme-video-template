@@ -11,6 +11,7 @@ export interface PromptScanVerdict {
   semanticStatus: string
   promptHash: string
 }
+export function scanLocalPrompt(prompt: string, userText?: string): Promise<PromptScanVerdict>
 export function scanWaffoPrompt(input: {
   merchantId?: string
   privateKey?: string
