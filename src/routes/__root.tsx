@@ -13,7 +13,7 @@ import { SessionProvider } from '#/lib/session'
 import css from '../styles.css?url'
 
 // 首屏前设置主题，避免闪烁
-const THEME_SCRIPT = `(function(){try{var t=localStorage.getItem('theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.dataset.theme=t}catch(e){}})()`
+const THEME_SCRIPT = `(function(){var t='dark';try{var saved=localStorage.getItem('theme');if(saved==='light'||saved==='dark')t=saved}catch(e){}document.documentElement.dataset.theme=t})()`
 
 // head 里的脚本由框架带上 CSP nonce（见 src/server/csp.ts），自定义内联脚本都放这里，不要直接写 <script>
 function headScripts() {
@@ -41,7 +41,7 @@ export const Route = createRootRoute({
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
       { title: site.brandName },
-      { name: 'theme-color', content: '#f7f4ee' },
+      { name: 'theme-color', content: '#141210' },
       { property: 'og:site_name', content: site.brandName },
       { property: 'og:type', content: 'website' },
       { property: 'og:image', content: `https://${site.domain}${site.ogImage}` },
@@ -73,7 +73,7 @@ function RootDocument({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   useEffect(installErrorReporting, [])
   return (
-    <html lang={htmlLang(localeFromPathname(pathname))} suppressHydrationWarning>
+    <html lang={htmlLang(localeFromPathname(pathname))} data-theme="dark" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>

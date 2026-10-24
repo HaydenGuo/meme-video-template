@@ -1,5 +1,7 @@
 # Meme Video Template
 
+The root URL defaults to English and the initial theme is dark. A saved light/dark choice takes precedence; Chinese remains available under `/zh`.
+
 Keep the UI concise: section headings replace decorative labels, the hero uses one introduction, and example cards need no playback explanation. Credit packs show their amount and price, with shared benefits listed once. Preserve form labels, constraints, consent, errors and billing terms.
 
 The generator has an optional background description (up to 500 characters). Blank keeps the meme's original prompt; Hypit and yir append the custom background to the prompt. The description is stored with the task for retries. fal rejects custom backgrounds before charging credits.
