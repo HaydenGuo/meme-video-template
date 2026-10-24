@@ -4,7 +4,7 @@
 
 只接受已获授权的成年人照片，同时取得照片版权和当事人肖像使用许可。禁止明星、网红、政治人物及其他公众人物照片，禁止未经授权或侵犯版权的照片与受保护角色。已有合法授权的普通照片并非一律禁止。禁止虚构代言、冒充身份及把合成动作当作真实影像。
 
-上传勾选声明、通用提示词和 AUP 同时说明这些限制。声明和模型提示词不能证明授权，也不能可靠识别照片中的人物；当前图片审核仍不提供公众人物身份识别或版权权属判定。
+上传勾选声明、通用提示词和 AUP 同时说明这些限制。Waffo 负责生成前的提示词扫描；接入 Seedance 的站点由模型服务商对输入素材和生成结果执行内容安全、公众人物及版权风险过滤。模板的上传图片审核与模型服务商审核是不同环节；声明与风险过滤均不等于照片版权权属证明。
 
 ## Worker：扣积分前检查
 
@@ -28,11 +28,19 @@ Bridge 保存 `prompt-review.json` 判定摘要，不新增提示词原文记录
 
 `PROMPT_SCAN_PROVIDER=mock` 仅供本地开发，正式及 staging 禁止；真实 Hypit Bridge 没有绕过扫描的开关。展示站、停止生成的站点不需要为未运行的扫描填写密钥；开放生成前 doctor 要求具备凭据。
 
-## 已知缺口
+## Seedance 服务商审核
+
+Seedance / BytePlus 官方资料说明了公众人物相似图像与声音过滤、肖像授权及版权保护机制；视频任务 API 提供 `InputImageSensitiveContentDetected`、`InputTextSensitiveContentDetected` 和 `OutputVideoSensitiveContentDetected` 等拒绝状态。成片审核属于服务商生成流程的一部分，不因模板没有单独部署成片扫描服务而缺失。
+
+2026-10-25，K/DA Firestarter 站主反馈：已对当前 Hypit → 第三方渠道 → Seedance 接入完成测试，上述审核机制严格执行。此项是站主提供的渠道测试结论，不是模板维护者本次重新执行的测试，也不自动代表其他渠道或模型版本。复用模板的站点应按实际渠道记录模型版本、测试日期和脱敏拒绝结果。
+
+采用该方案时，保留 Waffo 生成前扫描，由 Seedance 负责模型侧输入及成片风险审核，无需为相同能力额外搭建重复审核服务。服务商拒绝的任务不得交付或切换模型绕过；生成失败沿用既有失败状态与幂等退积分流程。自动人工复核与通知工作台不是此方案的前提，模板也未实现它们。
+
+## 扫描边界与支付准入
 
 2026-10-25 实测：普通风景、虚构角色、已授权本人跳舞均 allow；欺骗性明星代言也被 allow，属于漏判；明确成人色情对照为 review。不能用扫描通过来宣称整体内容安全或业务准入通过。
 
-模板尚未实现公众人物识别、版权数据库比对、交付前成片内容审核、自动人工复核及通知工作台。这些应作为各站实际上线前的独立工作，不以修改文案代替。被拒绝或不确定的素材不得交付；成片审核未接通时应保持人工复核或相应功能未开放。
+上述漏判属于 Waffo 提示词扫描环节，不能据此判断 Seedance 模型侧审核缺失。版权风险过滤与版权数据库权属核验不同；本方案不宣称已核验每张照片的实际权利归属，也不承诺所有模型或渠道具有相同覆盖范围。
 
 真人照片生成动作是否属于支付商禁止的 Deepfake，仍需 Waffo 对具体流程书面确认。即使照片已获授权、提示词 allow、结果标注 AI，也不代表收款获批。
 
@@ -44,6 +52,9 @@ Waffo 给出专属 token 后，在 DNS TXT、首页 meta 或 well-known 文件�
 
 官方参考：
 
+- https://docs.byteplus.com/en/docs/ModelArk/content_pre_filter_faq
+- https://www.byteplus.com/activity/seedance2-0-security
+- https://api.byteplus.com/api-explorer/debug?action=GetContentsGenerationsTask&groupName=Video+Generation+API&serviceCode=ark&version=2024-01-01
 - https://docs.waffo.ai/zh/api-reference/endpoints/content-safety/scan-prompt
 - https://docs.waffo.ai/zh/mor/account-reviews/aigc-compliance
 - https://docs.waffo.ai/zh/compliance/tos
