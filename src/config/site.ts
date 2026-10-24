@@ -217,6 +217,7 @@ export interface Article {
   publishedAt: string
   updatedAt: string
   related?: readonly ArticleKey[]
+  sources?: readonly { url: string; name: Readonly<Record<Locale, string>> }[]
 }
 export const ARTICLES: readonly Article[] = site.articles
 

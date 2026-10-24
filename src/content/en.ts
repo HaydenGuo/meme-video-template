@@ -487,6 +487,7 @@ export function en(s: S) {
       errorRef: (id: string) => `Error ID: ${id} (include it when you contact us)`,
       signInRequired: 'Please sign in to continue.',
       lastUpdated: 'Last updated',
+      sources: 'Sources',
       aiGenerated: 'AI-generated',
       breadcrumb: 'Breadcrumb',
       maintenance: 'We’re doing some maintenance. New videos and purchases are paused for a short while; your videos and credits are safe.',

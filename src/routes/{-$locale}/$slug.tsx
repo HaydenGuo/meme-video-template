@@ -72,6 +72,16 @@ function ArticlePage() {
           </section>
         ))}
       </div>
+      {article.sources?.length ? (
+        <section className="mt-10" aria-labelledby="article-sources">
+          <h2 id="article-sources" className="font-display text-2xl">{c.common.sources}</h2>
+          <ul className="mt-4 list-disc space-y-2 pl-5">
+            {article.sources.map((source) => (
+              <li key={source.url}><a className="underline underline-offset-4" href={source.url}>{source.name[locale]}</a></li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
       <div className="card mt-12 flex flex-col items-start gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
         <p className="font-display text-2xl">{c.finalCta.title}</p>
         <a href={`${lp('/')}#create`} className="btn-primary shrink-0">

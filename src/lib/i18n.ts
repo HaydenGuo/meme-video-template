@@ -98,6 +98,7 @@ export function pageHead(locale: Locale, path: string, title: string, descriptio
     ],
     links: [
       { rel: 'canonical', href: canonical },
+      { rel: 'alternate', type: 'application/rss+xml', title: getContent(locale).guides.title, href: absoluteUrl(localePath(locale, '/feed.xml')) },
       ...LOCALES.map((l) => ({ rel: 'alternate', hrefLang: l, href: absoluteUrl(localePath(l, path)) })),
       { rel: 'alternate', hrefLang: 'x-default', href: absoluteUrl(localePath(DEFAULT_LOCALE, path)) },
     ],

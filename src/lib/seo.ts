@@ -1,6 +1,6 @@
 // 结构化数据（JSON-LD）。全部由 site 配置与文案生成，上新词无需改这里。
 // 注意：不要编造 aggregateRating / review，SoftwareApplication 没有评分时拿不到星级富结果，但实体信息仍会被理解。
-import { localePath, site, type Locale } from '#/config/site'
+import { localePath, site, type Article, type Locale } from '#/config/site'
 import { absoluteUrl, htmlLang } from './i18n'
 
 const ORG_ID = absoluteUrl('/#organization')
@@ -90,7 +90,7 @@ export function articleJsonLd(
   locale: Locale,
   path: string,
   text: { title: string; description: string },
-  dates: { publishedAt: string; updatedAt: string },
+  dates: Pick<Article, 'publishedAt' | 'updatedAt' | 'sources'>,
 ) {
   return {
     '@context': 'https://schema.org',
@@ -100,6 +100,7 @@ export function articleJsonLd(
     inLanguage: htmlLang(locale),
     datePublished: dates.publishedAt,
     dateModified: dates.updatedAt,
+    ...(dates.sources?.length ? { citation: dates.sources.map((source) => source.url) } : {}),
     image: [absoluteUrl(site.ogImage)],
     author: publisherRef,
     publisher: { ...publisherRef, logo: { '@type': 'ImageObject', url: absoluteUrl(site.branding?.icon ?? '/favicon.svg') } },

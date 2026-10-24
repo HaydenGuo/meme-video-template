@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { ARTICLES, DEFAULT_LOCALE, LOCALES, localePath, site } from '#/config/site'
-import { absoluteUrl } from '#/lib/i18n'
+import { absoluteUrl, loadContent } from '#/lib/i18n'
 import type { AppContext } from './types'
 import { isIndexable } from './util'
 
@@ -8,10 +8,11 @@ export const seoRoutes = new Hono<AppContext>()
 
 // IndexNow 验证文件：site.seo.indexNowKey 非空时在 /<key>.txt 返回 key 本身（npm run seo:indexnow 用它提交 URL）
 const INDEXNOW_PATH = site.seo.indexNowKey ? `/${site.seo.indexNowKey}.txt` : null
+const FEED_PATHS = LOCALES.map((locale) => localePath(locale, '/feed.xml'))
 
 // server.ts 用它决定交给 Hono 还是 TanStack
 export function isSeoPath(pathname: string) {
-  return pathname === '/sitemap.xml' || pathname === '/robots.txt' || pathname === INDEXNOW_PATH
+  return pathname === '/sitemap.xml' || pathname === '/robots.txt' || pathname === INDEXNOW_PATH || FEED_PATHS.includes(pathname)
 }
 
 const ARTICLE_PATHS = ARTICLES.map((article) => `/${article.slug}`)
@@ -29,6 +30,23 @@ function lastModified(path: string) {
 
 function escapeXml(value: string) {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+// 指南与页面共用文案和日期，不依赖请求时间，也不包含用户视频或账户数据。
+for (const locale of LOCALES) {
+  seoRoutes.get(localePath(locale, '/feed.xml'), async (c) => {
+    const content = await loadContent(locale)
+    const feedUrl = absoluteUrl(localePath(locale, '/feed.xml'))
+    const items = [...ARTICLES].sort((a, b) => b.publishedAt.localeCompare(a.publishedAt)).map((article) => {
+      const text = content.articles[article.key]
+      const url = escapeXml(absoluteUrl(localePath(locale, `/${article.slug}`)))
+      return `<item><title>${escapeXml(text.title)}</title><link>${url}</link><guid isPermaLink="true">${url}</guid><description>${escapeXml(text.description)}</description><pubDate>${new Date(`${article.publishedAt}T00:00:00Z`).toUTCString()}</pubDate></item>`
+    })
+    const lastBuildDate = new Date(`${lastModified('/guides')}T00:00:00Z`).toUTCString()
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>${escapeXml(content.guides.title)}</title><link>${escapeXml(absoluteUrl(localePath(locale, '/guides')))}</link><description>${escapeXml(content.guides.description)}</description><language>${locale}</language><lastBuildDate>${lastBuildDate}</lastBuildDate><atom:link href="${escapeXml(feedUrl)}" rel="self" type="application/rss+xml"/>${items.join('\n')}</channel></rss>`
+    return c.body(xml, 200, { 'Content-Type': 'application/rss+xml; charset=utf-8', 'Cache-Control': 'public, max-age=3600' })
+  })
 }
 
 // URL 与页面 canonical 同源（site.domain），避免 sitemap 与 canonical 不一致

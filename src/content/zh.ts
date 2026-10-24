@@ -463,6 +463,7 @@ export function zh(s: S): Content {
       errorRef: (id: string) => `错误编号：${id}（联系我们时请附上）`,
       signInRequired: '请先登录。',
       lastUpdated: '最后更新',
+      sources: '来源',
       aiGenerated: 'AI 生成',
       breadcrumb: '面包屑导航',
       maintenance: '系统维护中，暂停生成新视频和购买，稍后恢复。已有的视频和积分不受影响。',

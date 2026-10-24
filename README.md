@@ -1,5 +1,7 @@
 # Meme Video Template
 
+Guides expose localized RSS feeds at `/feed.xml` and `/zh/feed.xml`, with automatic discovery links in page metadata. Optional `site.articles[].sources` appear on the article and in its structured data.
+
 Generation uses server-side keyword prechecks and provider safety checks. Default generation does not depend on Waffo credentials. See [content safety](docs/content-safety.md).
 
 Public AUP, terms, privacy and refund pages are linked from the footer and pricing page. Set verified operator, model, processing provider and merchant-of-record details in `site.business`. Preview mode accepts support and content reports with the normal CSRF, validation and rate limits. Published policy copy currently describes a preview: update it against the actual workflow before enabling paid generation. Policy pages alone do not establish payment eligibility or functioning prompt/output moderation.
