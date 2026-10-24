@@ -481,3 +481,5 @@ Choose `launch` in the initialization profile (`local`, `showcase`, `accounts`, 
 `SHOWCASE_MODE=true` closes uploads, generation and purchases and pauses queues and scheduled tasks. Accounts are closed by default; `SHOWCASE_AUTH_ENABLED=true` can open them while `AUTH_ENABLED` remains enabled. Use showcase mode for a new launch, not for pausing a site with active orders or jobs. See [environment settings](docs/env.md).
 
 Generation uses server-side keyword prechecks and the generation provider’s safety checks. Waffo prompt scanning is optional; checkout is configured separately.
+
+Production public pages on the workers.dev fallback redirect directly to the configured canonical domain. API and media routes remain available; staging retains its own host.

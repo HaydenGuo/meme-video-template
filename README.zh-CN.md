@@ -480,3 +480,5 @@ tests/                  unit（单元）、e2e（mock 服务商）、smoke（部
 `SHOWCASE_MODE=true` 可先发布介绍和案例，关闭上传、生成与购买并暂停队列和定时任务。账户默认关闭，可在 `AUTH_ENABLED` 开启时用 `SHOWCASE_AUTH_ENABLED=true` 开放。它适合新站，不适合暂停有活跃订单或任务的站点。见 [环境配置](docs/env.md)。
 
 生成使用本站关键词预检与生成服务商审核；Waffo 提示词扫描为可选项，充值独立配置。
+
+正式环境的 workers.dev 备用公开页面一次跳转到配置的主域名；API、媒体与预发环境保留原访问方式。

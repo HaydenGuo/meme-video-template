@@ -1,4 +1,5 @@
 import handler from '@tanstack/react-start/server-entry'
+import { site } from './config/site'
 import { resolveFeatures } from './server/config-health'
 import { runHealthCheck } from './server/alerts'
 import { app } from './server/app'
@@ -28,7 +29,16 @@ export default {
     const url = new URL(request.url)
     const { pathname } = url
     const toHono = pathname.startsWith('/api/') || pathname.startsWith('/media/') || pathname.startsWith('/i/') || isSeoPath(pathname)
-    // 页面统一无尾斜杠：/pricing/ → 301 /pricing（TanStack 默认 307，不传递权重）
+    // 正式站的 workers.dev 备用页面收敛到主域名；API 与媒体保持可用，预发站不跳转。
+    // 同时规范尾斜杠，避免备用域名与路径规范化产生两次跳转。
+    if (env.APP_ENV === 'production' && url.hostname.endsWith('.workers.dev') && url.hostname !== site.domain && (!toHono || isSeoPath(pathname)) && (request.method === 'GET' || request.method === 'HEAD')) {
+      url.hostname = site.domain
+      url.protocol = 'https:'
+      url.port = ''
+      url.pathname = pathname.replace(/\/+$/, '') || '/'
+      return withSecurityHeaders(Response.redirect(url.toString(), 301), env, url)
+    }
+    // 页面统一无尾斜杠：/pricing/ → 301 /pricing。
     if (!toHono && pathname.length > 1 && pathname.endsWith('/') && (request.method === 'GET' || request.method === 'HEAD')) {
       url.pathname = pathname.replace(/\/+$/, '') || '/'
       return withSecurityHeaders(Response.redirect(url.toString(), 301), env, url)
