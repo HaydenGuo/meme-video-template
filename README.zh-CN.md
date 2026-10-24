@@ -484,3 +484,5 @@ tests/                  unit（单元）、e2e（mock 服务商）、smoke（部
 生成使用本站关键词预检与生成服务商审核；Waffo 提示词扫描为可选项，充值独立配置。
 
 正式环境的 workers.dev 备用公开页面一次跳转到配置的主域名；API、媒体与预发环境保留原访问方式。
+
+VPS 安装器限制本地 FFmpeg 与浏览器并发，并为合成预留线程名额。最终合成失败可复用已有生成素材，无需再次请求模型，见 [Bridge 运维](services/hypit-bridge/README.md)。

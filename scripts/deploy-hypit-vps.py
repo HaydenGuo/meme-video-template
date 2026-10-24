@@ -165,6 +165,7 @@ WantedBy=multi-user.target
 '''
 Path('/etc/systemd/system/hypit-runtime.service').write_text(runtime_unit)
 Path('/etc/systemd/system/hypit-bridge.service').write_text(bridge_unit)
+run('python3', str(release / 'services/hypit-bridge/configure-render-limits.py'))
 run('systemctl', 'daemon-reload')
 run('systemctl', 'enable', 'hypit-runtime.service', 'hypit-bridge.service')
 run('systemctl', 'restart', 'hypit-runtime.service', 'hypit-bridge.service')

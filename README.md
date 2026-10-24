@@ -485,3 +485,5 @@ Choose `launch` in the initialization profile (`local`, `showcase`, `accounts`, 
 Generation uses server-side keyword prechecks and the generation provider’s safety checks. Waffo prompt scanning is optional; checkout is configured separately.
 
 Production public pages on the workers.dev fallback redirect directly to the configured canonical domain. API and media routes remain available; staging retains its own host.
+
+The VPS installer bounds local FFmpeg and browser concurrency and reserves process slots for composition. Failed final renders can reuse saved generated media without a new model request; see [Bridge operations](services/hypit-bridge/README.md).

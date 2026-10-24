@@ -28,3 +28,9 @@ npm start
 初始 `maxActive=1`、`maxQueued=20`，限制模型并发与排队；配置同时限制任务时间、媒体大小和磁盘用量。不要将数据目录或 Hypit 凭据提交到 Git。模式切换前处理已有任务；代码及配置更新后重启服务。
 
 当前只声明源码已集成，不声明 VPS 部署、第三方模型或付费生成已验收。
+
+## 本地合成资源
+
+VPS 初始化运行 `configure-render-limits.py`：媒体 Endpoint 并发为 1，HTML 固定一个浏览器，通过 `ffmpeg-bounded.py` 将 FFmpeg 自动 CPU 探测限制为 2、滤镜线程限制为 1。Runtime 的 `TasksMax=512` 为 Chrome、Node 和 FFmpeg 的线程留出名额，CPU、内存及模型并发上限保持不变。既有 VPS 更新时，先确认没有活动 Build，再以 root 执行该脚本、`systemctl daemon-reload` 并重启 `hypit-runtime`。首次配置备份保存在私有配置目录中。
+
+如果只在最终合成失败，不要重新提交原始生成 Run。新建 Run，用 `build-record` 和 `satisfy` 复用失败 Build 的 `generated.video`，目标仍为 `final.video`；先检查 `hypit plan` 的 `providerRequestCount=0`、`unresolvedRequestCount=0`，然后只重跑本地合成。已退款的站点记录不因此重新扣费。
