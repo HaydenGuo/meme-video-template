@@ -1,7 +1,7 @@
 # 复制为 .dev.vars（本地）；生产用 `wrangler secret put <NAME>` 写入
 SESSION_SECRET=change-me-to-a-long-random-string
 GOOGLE_CLIENT_SECRET=
-# Waffo Pancake（默认支付）
+# Waffo Pancake（付款和提示词扫描共用；关闭充值不豁免生成扫描凭据）
 WAFFO_MERCHANT_ID=
 WAFFO_PRIVATE_KEY=
 # Dodo Payments（可选）

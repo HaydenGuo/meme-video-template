@@ -1,5 +1,6 @@
 // 可选 secret：没写进 .dev.vars 时 `npm run cf:types` 不会生成它们，这里补上类型
 interface Env {
+  PROMPT_SCAN_PROVIDER?: string
   SHOWCASE_MODE?: string
   AUTH_ENABLED?: string
   GENERATION_ENABLED?: string

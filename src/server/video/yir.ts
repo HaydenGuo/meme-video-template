@@ -4,9 +4,11 @@
 // yir 按请求体识别同一请求，所以请求体必须每次一致（jobs.ts 里图片签名按任务创建时间算）。
 // webhook 只当“该去查一下了”的信号，结果始终用 API key 重新拉取。
 import { site } from '#/config/site'
-import { cleanSecret } from '../util'
+import { ApiError, cleanSecret } from '../util'
+import { checkGenerationPrompt } from '../prompt-safety'
 import type { VideoProvider, VideoStatus } from './types'
 import { VideoProviderError } from './types'
+import { composeVideoPrompt } from '../../../services/hypit-bridge/src/prompt-safety.mjs'
 
 const GATEWAY = 'https://gateway.yir.ai/v1'
 const TERMINAL = new Set(['succeeded', 'failed', 'cancelled'])
@@ -44,14 +46,19 @@ export function createYirProvider(env: Env): VideoProvider {
   return {
     id: 'yir',
     async submit(input) {
+      // 队列等待期间站点配置可能变化，提交模型前再次核对当前完整提示词。
+      let promptScan
+      try { promptScan = await checkGenerationPrompt(env, 'yir', input.backgroundDescription ?? '') }
+      catch (error) {
+        if (error instanceof ApiError) throw new VideoProviderError(`provider_${error.code}`, error.code, error.status >= 500 || error.status === 429)
+        throw error
+      }
       const { model, prompt, resolution, routingOnly } = site.video.yir
       const body: Record<string, unknown> = {
         model,
         input: {
           type: 'reference',
-          prompt: input.backgroundDescription
-            ? `${prompt}\n\nBackground setting (replace the reference background only; keep the character, choreography and camera movement): ${input.backgroundDescription}`
-            : prompt,
+          prompt: composeVideoPrompt(prompt, input.backgroundDescription),
           references: [
             { role: 'reference_image', url: input.imageUrl },
             { role: 'reference_video', url: input.sourceVideoUrl },
@@ -69,7 +76,7 @@ export function createYirProvider(env: Env): VideoProvider {
       })
       const job = (await response.json().catch(() => null)) as YirJob | null
       if (!response.ok || !job?.id) throw requestError('submit', response, job)
-      return { requestId: job.id, meta: {} }
+      return { requestId: job.id, meta: promptScan ? { promptScan } : {} }
     },
 
     async status(requestId): Promise<VideoStatus> {

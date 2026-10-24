@@ -104,3 +104,7 @@ doctor 只要求开启功能对应的服务商凭据。关闭开关不会删除�
 阶段命令会将 `SHOWCASE_AUTH_ENABLED` 重置为 `false`，使预设结果确定；需要展示站登录时再显式开启它。同步模板到现有站点时保留本站开关，不用模板默认值覆盖。
 
 离开展示模式时，设回 `false` 并按阶段开启其它三个开关，通过 doctor 再发布。已有队列消息会每小时重试且可能耗尽重试次数，切换前应确认无历史任务；展示模式不适合暂停已有活跃订单的站点，应使用独立开关。
+
+## 提示词扫描
+
+`PROMPT_SCAN_PROVIDER=waffo`：正式生成必需，使用 `WAFFO_MERCHANT_ID`、`WAFFO_PRIVATE_KEY`，与充值开关独立。`mock` 仅允许本地开发。关闭生成时不运行扫描，doctor 不要求该功能凭据。Hypit Bridge 的服务进程也要注入这两个密钥，详情见 [内容安全](content-safety.md)。

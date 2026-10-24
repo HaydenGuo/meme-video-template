@@ -87,7 +87,7 @@ export function checkConfig(input: ConfigInput): ConfigIssue[] {
     for (const name of names) {
       const value = input.secrets[name]
       if (value === true) continue
-      if (!text(value)) error(name, `缺少密钥 ${name}（${reason}），用 wrangler secret put 写入`)
+      if (!text(value) && !issues.some((issue) => issue.level === 'error' && issue.key === name)) error(name, `缺少密钥 ${name}（${reason}），用 wrangler secret put 写入`)
     }
   }
 
@@ -166,6 +166,8 @@ export function checkConfig(input: ConfigInput): ConfigIssue[] {
   }
 
   if (features.generation) {
+    if ((vars('PROMPT_SCAN_PROVIDER') || 'waffo') !== 'waffo') error('PROMPT_SCAN_PROVIDER', '正式生成必须启用 Waffo 提示词扫描，不能使用 mock 或关闭扫描')
+    else requireSecrets(['WAFFO_MERCHANT_ID', 'WAFFO_PRIVATE_KEY'], '提示词扫描（与充值开关独立）')
     const video = vars('VIDEO_PROVIDER')
     if (video === 'mock') error('VIDEO_PROVIDER', 'VIDEO_PROVIDER=mock：生产环境提交生成会返回 503')
     else if (!VIDEO_SECRETS[video]) error('VIDEO_PROVIDER', `未知的 VIDEO_PROVIDER=${video || '(空)'}，可选 fal、yir、hypit`)

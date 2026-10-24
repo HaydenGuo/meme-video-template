@@ -4,6 +4,7 @@ import { mkdir, writeFile, readFile } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import { resolve } from 'node:path'
 import { remixComposition } from './workflow.mjs'
+import { composeVideoPrompt, scanWaffoPrompt } from './prompt-safety.mjs'
 
 const exec = promisify(execFile)
 const xml = (text) => String(text).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' })[c])
@@ -40,9 +41,12 @@ export function createHypitRunner(config) {
       await mkdir(dir, { recursive: true })
       const passthrough = config.mode === 'passthrough'
       const background = job.backgroundDescription?.trim()
-      const prompt = background
-        ? `${template.prompt}\n\nBackground setting (replace the reference background only; keep the character, choreography and camera movement): ${background}`
-        : template.prompt
+      const prompt = composeVideoPrompt(template.prompt, background)
+      if (!passthrough) {
+        const verdict = await scanWaffoPrompt({ merchantId: process.env.WAFFO_MERCHANT_ID, privateKey: process.env.WAFFO_PRIVATE_KEY, prompt })
+        await writeFile(resolve(dir, 'prompt-review.json'), JSON.stringify(verdict), { mode: 0o600 })
+        if (verdict.action !== 'allow') throw new Error(verdict.action === 'review' ? 'prompt_review_required' : 'prompt_blocked')
+      }
       const composition = template.workflow ? remixComposition(job, template, passthrough ? 'reference' : 'generated.video') : null
       if (template.workflow) {
         const input = await probe(resolve(dir, 'source.mp4'))

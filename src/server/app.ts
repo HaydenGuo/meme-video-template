@@ -19,6 +19,7 @@ import { publicGeneration, publicOrder, rateLimit, readJson, requireUser, pagePa
 import { enqueueJob, failGeneration, handleDeadLetter, handleVideoJob } from './jobs'
 import { jobToken, serveR2Object, sniffImageType, verifyUploadSignature } from './media'
 import { getModerationProvider } from './moderation'
+import { checkGenerationPrompt } from './prompt-safety'
 import { processPaymentEvent } from './orders'
 import { reconcileOrder, reconcilePendingOrders } from './reconcile'
 import { normalizeCode, redeemCode } from './redeem'
@@ -54,6 +55,7 @@ export const app = new Hono<AppContext>()
 
 app.onError((error, c) => {
   if (error instanceof ApiError) {
+    if (error.retryAfterSeconds && Number.isFinite(error.retryAfterSeconds)) c.header('Retry-After', String(Math.ceil(error.retryAfterSeconds)))
     const status = error.status as ContentfulStatusCode
     // 5xx 的 message 可能带配置或支付商细节：写日志，只回给管理员（后台据此显示退款被拒的原因），其他人只拿到错误码
     if (error.status >= 500) {
@@ -419,7 +421,9 @@ app.post('/api/generations', async (c) => {
   if (providerId === 'fal' && aspectRatio !== '9:16') throw new ApiError(400, 'aspect_ratio_unavailable')
   if (providerId === 'fal' && backgroundDescription) throw new ApiError(400, 'background_unavailable')
   const mockOutcome = providerId === 'mock' && (body.mockOutcome === 'fail' || body.mockOutcome === 'hang') ? body.mockOutcome : null
-  const meta = JSON.stringify({ aspectRatio, ...(backgroundDescription ? { backgroundDescription } : {}), ...(mockOutcome ? { mockOutcome } : {}) })
+  if (user.credits < duration.credits) throw new ApiError(402, 'insufficient_credits')
+  const promptScan = await checkGenerationPrompt(c.env, providerId, backgroundDescription, body.locale)
+  const meta = JSON.stringify({ aspectRatio, ...(promptScan ? { promptScan } : {}), ...(backgroundDescription ? { backgroundDescription } : {}), ...(mockOutcome ? { mockOutcome } : {}) })
   const id = createId('gen')
   const now = nowIso()
   try {

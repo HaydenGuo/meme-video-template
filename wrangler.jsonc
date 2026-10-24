@@ -41,7 +41,9 @@
     // Cloudflare Turnstile 站点密钥（公开）；留空 = 不启用。启用时必须同时 `wrangler secret put TURNSTILE_SECRET_KEY`
     "TURNSTILE_SITE_KEY": "",
     // 上传图片审核：openai（需 OPENAI_API_KEY）| none | mock（mock 只允许非 production）
-    "MODERATION_PROVIDER": "mock"
+    "MODERATION_PROVIDER": "mock",
+    // waffo | mock（mock 仅限本地；扫描和付款开关独立）
+    "PROMPT_SCAN_PROVIDER": "mock"
   },
   "d1_databases": [
     {

@@ -1,5 +1,7 @@
 # Meme Video Template
 
+Generation requests now run Waffo prompt checks before credits are charged; YIR and Hypit also check the composed prompt before model submission. Photo rules prohibit public figures and unauthorized copyrighted material. Production generation needs Waffo signing credentials even when purchases are disabled. This does not provide face recognition, rights verification or output moderation. See [content safety](docs/content-safety.md).
+
 Public AUP, terms, privacy and refund pages are linked from the footer and pricing page. Set verified operator, model, processing provider and merchant-of-record details in `site.business`. Preview mode accepts support and content reports with the normal CSRF, validation and rate limits. Published policy copy currently describes a preview: update it against the actual workflow before enabling paid generation. Policy pages alone do not establish payment eligibility or functioning prompt/output moderation.
 
 Set `SHOWCASE_AUTH_ENABLED=true` alongside `SHOWCASE_MODE=true` to enable real account sign-in while video creation and purchases remain closed. Configure Google OAuth callbacks and server credentials; email registration requires a verified sending service.

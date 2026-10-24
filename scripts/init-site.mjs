@@ -240,7 +240,7 @@ const vars = { ...features, SITE_URL: launch === 'local' ? origin : `https://${d
   ADMIN_EMAILS: adminEmail, GOOGLE_CLIENT_ID: credentials.googleClientId,
   // 本地默认 mock；线上阶段指定真实服务商名称，但还须接通凭据、模型与预算并通过 doctor。
   VIDEO_PROVIDER: launch === 'local' ? 'mock' : 'hypit', PAYMENT_PROVIDER: launch === 'local' ? 'mock' : 'waffo',
-  MODERATION_PROVIDER: launch === 'local' ? 'mock' : 'openai', EMAIL_FROM: launch === 'local' ? `noreply@${domain}` : '',
+  MODERATION_PROVIDER: launch === 'local' ? 'mock' : 'openai', PROMPT_SCAN_PROVIDER: launch === 'local' ? 'mock' : 'waffo', EMAIL_FROM: launch === 'local' ? `noreply@${domain}` : '',
   APP_ENV: launch === 'local' ? 'development' : 'production' }
 wrangler = patchWranglerVars(wrangler, vars)
 writeFileSync(join(stage, 'wrangler.jsonc'), wrangler)

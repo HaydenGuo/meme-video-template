@@ -42,7 +42,8 @@
     "GOOGLE_CLIENT_ID": "",
     "TURNSTILE_SITE_KEY": "",
     // 有 OPENAI_API_KEY 后改为 openai
-    "MODERATION_PROVIDER": "none"
+    "MODERATION_PROVIDER": "none",
+    "PROMPT_SCAN_PROVIDER": "waffo"
   },
   "d1_databases": [
     {
