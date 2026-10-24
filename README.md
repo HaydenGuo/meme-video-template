@@ -474,4 +474,4 @@ Control sign-in, new video submissions and new purchases independently with `AUT
 
 Choose `launch` in the initialization profile (`local`, `showcase`, `accounts`, `generate`, `full`). After initialization, `npm run site:mode -- generate` previews a launch with purchases closed; append `--apply` to update local flags. It does not deploy or provision credentials. Configure the environment and URL, then run doctor before publishing.
 
-`SHOWCASE_MODE=true` closes all business actions and pauses queues and scheduled tasks. Use it for a new content-only launch, not for pausing a site with active orders or jobs. See [environment settings](docs/env.md).
+`SHOWCASE_MODE=true` closes uploads, generation and purchases and pauses queues and scheduled tasks. Accounts are closed by default; `SHOWCASE_AUTH_ENABLED=true` can open them while `AUTH_ENABLED` remains enabled. Use showcase mode for a new launch, not for pausing a site with active orders or jobs. See [environment settings](docs/env.md).
