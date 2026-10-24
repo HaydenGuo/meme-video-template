@@ -165,16 +165,20 @@ function Home() {
             <h2 className="font-display text-4xl leading-tight sm:text-5xl">{c.madeWith.title}</h2>
             <p className="max-w-md text-lg leading-8 text-muted">{c.madeWith.body}</p>
           </div>
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+          <div className="space-y-10">
+            {[ex.madeWith, ...ex.additional].map((example) => (
+          <div key={example.video} className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
             <figure>
-              <img src={ex.madeWith.photo} alt={c.alt.inputPhoto} loading="lazy" className="aspect-[3/4] w-full rounded-2xl object-cover ring-1 ring-line" />
+              <img src={example.photo} alt={c.alt.inputPhoto} loading="lazy" className="aspect-[3/4] w-full rounded-2xl object-cover ring-1 ring-line" />
               <figcaption className="mt-2 text-center text-xs text-muted">{c.madeWith.photoLabel}</figcaption>
             </figure>
             <ArrowRight className="size-6 text-muted" aria-hidden />
             <div>
-              <VideoCard video={ex.madeWith.video} poster={ex.madeWith.poster} />
+              <VideoCard video={example.video} poster={example.poster} />
               <p className="mt-2 text-center text-xs text-muted">{c.madeWith.resultLabel}</p>
             </div>
+          </div>
+            ))}
           </div>
         </div>
       </section>
