@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { createHash } from 'node:crypto'
 import { site } from '#/config/site'
 import { signedUploadUrl } from '#/server/media'
 import { createYirProvider } from '#/server/video/yir'
@@ -42,10 +43,23 @@ describe('yir provider：提交', () => {
   it('照片和源视频按 reference 模式提交，幂等键是任务 id；只有 HTTPS 回调地址才带 webhook_url', async () => {
     const calls = stubFetch({ '/v1/videos/generations': () => json(202, { id: 'job_1', object: 'job', status: 'queued' }) })
     const provider = createYirProvider(env())
-    expect(await provider.submit(input())).toEqual({ requestId: 'job_1', meta: {} })
+    const result = await provider.submit(input())
     const headers = calls[0]!.init!.headers as Record<string, string>
     expect(headers).toMatchObject({ Authorization: 'Bearer yir_test', 'Idempotency-Key': 'gen_1' })
     const body = JSON.parse(String(calls[0]!.init!.body))
+    // 生产默认执行本地提示词检查，提交结果需保留与实际发出提示词对应的审核记录。
+    expect(result).toEqual({
+      requestId: 'job_1',
+      meta: {
+        promptScan: {
+          action: 'allow',
+          requestId: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i),
+          reasonCode: 'keyword_check_passed',
+          semanticStatus: 'keyword_only',
+          promptHash: createHash('sha256').update(body.input.prompt).digest('base64'),
+        },
+      },
+    })
     expect(body).toMatchObject({
       input: {
         type: 'reference',
