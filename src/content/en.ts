@@ -470,6 +470,7 @@ export function en(s: S) {
     common: {
       comingSoon: 'Coming soon',
       showcaseNotice: 'Explore the meme and examples. Sign-up, video creation and purchases are coming soon.',
+      showcaseAuthNotice: 'Video creation and purchases are coming soon.',
       loading: 'Loading…',
       retry: 'Try again',
       home: 'Back to home',

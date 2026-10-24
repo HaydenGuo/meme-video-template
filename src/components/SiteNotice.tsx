@@ -8,7 +8,7 @@ export function SiteNotice() {
   const locale = useLocale()
   const notice = config?.notice
   const announcement = notice?.announcement[locale]
-  if (config?.showcase) return <p role="status" className="border-b border-line bg-bg-soft px-4 py-2 text-center text-sm">{c.common.showcaseNotice}</p>
+  if (config?.showcase) return <p role="status" className="border-b border-line bg-bg-soft px-4 py-2 text-center text-sm">{config.authEnabled ? c.common.showcaseAuthNotice : c.common.showcaseNotice}</p>
   if (!notice?.maintenance && !announcement) return null
   return (
     <div className="border-b border-line text-sm">

@@ -82,7 +82,7 @@ function AccountButton() {
   }, [open])
 
   if (loading) return <span className="inline-block h-9 w-20" aria-hidden />
-  if (config?.showcase) return null
+  if (config?.showcase && !config.authEnabled) return null
   if (!user) {
     return (
       <LocalLink to="/sign-in" className="eyebrow px-2 py-2 hover:text-accent" data-testid="nav-sign-in">

@@ -446,6 +446,7 @@ export function zh(s: S): Content {
     common: {
       comingSoon: '暂未开放',
       showcaseNotice: '可浏览梗介绍与案例，注册、视频生成和购买暂未开放。',
+      showcaseAuthNotice: '视频生成和购买暂未开放。',
       loading: '加载中…',
       retry: '重试',
       home: '返回首页',

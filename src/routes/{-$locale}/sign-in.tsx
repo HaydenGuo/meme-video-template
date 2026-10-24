@@ -117,7 +117,7 @@ function SignInPage() {
     }
   }
 
-  if (config?.showcase) return <main className="container-page py-24 text-center"><h1 className="font-display text-3xl">{c.common.comingSoon}</h1><p className="my-6">{c.common.showcaseNotice}</p><LocalLink to="/">{c.common.home}</LocalLink></main>
+  if (config?.showcase && !config.authEnabled) return <main className="container-page py-24 text-center"><h1 className="font-display text-3xl">{c.common.comingSoon}</h1><p className="my-6">{c.common.showcaseNotice}</p><LocalLink to="/">{c.common.home}</LocalLink></main>
   return (
     <div className="container-page grid max-w-md place-items-center py-20">
       <div className="card w-full space-y-6 p-8 text-center">

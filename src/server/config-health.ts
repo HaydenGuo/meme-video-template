@@ -96,8 +96,9 @@ export function checkConfig(input: ConfigInput): ConfigIssue[] {
 
   // 展示模式由 API、队列、定时任务共同封锁业务动作，未接通的服务商无需伪配凭据。
   const showcase = vars('SHOWCASE_MODE') === 'true'
-  if (showcase) warn('SHOWCASE_MODE', '展示发布：注册、上传、生成、购买及后台操作均关闭；队列和定时任务暂停')
-  if (!showcase) {
+  const showcaseAuth = vars('SHOWCASE_AUTH_ENABLED') === 'true'
+  if (showcase) warn('SHOWCASE_MODE', showcaseAuth ? '展示发布：账户已开放，上传、生成、购买及后台操作关闭；队列和定时任务暂停' : '展示发布：注册、上传、生成、购买及后台操作均关闭；队列和定时任务暂停')
+  if (!showcase || showcaseAuth) {
   // Google 可选；新用户也能通过已配置发件服务的邮箱注册。
   if (!vars('GOOGLE_CLIENT_ID')) {
     warn('GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_ID 为空：Google 登录按钮不可用')

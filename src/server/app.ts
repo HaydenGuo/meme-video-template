@@ -72,8 +72,14 @@ app.onError((error, c) => {
 // CSRF：有副作用的请求必须同源（webhook 除外，它们有各自的签名校验；CSP 报告和前端错误上报由浏览器发出，
 // 不一定带 Origin，只写日志）
 app.use('/api/*', async (c, next) => {
-  // 展示发布只开放健康和公共配置读取；在鉴权、数据库和外部 API 前拦截所有其它动作。
-  if (c.env.SHOWCASE_MODE === 'true' && !['/api/health', '/api/me'].includes(c.req.path)) {
+  // 展示站可单独开放账户；业务写入仍在鉴权和外部 API 前拦截。
+  const showcase = c.env.SHOWCASE_MODE === 'true'
+  const authEnabled = c.env.SHOWCASE_AUTH_ENABLED === 'true'
+  const path = c.req.path
+  const accountRead = c.req.method === 'GET' && ['/api/generations', '/api/orders', '/api/credits/ledger', '/api/credits/expiring', '/api/referral', '/api/subscription', '/api/account/export'].includes(path)
+  const accountAuth = path.startsWith('/api/auth/') && path !== '/api/auth/dev-login'
+  const accountDelete = c.req.method === 'DELETE' && path === '/api/account'
+  if (showcase && !['/api/health', '/api/me'].includes(path) && !(authEnabled && (accountAuth || accountRead || accountDelete))) {
     const hidden = c.req.path.startsWith('/api/dev/') || c.req.path.startsWith('/api/mock-payments/') || c.req.path === '/api/auth/dev-login'
     return c.json({ error: hidden ? 'not_found' : 'service_unavailable' }, hidden ? 404 : 503)
   }
@@ -84,7 +90,7 @@ app.use('/api/*', async (c, next) => {
     const allowed = [new URL(c.req.url).origin, new URL(c.env.SITE_URL).origin]
     if (!origin || !allowed.includes(origin)) throw new ApiError(403, 'bad_origin')
   }
-  c.set('user', external || c.env.SHOWCASE_MODE === 'true' ? null : await loadSessionUser(c))
+  c.set('user', external || (showcase && !authEnabled) ? null : await loadSessionUser(c))
   await next()
 })
 
@@ -114,7 +120,7 @@ app.post(CLIENT_ERROR_PATH, async (c) => {
 })
 
 app.get('/api/me', async (c) => {
-  if (c.env.SHOWCASE_MODE === 'true') return c.json({ user: null, config: {
+  if (c.env.SHOWCASE_MODE === 'true' && c.env.SHOWCASE_AUTH_ENABLED !== 'true') return c.json({ user: null, config: {
     showcase: true, googleClientId: null, devLogin: false, emailPassword: false, emailVerification: false,
     paymentProvider: 'disabled', turnstileSiteKey: null,
     notice: { maintenance: false, announcement: {} },
@@ -123,15 +129,17 @@ app.get('/api/me', async (c) => {
   return c.json({
     user: user ? publicUser(user) : null,
     config: {
+      showcase: c.env.SHOWCASE_MODE === 'true',
+      authEnabled: true,
       googleClientId: googleClientId(c.env) ?? null,
       devLogin: !isProduction(c.env),
       emailPassword: emailPasswordEnabled(c.env),
       emailVerification: emailVerificationEnabled(c.env, isLocalDevRequest(c)),
-      paymentProvider: c.env.PAYMENT_PROVIDER,
+      paymentProvider: c.env.SHOWCASE_MODE === 'true' ? 'disabled' : c.env.PAYMENT_PROVIDER,
       turnstileSiteKey: turnstileSiteKey(c.env),
       notice: publicNotice(await getSettings(c.env)),
     },
-  })
+  }, 200, { 'Cache-Control': 'no-store' })
 })
 
 // ---------- Auth ----------
