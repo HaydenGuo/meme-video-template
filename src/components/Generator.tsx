@@ -265,7 +265,7 @@ export function Generator() {
 
         {/* CTA */}
         <div className="space-y-2">
-          {!loading && (!generationEnabled || (!user && !authEnabled) || (shortfall > 0 && !paymentsEnabled)) ? (
+          {!loading && (!generationEnabled || (!user && !authEnabled)) ? (
             <button type="button" disabled className="btn-primary w-full py-3.5">{c.common.comingSoon}</button>
           ) : loading ? (
             <div className="btn-primary w-full py-3.5 opacity-60">
@@ -275,6 +275,8 @@ export function Generator() {
             <a href={signInHref(config, pathname, lp('/sign-in'))} className="btn-primary w-full py-3.5" data-testid="generator-sign-up">
               {g.ctaSignUp}
             </a>
+          ) : shortfall > 0 && !paymentsEnabled ? (
+            <button type="button" disabled className="btn-primary w-full py-3.5">{c.errors.insufficient_credits}</button>
           ) : shortfall > 0 ? (
             <LocalLink to="/pricing" className="btn-primary w-full py-3.5" data-testid="generator-buy">
               {g.ctaBuy}
