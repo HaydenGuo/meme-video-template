@@ -1,0 +1,283 @@
+#!/usr/bin/env node
+// 安装模板后的统一初始化入口。先在暂存目录准备全部文件，再落盘；不发布、不创建云资源。
+import { createHash, randomBytes } from 'node:crypto'
+import { execFileSync } from 'node:child_process'
+import { existsSync, readFileSync, writeFileSync, mkdirSync, copyFileSync, statSync, unlinkSync } from 'node:fs'
+import { dirname, resolve, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import ts from 'typescript'
+
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const args = process.argv.slice(2)
+const usage = 'npm run site:init -- --profile <梗资料.json> [--services <本机公共配置.json>] [--apply] [--local]'
+if (args.includes('--help')) { console.log(usage); process.exit(0) }
+const permitted = new Set(['--profile', '--services', '--apply', '--local'])
+for (let i = 0; i < args.length; i++) {
+  if (!permitted.has(args[i])) throw new Error(`未知参数：${args[i]}`)
+  if (['--profile', '--services'].includes(args[i])) {
+    if (!args[i + 1] || args[i + 1].startsWith('--')) throw new Error('参数缺少文件路径')
+    i++
+  }
+}
+const option = (key) => args.includes(key) ? args[args.indexOf(key) + 1] : undefined
+const apply = args.includes('--apply')
+const local = args.includes('--local')
+if (local && !apply) throw new Error('--local 需要同时提供 --apply')
+if (!option('--profile')) throw new Error(usage)
+const profilePath = resolve(option('--profile'))
+const profile = JSON.parse(readFileSync(profilePath, 'utf8'))
+const services = option('--services') ? JSON.parse(readFileSync(resolve(option('--services')), 'utf8')) : {}
+const digest = (value) => createHash('sha256').update(value).digest('hex')
+const text = (value, name) => {
+  if (typeof value !== 'string' || !value.trim() || value.length > 10000) throw new Error(`请填写 ${name}`)
+  return value.trim()
+}
+const keyword = text(profile.keyword, 'keyword')
+const slug = text(profile.slug, 'slug')
+if (!/^[a-z][a-z0-9-]{1,48}$/.test(slug)) throw new Error('slug 需以小写字母开头，只包含小写字母、数字和短横线，长度 2–49')
+const domain = profile.domain ?? `${slug}.example.com`
+if (!/^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/.test(domain)) throw new Error('domain 只填域名，不含协议和路径')
+const port = profile.port ?? 3000
+if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error('port 应为 1024–65535')
+const overview = { en: text(profile.overview?.en, 'overview.en'), zh: text(profile.overview?.zh, 'overview.zh') }
+const credit = text(profile.media?.credit, 'media.credit')
+if (profile.media?.authorized !== true) throw new Error('请确认素材可用于本站：media.authorized=true')
+const media = Object.fromEntries(['sourceVideo', 'exampleVideo', 'photo'].map((key) => {
+  const path = resolve(dirname(profilePath), text(profile.media[key], `media.${key}`))
+  if (!statSync(path).isFile()) throw new Error(`素材不是文件：${key}`)
+  return [key, path]
+}))
+const brand = profile.brandName ?? `${keyword} AI`
+text(brand, 'brandName')
+const supportEmail = profile.supportEmail ?? `support@${domain}`
+if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(supportEmail)) throw new Error('客服邮箱格式无效')
+const origin = `http://127.0.0.1:${port}`
+const templateId = `${slug}-v1`
+const envNames = {
+  googleClientId: ['GOOGLE_CLIENT_ID', 'AUTH_GOOGLE_ID'],
+  googleClientSecret: ['GOOGLE_CLIENT_SECRET', 'AUTH_GOOGLE_SECRET'],
+  hypitBridgeToken: ['HYPIT_BRIDGE_TOKEN'],
+}
+// 公共配置只保存环境变量名称，不保存密钥正文。
+const credentials = {}
+for (const [key, fallbacks] of Object.entries(envNames)) {
+  const names = services[`${key}Env`] ? [services[`${key}Env`]] : fallbacks
+  if (names.some((name) => typeof name !== 'string' || !/^[A-Z][A-Z0-9_]*$/.test(name))) throw new Error('密钥环境变量名称无效')
+  credentials[key] = names.map((name) => process.env[name]?.trim()).find(Boolean) ?? ''
+}
+if (Boolean(credentials.googleClientId) !== Boolean(credentials.googleClientSecret)) throw new Error('Google Client ID 与 Secret 需要同时提供')
+if (credentials.hypitBridgeToken && credentials.hypitBridgeToken.length < 32) throw new Error('Bridge Token 至少 32 字符')
+const bridgeUrl = services.hypitBridgeUrl ?? 'http://127.0.0.1:8788'
+const bridge = new URL(bridgeUrl)
+if (bridge.pathname !== '/' || bridge.search || bridge.hash || bridge.username || bridge.password ||
+    !(bridge.protocol === 'https:' || (bridge.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(bridge.hostname)))) throw new Error('Bridge 地址必须是 HTTPS origin 或本地回环 HTTP origin')
+const privateKeys = new Set(['googleClientIdEnv', 'googleClientSecretEnv', 'hypitBridgeTokenEnv', 'hypitBridgeUrl', 'adminEmail'])
+if (Object.keys(services).some((key) => !privateKeys.has(key))) throw new Error('公共配置包含不支持的字段；凭据请通过环境变量提供')
+const adminEmail = services.adminEmail ?? profile.supportEmail ?? `support@${domain}`
+if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail)) throw new Error('管理员邮箱格式无效')
+const fingerprint = digest(JSON.stringify({ profile, services, media: Object.fromEntries(Object.entries(media).map(([key, path]) => [key, digest(readFileSync(path))])) }))
+const statePath = join(root, '.site-initialized.json')
+if (existsSync(statePath)) {
+  const state = JSON.parse(readFileSync(statePath, 'utf8'))
+  if (state.fingerprint === fingerprint) {
+    console.log('该站点已初始化，相同输入不重复覆盖。更换凭据请编辑私有环境配置；补跑本地迁移和媒体导入请运行 npm run seed:local。')
+    process.exit(0)
+  }
+  throw new Error('该目录已经初始化，拒绝覆盖已有站点。请在新的模板副本中初始化。')
+}
+const pending = [
+  `Google 控制台登记 ${origin}/api/auth/google/callback 及 https://${domain}/api/auth/google/callback`,
+  '创建并绑定各站独立 D1、KV、R2 和 Queue；配置正式域名及生产服务商',
+  '创建 25/$9.90 与 60/$19.90 的一次性支付商品并登记 webhook',
+  '配置真实邮件域名、图片审核及 Turnstile；生产前运行 doctor 并完成登录/充值/生成验证',
+  '人工审阅梗资料、翻译、指南和展示素材；脚本不代表 SEO 或真实生成验收通过',
+]
+if (!credentials.googleClientId) pending.push('补充 Google 凭据：当前仅普通邮箱和本地开发登录可用')
+pending.push('将生成的 Bridge 站点片段合并进 VPS Bridge 配置并重启；复核模型预算后才运行真实生成')
+if (domain.endsWith('.example.com')) pending.push('当前域名为占位值，上线前替换正式域名及相关回调/发件地址')
+console.log(JSON.stringify({ mode: apply ? 'apply' : 'preview', keyword, slug, domain, localUrl: origin,
+  assets: Object.keys(media), durations: [5, 12, 15], packages: ['25 / $9.90', '60 / $19.90'],
+  googleConfigured: Boolean(credentials.googleClientId), bridgeConfigured: Boolean(credentials.hypitBridgeToken), pending }, null, 2))
+if (!apply) { console.log('\n仅预览，未写文件。确认资料后加 --apply；加 --local 导入本地数据库与素材。'); process.exit(0) }
+
+// fresh clone 可以有输入文件；拒绝覆盖已修改的跟踪文件和私有运行状态。
+const run = (bin, argv, cwd = root, stdio = 'pipe') => execFileSync(bin, argv, { cwd, stdio, windowsHide: true })
+if (run('git', ['status', '--porcelain', '--untracked-files=no']).toString().trim()) throw new Error('跟踪文件已有修改，请在干净的模板副本中初始化')
+for (const path of ['.dev.vars', '.dev.vars.local', '.wrangler', 'public/site-init', 'seed/site-init']) {
+  if (existsSync(join(root, path))) throw new Error(`已有配置或运行状态，拒绝覆盖：${path}`)
+}
+const commit = run('git', ['rev-parse', 'HEAD']).toString().trim()
+const lockPath = join(root, '.site-init.lock')
+writeFileSync(lockPath, String(process.pid), { flag: 'wx' })
+process.on('exit', () => { if (existsSync(lockPath)) unlinkSync(lockPath) })
+const stage = join(root, '.tmp', 'site-init', randomBytes(8).toString('hex'))
+const files = new Set(['scripts/new-site.mjs', 'src/config/site.ts', 'src/content/en.ts', 'src/content/zh.ts', 'wrangler.jsonc', 'package.json', 'package-lock.json'])
+for (const file of files) {
+  mkdirSync(dirname(join(stage, file)), { recursive: true })
+  copyFileSync(join(root, file), join(stage, file))
+}
+// 旧脚手架以正则替换字符串，先只传受限的站点标识；自由文本随后用 AST/JSON 安全写入。
+run(process.execPath, [join(stage, 'scripts/new-site.mjs'), '--keyword', slug, '--domain', domain, '--slug', slug,
+  '--name', slug, '--brand', slug, '--email', `support@${domain}`, '--platform', 'TikTok', '--write'], stage)
+
+// 使用 TypeScript 语法树精确定位属性，模板结构变化时停止；不用全局替换用户文案。
+function editObject(file, kind, edits) {
+  let source = readFileSync(join(stage, file), 'utf8')
+  const ast = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true)
+  const unwrap = (node) => { while (node && (ts.isAsExpression(node) || ts.isSatisfiesExpression(node) || ts.isParenthesizedExpression(node))) node = node.expression; return node }
+  let object
+  if (kind === 'site') {
+    for (const statement of ast.statements) if (ts.isVariableStatement(statement)) {
+      for (const decl of statement.declarationList.declarations) if (decl.name.getText(ast) === 'site') object = unwrap(decl.initializer)
+    }
+  } else {
+    const fn = ast.statements.find((node) => ts.isFunctionDeclaration(node) && node.name?.text === kind)
+    object = unwrap(fn?.body?.statements.find(ts.isReturnStatement)?.expression)
+  }
+  const replacements = []
+  for (const [path, value] of Object.entries(edits)) {
+    let node = object
+    for (const key of path.split('.')) {
+      if (!node || !ts.isObjectLiteralExpression(node)) throw new Error(`${file}: 无法定位 ${path}`)
+      const found = node.properties.filter((p) => ts.isPropertyAssignment(p) && p.name.getText(ast).replace(/^['"]|['"]$/g, '') === key)
+      if (found.length !== 1) throw new Error(`${file}: 属性不唯一 ${path}`)
+      node = unwrap(found[0].initializer)
+    }
+    replacements.push({ start: node.getStart(ast), end: node.end, value: JSON.stringify(value, null, 2) })
+  }
+  replacements.sort((a, b) => b.start - a.start)
+  for (const item of replacements) source = source.slice(0, item.start) + item.value + source.slice(item.end)
+  writeFileSync(join(stage, file), source)
+}
+
+const assetDir = 'public/site-init'
+mkdirSync(join(stage, assetDir), { recursive: true })
+mkdirSync(join(stage, 'seed/templates'), { recursive: true })
+// ffmpeg/ffprobe 来自本机安装；路径可通过环境变量指定。不下载或执行用户提供的命令。
+const ffmpeg = process.env.FFMPEG_PATH || 'ffmpeg'
+const ffprobe = process.env.FFPROBE_PATH || 'ffprobe'
+run(ffmpeg, ['-version'])
+const probe = JSON.parse(run(ffprobe, ['-v', 'error', '-show_format', '-show_streams', '-of', 'json', media.sourceVideo]).toString())
+if (Number(probe.format?.duration) < 15 || !Number.isFinite(Number(probe.format?.duration)) || !probe.streams?.some((s) => s.codec_type === 'video')) throw new Error('源视频必须包含视频流且至少 15 秒')
+const ff = (argv) => run(ffmpeg, ['-v', 'error', '-nostdin', '-y', ...argv])
+const videoOut = (input, output, seconds) => ff(['-i', input, '-t', String(seconds), '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-movflags', '+faststart', join(stage, output)])
+videoOut(media.sourceVideo, `${assetDir}/original.mp4`, 15)
+videoOut(media.exampleVideo, `${assetDir}/ai.mp4`, 15)
+for (const seconds of [5, 12, 15]) {
+  const file = `seed/templates/${templateId}-${seconds}s.mp4`
+  videoOut(media.sourceVideo, file, seconds)
+  files.add(file)
+}
+for (const key of ['original', 'ai']) ff(['-i', join(stage, assetDir, `${key}.mp4`), '-frames:v', '1', join(stage, assetDir, `${key}.jpg`)])
+ff(['-i', media.photo, '-frames:v', '1', join(stage, assetDir, 'photo.jpg')])
+ff(['-i', media.photo, '-vf', 'scale=1200:630:force_original_aspect_ratio=decrease,pad=1200:630:(ow-iw)/2:(oh-ih)/2', '-frames:v', '1', join(stage, assetDir, 'og.png')])
+for (const file of ['original.mp4', 'ai.mp4', 'original.jpg', 'ai.jpg', 'photo.jpg', 'og.png']) files.add(`${assetDir}/${file}`)
+const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#ec2776"/><path d="M26 17v30l24-15z" fill="white"/></svg>'
+writeFileSync(join(stage, 'public/favicon.svg'), svg)
+files.add('public/favicon.svg')
+const sample = { photo: '/site-init/photo.jpg', video: '/site-init/ai.mp4', poster: '/site-init/ai.jpg' }
+editObject('src/config/site.ts', 'site', {
+  keyword, brandName: brand, supportEmail, trendPlatform: text(profile.platform ?? 'TikTok', 'platform'),
+  logoMark: profile.logoMark ?? slug.split('-').map((word) => word[0]).join('').slice(0, 2).toUpperCase(),
+  keywordOverview: overview, ogImage: '/site-init/og.png',
+  'seo.secondaryKeywords': [`${keyword} AI`, `${keyword} video`, `${keyword} meme`],
+  examples: { original: { video: '/site-init/original.mp4', poster: '/site-init/original.jpg', credit },
+    aiVersions: [{ video: sample.video, poster: sample.poster, credit }], madeWith: sample, ideas: [sample, sample, sample] },
+  durations: [5, 12, 15].map((seconds, i) => ({ id: ['short', 'medium', 'full'][i], seconds, credits: seconds,
+    source: `${templateId}-${seconds}s.mp4`, ...(seconds === 15 ? { isFull: true } : {}) })),
+  packages: [{ id: 'starter', credits: 25, priceCents: 990, currency: 'USD' }, { id: 'party', credits: 60, priceCents: 1990, currency: 'USD', highlight: true }],
+  subscriptionsEnabled: false, 'video.hypit.templateId': templateId,
+})
+for (const locale of ['en', 'zh']) {
+  const zh = locale === 'zh'
+  const intro = overview[locale].replaceAll('{keyword}', keyword)
+  const about = zh ? `上传一张照片，制作自己的 ${keyword} 梗视频。选择 5、12 或 15 秒，以及横版或竖版，生成后下载分享。` : `Upload a photo to make your own ${keyword} meme video. Choose 5, 12 or 15 seconds and portrait or landscape, then generate and download.`
+  const guide = { title: zh ? `如何制作 ${keyword} AI 视频` : `How to make a ${keyword} AI video`, description: about, intro: about,
+    sections: zh ? [
+      { h: '1. 准备照片', p: ['使用清晰的单人照片，确保照片是本人或已获人物许可。'] },
+      { h: '2. 选择时长和比例', p: ['可选 5、12、15 秒，每秒 1 积分；竖版 9:16 或横版 16:9。'] },
+      { h: '3. 生成并下载', p: ['登录后确认授权并提交，完成后下载 MP4；分享时注明 AI 生成。'] },
+    ] : [
+      { h: '1. Prepare a photo', p: ['Use a clear photo of one person, with permission to use their likeness.'] },
+      { h: '2. Choose duration and format', p: ['Choose 5, 12 or 15 seconds at one credit per second, in portrait 9:16 or landscape 16:9.'] },
+      { h: '3. Generate and download', p: ['Sign in, confirm consent and submit. Download the MP4 when ready and label it as AI-generated when sharing.'] },
+    ] }
+  editObject(`src/content/${locale}.ts`, locale, {
+    'meta.homeDescription': about, 'hero.subtitle': about,
+    'hero.badge': profile.platform ?? 'TikTok',
+    'hero.chips': zh ? ['照片二创', '横竖可选', '下载分享'] : ['Photo remix', 'Portrait or landscape', 'Download and share'],
+    'hero.creditNote': credit,
+    'whatIs.paragraphs': [intro, about],
+    'articles.trend': { title: zh ? `${keyword} 是什么？` : `What is ${keyword}?`, description: intro, intro,
+      sections: [{ h: zh ? '这个梗的玩法' : 'Make your own version', p: [about] }] },
+    'articles.howTo': guide,
+  })
+}
+let wrangler = readFileSync(join(stage, 'wrangler.jsonc'), 'utf8')
+const vars = { SITE_URL: origin, HYPIT_SITE_ID: slug, HYPIT_BRIDGE_URL: bridge.origin,
+  ADMIN_EMAILS: adminEmail, GOOGLE_CLIENT_ID: credentials.googleClientId,
+  // 没有显式确认 Bridge 的模型与预算时保持本地 mock，避免第一次启动就付费生成。
+  VIDEO_PROVIDER: 'mock', PAYMENT_PROVIDER: 'mock', APP_ENV: 'development' }
+for (const [key, value] of Object.entries(vars)) {
+  const regex = new RegExp(`("${key}"\\s*:\\s*)"[^"\\n]*"`, 'g')
+  if ([...wrangler.matchAll(regex)].length !== 1) throw new Error(`wrangler vars 无法唯一定位 ${key}`)
+  wrangler = wrangler.replace(regex, (_, prefix) => prefix + JSON.stringify(value))
+}
+writeFileSync(join(stage, 'wrangler.jsonc'), wrangler)
+const pkg = JSON.parse(readFileSync(join(stage, 'package.json'), 'utf8'))
+pkg.scripts.dev = `vite dev --host 127.0.0.1 --port ${port} --strictPort`
+writeFileSync(join(stage, 'package.json'), JSON.stringify(pkg, null, 2) + '\n')
+const lock = JSON.parse(readFileSync(join(stage, 'package-lock.json'), 'utf8'))
+lock.name = slug
+if (lock.packages?.['']) lock.packages[''].name = slug
+writeFileSync(join(stage, 'package-lock.json'), JSON.stringify(lock, null, 2) + '\n')
+const secrets = { SESSION_SECRET: randomBytes(48).toString('hex'),
+  ...(credentials.googleClientSecret ? { GOOGLE_CLIENT_SECRET: credentials.googleClientSecret } : {}),
+  ...(credentials.hypitBridgeToken ? { HYPIT_BRIDGE_TOKEN: credentials.hypitBridgeToken } : {}) }
+const envText = Object.entries(secrets).map(([key, value]) => `${key}=${JSON.stringify(value)}`).join('\n') + '\n'
+const report = { version: 1, fingerprint, templateCommit: commit, initializedAt: new Date().toISOString(), keyword, domain,
+  status: 'LOCAL_CONFIGURED_REVIEW_REQUIRED', localSeeded: false, pending,
+  assets: Object.fromEntries([...files].filter((f) => /\.(mp4|jpg|png|svg)$/.test(f)).map((f) => [f, digest(readFileSync(join(stage, f)))])) }
+const bridgeFragment = { [slug]: { mediaOrigins: [origin, `https://${domain}`], templates: { [templateId]: {
+  durations: [5, 12, 15], model: 'mini', resolution: '720p', aspectRatio: '9:16', imagePersonReference: true, videoPersonReference: true,
+  prompt: profile.prompt ?? `Create a ${keyword} remix using the reference image for the person and the reference video for timing and movement.`,
+} } } }
+writeFileSync(join(stage, 'bridge-site.json'), JSON.stringify(bridgeFragment, null, 2) + '\n')
+files.add('bridge-site.json')
+// 所有生成成功后才落盘；保留原素材与 staging 配置，不递归删除用户文件。
+files.delete('scripts/new-site.mjs')
+if (run('git', ['status', '--porcelain', '--untracked-files=no']).toString().trim()) throw new Error('准备期间模板被修改，停止写入')
+const before = new Map([...files].map((f) => [f, existsSync(join(root, f)) ? readFileSync(join(root, f)) : null]))
+let wroteSecrets = false
+let wroteState = false
+try {
+  for (const file of files) {
+    mkdirSync(dirname(join(root, file)), { recursive: true })
+    copyFileSync(join(stage, file), join(root, file))
+  }
+  writeFileSync(join(root, '.dev.vars'), envText, { flag: 'wx', mode: 0o600 })
+  wroteSecrets = true
+  writeFileSync(statePath, JSON.stringify(report, null, 2) + '\n', { flag: 'wx' })
+  wroteState = true
+} catch {
+  for (const [file, value] of before) {
+    if (value === null) { if (existsSync(join(root, file))) unlinkSync(join(root, file)) }
+    else writeFileSync(join(root, file), value)
+  }
+  if (wroteSecrets) unlinkSync(join(root, '.dev.vars'))
+  if (wroteState) unlinkSync(statePath)
+  // 不输出包含凭据的底层异常。
+  throw new Error('写入未完成，配置文件已回滚；请检查私有 .dev.vars 和初始化状态文件后重试')
+}
+if (local) {
+  // 只调用本机已安装的 wrangler，不通过 npx 下载软件或执行拼接的 shell 命令。
+  const cli = join(root, 'node_modules/wrangler/bin/wrangler.js')
+  run(process.execPath, [cli, 'd1', 'migrations', 'apply', 'DB', '--local'], root, 'inherit')
+  for (const seconds of [5, 12, 15]) {
+    const file = `${templateId}-${seconds}s.mp4`
+    run(process.execPath, [cli, 'r2', 'object', 'put', `${slug}-media/templates/${file}`, '--file', join(root, 'seed/templates', file), '--content-type', 'video/mp4', '--local'], root, 'inherit')
+  }
+  report.localSeeded = true
+  writeFileSync(statePath, JSON.stringify(report, null, 2) + '\n')
+}
+console.log(`\n初始化已写入。运行 npm run dev 打开 ${origin}。凭据仅写入忽略文件 .dev.vars；待接通项见 .site-initialized.json，Bridge 片段见 bridge-site.json。`)

@@ -1,0 +1,7 @@
+{
+  "adminEmail": "owner@example.com",
+  "hypitBridgeUrl": "http://127.0.0.1:8788",
+  "googleClientIdEnv": "AUTH_GOOGLE_ID",
+  "googleClientSecretEnv": "AUTH_GOOGLE_SECRET",
+  "hypitBridgeTokenEnv": "HYPIT_BRIDGE_TOKEN"
+}

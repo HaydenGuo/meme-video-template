@@ -17,8 +17,10 @@
     "SITE_URL": "http://localhost:3000",
     // waffo | dodo | mock（mock 只允许非 production）
     "PAYMENT_PROVIDER": "mock",
-    // fal | yir | mock（mock 只允许非 production）
+    // fal | yir | hypit | mock（mock 只允许非 production）
     "VIDEO_PROVIDER": "mock",
+    "HYPIT_BRIDGE_URL": "http://127.0.0.1:8788",
+    "HYPIT_SITE_ID": "shrimpreel",
     // 管理员邮箱（逗号分隔）：登录即为管理员，同时接收举报、留言提醒和系统告警
     "ADMIN_EMAILS": "admin@example.com",
     // 交易邮件发件地址，域名须在 Cloudflare Email Service 完成 Onboard；留空 = 不发信（后台“邮件”页记为 skipped）
@@ -52,6 +54,7 @@
       {
         "queue": "video-template-jobs",
         "max_batch_size": 5,
+        "max_concurrency": 2,
         "max_batch_timeout": 2,
         "max_retries": 10,
         "dead_letter_queue": "video-template-jobs-dlq"

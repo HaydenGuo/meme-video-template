@@ -9,6 +9,7 @@ import { waffoEnvironment } from './payments/waffo'
 import type { AppContext, UserRow } from './types'
 import { ApiError, cleanSecret, createId, parseJsonRecord } from './util'
 import { activeVideoProviderId } from './video'
+import { createHypitProvider } from './video/hypit'
 
 // 后台“测试连接”：按当前配置对每个依赖做一次只读或可自行清理的探测，不建收银台、不提交生成任务。
 // 结果里只有状态和说明，不回显任何密钥（说明文字里出现的密钥值也会被替换掉）。
@@ -121,6 +122,19 @@ function balanceOutcome(amount: number, currency: string, provider: string) {
 async function probeVideo(env: Env): Promise<Outcome> {
   const id = activeVideoProviderId(env)
   if (id === 'mock') return ok('mock 视频服务商，不调用外部接口')
+  if (id === 'hypit') {
+    createHypitProvider(env)
+    const response = await fetch(new URL('/health', env.HYPIT_BRIDGE_URL), {
+      headers: { Authorization: `Bearer ${cleanSecret(env.HYPIT_BRIDGE_TOKEN)}` },
+      signal: AbortSignal.timeout(10_000), redirect: 'manual',
+    })
+    if (!response.ok) return fail(`Hypit Bridge HTTP ${response.status}`)
+    const health = await response.json() as { ok?: boolean; mode?: string; jobs?: Array<{ state: string; count: number }> }
+    if (!health.ok) return fail('Hypit Bridge 健康状态异常')
+    if (health.mode !== 'hypit') return warn('Hypit Bridge 当前为模拟或本地媒体模式，尚未启用模型生成')
+    if (health.jobs?.some((job) => job.state === 'attention' && job.count > 0)) return warn('Hypit Bridge 存在待核对提交，生成容量受限')
+    return ok('Hypit Bridge 鉴权与健康检查正常；未调用模型，未查询服务商余额')
+  }
   if (id === 'fal') {
     const key = cleanSecret(env.FAL_KEY)
     if (!key) return fail('FAL_KEY 未配置')

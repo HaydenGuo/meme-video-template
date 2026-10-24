@@ -1,6 +1,7 @@
 export interface VideoSubmitInput {
   generationId: string
   durationSeconds: number
+  aspectRatio?: '9:16' | '16:9'
   imageUrl: string
   sourceVideoUrl: string
   sourceVideoKey: string
@@ -20,7 +21,7 @@ export type VideoStatus =
   | { state: 'failed'; code: string; message: string; retryable?: boolean }
 
 export interface VideoProvider {
-  id: 'fal' | 'yir' | 'mock'
+  id: 'fal' | 'yir' | 'hypit' | 'mock'
   submit(input: VideoSubmitInput): Promise<VideoSubmitResult>
   status(requestId: string, meta: Record<string, unknown>): Promise<VideoStatus>
   // 出一条成片的估算成本（美分），出片后写入 generations.provider_cost_cents

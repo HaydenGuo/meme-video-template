@@ -28,7 +28,7 @@ test('上传校验与越权：伪装 JPEG 返回 415，不能用别人的上传�
     await buyPackage(other, 'starter')
     const res = await json<{ error: string }>(post(other, '/api/generations', { uploadId: upload.id, durationId: 'short' }), 400)
     expect(res.error).toBe('invalid_upload')
-    expect(await credits(other)).toBe(20)
+    expect(await credits(other)).toBe(25)
     // 别人的上传图片也不能直接读取
     expect((await other.get(`/media/uploads/${upload.id}`)).status()).not.toBe(200)
   } finally {
@@ -44,7 +44,7 @@ test('生成失败自动退回积分，失败任务没有视频', async ({ reque
     post(request, '/api/generations', { uploadId: upload.id, durationId: 'full', mockOutcome: 'fail' }),
     201,
   )
-  expect(await credits(request)).toBe(2)
+  expect(await credits(request)).toBe(10)
 
   await expect
     .poll(async () => (await json<{ generation: Generation }>(request.get(`/api/generations/${generation.id}`))).generation.status, {
@@ -53,11 +53,11 @@ test('生成失败自动退回积分，失败任务没有视频', async ({ reque
     })
     .toBe('failed')
 
-  expect(await credits(request)).toBe(20)
+  expect(await credits(request)).toBe(25)
   const entries = (await ledger(request)).filter((e) => e.ref_id === generation.id)
   expect(entries.map((e) => [e.reason, e.delta]).sort()).toEqual([
-    ['generation', -18],
-    ['generation_refund', 18],
+    ['generation', -15],
+    ['generation_refund', 15],
   ])
   expect((await request.get(`/api/generations/${generation.id}/video`)).status()).toBe(404)
 })
@@ -83,7 +83,7 @@ test('并发轮询只落库一次、成片不被误删；后台记录服务商�
   expect((await video.body()).length).toBeGreaterThan(10_000)
 
   await expect.poll(() => status(failed), { timeout: 60_000, intervals: [1000] }).toBe('failed')
-  expect(await credits(request)).toBe(14)
+  expect(await credits(request)).toBe(20)
 
   // mock 出片成本为 0（不是 NULL）；没出片的失败任务服务商不计费，成本为 NULL
   await devLogin(page.request, ADMIN_EMAIL)
@@ -98,7 +98,7 @@ test('并发轮询只落库一次、成片不被误删；后台记录服务商�
 
   await page.goto('/admin/generations')
   const cell = (id: string) => page.getByTestId('admin-generations').locator('tr', { hasText: id }).getByTestId('generation-cost')
-  await expect(cell(raced)).toHaveText(`$0.00毛利 ${formatPrice(Math.round(6 * perCredit!), 'USD')}`)
+  await expect(cell(raced)).toHaveText(`$0.00毛利 ${formatPrice(Math.round(5 * perCredit!), 'USD')}`)
   await expect(cell(failed)).toHaveText('—')
   await page.goto('/admin')
   await expect(page.getByTestId('admin-margin')).toContainText('近 30 天服务商成本')

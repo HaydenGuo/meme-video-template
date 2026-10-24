@@ -48,7 +48,7 @@ test('数据保留：进行中任务的原图不清理；到期后原图不能�
   expect(await json<Swept>(post(request, '/api/dev/sweep', { days: 8 }))).toEqual({ uploads: 1, outputs: 0 })
   const reuse = await json<{ error: string }>(post(request, '/api/generations', { uploadId, durationId: 'short' }), 400)
   expect(reuse.error).toBe('invalid_upload')
-  expect(await credits(request)).toBe(14)
+  expect(await credits(request)).toBe(20)
   expect((await request.get(`/api/generations/${genId}/video`)).status()).toBe(200)
 
   // +31 天：成片过期；重复执行不会重复处理
@@ -214,15 +214,15 @@ test('导出我的数据：设置页下载 JSON，含本人全部记录；不含
   await testInfo.attach('export.json', { body: raw, contentType: 'application/json' })
   const data = JSON.parse(raw)
 
-  expect(data.account).toMatchObject({ id: owner.id, email: ownerEmail, status: 'active', credits: 14 })
+  expect(data.account).toMatchObject({ id: owner.id, email: ownerEmail, status: 'active', credits: 20 })
   expect(data.sessions.length).toBeGreaterThanOrEqual(1)
-  expect(data.orders).toEqual([expect.objectContaining({ id: orderId, status: 'paid', packageId: 'starter', credits: 20 })])
+  expect(data.orders).toEqual([expect.objectContaining({ id: orderId, status: 'paid', packageId: 'starter', credits: 25 })])
   expect(data.creditLedger.map((e: { reason: string; delta: number }) => [e.reason, e.delta])).toEqual([
-    ['purchase', 20],
-    ['generation', -6],
+    ['purchase', 25],
+    ['generation', -5],
   ])
   expect(data.uploads).toEqual([expect.objectContaining({ id: uploadId, contentType: 'image/jpeg' })])
-  expect(data.generations).toEqual([expect.objectContaining({ id: genId, uploadId, status: 'succeeded', creditsCost: 6 })])
+  expect(data.generations).toEqual([expect.objectContaining({ id: genId, uploadId, status: 'succeeded', creditsCost: 5 })])
   expect(data.contactMessages).toEqual([expect.objectContaining({ email: ownerEmail, topic: 'billing' })])
   expect(data.takedownRequests.map((r: { id: string }) => r.id)).toEqual([ownReport])
   expect(data.emails.map((e: { template: string }) => e.template)).toContain('order_paid')

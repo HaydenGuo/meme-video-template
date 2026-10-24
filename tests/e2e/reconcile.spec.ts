@@ -36,8 +36,8 @@ test('webhook 丢失：成功页久等未到账时主动查单，订单入账并
   await expect(result).toHaveAttribute('data-status', 'pending')
   // 约 15 秒时触发第一次查单
   await expect(result).toHaveAttribute('data-status', 'paid', { timeout: 30_000 })
-  await expect(result).toContainText('20')
-  expect(await credits(page.request)).toBe(20)
+  await expect(result).toContainText('25')
+  expect(await credits(page.request)).toBe(25)
 })
 
 test('Cron 对账与查单接口：退避、并发只入账一次、迟到 webhook 不重复、越权与金额不符不自动处理', async ({ page, playwright }) => {
@@ -71,20 +71,20 @@ test('Cron 对账与查单接口：退避、并发只入账一次、迟到 webho
     expect(await credits(buyer)).toBe(60)
 
     // 同一订单 5 个查单请求同时到达：只有一个真正查支付商并入账
-    const racy = await createOrder(buyer, 'starter') // 20 积分
+    const racy = await createOrder(buyer, 'starter') // 25 积分
     await payWithoutWebhook(buyer, racy)
     const results = await Promise.all([0, 1, 2, 3, 4].map(() => json<Reconciled>(reconcile(buyer, racy))))
     // 其余请求：占不到查单时间返回 throttled，读到订单时已入账则返回 skipped
     expect(results.filter((r) => r.reconcile === 'processed')).toHaveLength(1)
     expect(results.every((r) => ['processed', 'throttled', 'skipped'].includes(r.reconcile))).toBe(true)
-    expect(await credits(buyer)).toBe(80)
+    expect(await credits(buyer)).toBe(85)
     expect((await json<Reconciled>(reconcile(buyer, racy))).reconcile).toBe('skipped')
 
     // 查到的付款金额不足：和 webhook 一样记为不符、不入账，之后 Cron 不再自动查（只剩 unpaid 一单被查）
     const short = await createOrder(buyer, 'starter')
     await payWithoutWebhook(buyer, short, { paidAmountCents: 100 })
     const shortResult = await json<Reconciled>(reconcile(buyer, short))
-    expect(shortResult).toMatchObject({ reconcile: 'mismatch', order: { status: 'pending' }, credits: 80 })
+    expect(shortResult).toMatchObject({ reconcile: 'mismatch', order: { status: 'pending' }, credits: 85 })
     expect(await sweep(60)).toEqual({ checked: 1, unpaid: 1 })
 
     // 后台查单：不符的订单提示人工核对；webhook 丢失的订单查到即入账，时间线有对账事件和审计
@@ -103,7 +103,7 @@ test('Cron 对账与查单接口：退避、并发只入账一次、迟到 webho
     const timeline = page.getByTestId('order-timeline')
     await expect(timeline).toContainText('reconcile')
     await expect(timeline).toContainText(`order.reconcile（${ADMIN_EMAIL}）`)
-    expect(await credits(buyer)).toBe(100)
+    expect(await credits(buyer)).toBe(110)
   } finally {
     await buyer.dispose()
     await other.dispose()

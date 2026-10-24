@@ -14,9 +14,9 @@ export function Nav() {
   useEffect(() => setOpen(false), [pathname])
 
   const links = [
+    { href: lp('/guides'), label: c.guides.nav },
     { href: `${lp('/')}#features`, label: c.nav.features },
     { href: `${lp('/')}#examples`, label: c.nav.examples },
-    { href: lp('/guides'), label: c.guides.nav },
     { href: lp('/pricing'), label: c.nav.pricing },
   ]
 

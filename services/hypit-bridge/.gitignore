@@ -1,0 +1,5 @@
+.env
+bridge.config.json
+.data/
+.tmp/
+node_modules/

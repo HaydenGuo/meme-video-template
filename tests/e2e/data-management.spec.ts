@@ -24,7 +24,7 @@ async function failedOrder(request: Parameters<typeof buyPackage>[0]) {
 
 test('用户账单与订单详情：实付与部分退款展示，他人订单接口与页面都拿不到', async ({ page, browser, playwright }) => {
   await devLogin(page.request, uniqueEmail('billing'))
-  const orderId = await buyPackage(page.request, 'starter') // 20 积分 / $9.90
+  const orderId = await buyPackage(page.request, 'starter') // 25 积分 / $9.90
   const unpaidId = await failedOrder(page.request)
 
   await page.goto('/dashboard/billing')
@@ -37,13 +37,13 @@ test('用户账单与订单详情：实付与部分退款展示，他人订单�
   await expect(page.getByTestId('order-detail-paid')).toHaveText('$9.90')
   await expect(page.getByText(t.order.mockNote)).toBeVisible()
 
-  // 支付商回调部分退款 $3.30：回收 round(20 × 330 / 990) = 7 积分，账单和详情都显示退款
+  // 支付商回调部分退款 $3.30：回收 round(25 × 330 / 990) = 8 积分，账单和详情都显示退款
   await json(post(page.request, '/api/mock-payments/complete', { orderId, outcome: 'refunded', eventId: `${orderId}_r1`, amountCents: 330 }))
   await page.reload()
-  await expect(page.getByTestId('order-detail-refunded')).toHaveText(t.refundedLine('$3.30', 7))
+  await expect(page.getByTestId('order-detail-refunded')).toHaveText(t.refundedLine('$3.30', 8))
   await expect(page.getByTestId('order-detail')).toContainText(t.orderStatus.partially_refunded!)
   await page.goto('/dashboard/billing')
-  await expect(page.getByTestId('orders-table')).toContainText(t.refundedLine('$3.30', 7))
+  await expect(page.getByTestId('orders-table')).toContainText(t.refundedLine('$3.30', 8))
 
   // 未支付订单：没有实付金额，提示被扣款时联系客服
   await page.goto(`/dashboard/orders/${unpaidId}`)
@@ -99,18 +99,18 @@ test('后台订单详情：搜索进入、金额校验失败可重试、部分�
     await expect.poll(() => alerts.at(-1)).toBe('退款金额无效')
     await expect(page.getByTestId('admin-order-refunded')).toHaveText('$0.00 · 0 积分')
 
-    // 重试：部分退款 $3.30（mock 订单走仅记账），回收 7 积分
+    // 重试：部分退款 $3.30（mock 订单走仅记账），回收 8 积分
     answers.push('3.30', 'e2e 部分退款')
     await page.getByTestId(`refund-${orderId}`).click()
-    await expect(page.getByTestId('admin-order-refunded')).toHaveText('$3.30 · 7 积分')
+    await expect(page.getByTestId('admin-order-refunded')).toHaveText('$3.30 · 8 积分')
     await expect(detail).toContainText('部分退款')
-    expect(await credits(buyer)).toBe(13)
+    expect(await credits(buyer)).toBe(17)
 
     const timeline = page.getByTestId('order-timeline')
     await expect(timeline).toContainText('创建订单（mock）')
     await expect(timeline).toContainText('mock.paid')
-    await expect(timeline).toContainText('purchase +20')
-    await expect(timeline).toContainText('order_refund -7')
+    await expect(timeline).toContainText('purchase +25')
+    await expect(timeline).toContainText('order_refund -8')
     await expect(timeline).toContainText(`order.refund（${ADMIN_EMAIL}）`)
     // 付款成功邮件由回调异步入队；没配邮件服务时记为“未发送”，同样出现在时间线
     await expect
@@ -127,7 +127,7 @@ test('后台订单详情：搜索进入、金额校验失败可重试、部分�
     await expect(page.getByTestId('admin-order-detail')).toContainText('已支付')
     await expect(timeline).toContainText('mock.failed')
     await expect(timeline).toContainText(`order.mark_paid（${ADMIN_EMAIL}）`)
-    expect(await credits(buyer)).toBe(33)
+    expect(await credits(buyer)).toBe(42)
   } finally {
     await buyer.dispose()
   }

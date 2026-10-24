@@ -1,12 +1,12 @@
 import { useRouterState } from '@tanstack/react-router'
-import { CircleAlert, CircleCheck, Download, Upload } from 'lucide-react'
+import { CircleAlert, CircleCheck, Download, Film, Upload } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { site } from '#/config/site'
 import { api, errorCode, isActiveGeneration, type Generation } from '#/lib/api'
 import { track } from '#/lib/attribution'
 import { useContent, useLocale, useLocalePath } from '#/lib/i18n'
 import { signInHref, useSession } from '#/lib/session'
-import { AiBadge, ErrorText, GoogleIcon, LocalLink, Spinner, formatDate } from './ui'
+import { AiBadge, ErrorText, LocalLink, Spinner, formatDate } from './ui'
 
 type Photo = { file: File; previewUrl: string; uploadId: string | null }
 
@@ -25,6 +25,7 @@ export function Generator() {
   const [dragging, setDragging] = useState(false)
   const [durationId, setDurationId] = useState<string>(site.durations[site.durations.length - 1]!.id)
   const [consent, setConsent] = useState(false)
+  const [aspectRatio, setAspectRatio] = useState<'9:16' | '16:9'>('9:16')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [generation, setGeneration] = useState<Generation | null>(null)
@@ -88,7 +89,7 @@ export function Generator() {
     try {
       const uploadId = photo.uploadId ?? (await upload(photo.file))
       if (!photo.uploadId) setPhoto({ ...photo, uploadId })
-      const data = await api<{ generation: Generation }>('/api/generations', { json: { uploadId, durationId, locale } })
+      const data = await api<{ generation: Generation }>('/api/generations', { json: { uploadId, durationId, aspectRatio, locale } })
       track('generate_video', { duration_id: durationId, credits: data.generation.creditsCost })
       setGeneration(data.generation)
       await refresh()
@@ -109,7 +110,7 @@ export function Generator() {
 
   return (
     <section
-      className="card space-y-5 p-5 shadow-[0_1px_0_var(--line),0_20px_40px_-24px_rgba(0,0,0,0.25)] sm:p-6"
+      className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-8"
       aria-labelledby="generator-title"
       data-testid="generator"
     >
@@ -117,141 +118,176 @@ export function Generator() {
       <h2 id="generator-title" className="sr-only">
         {g.title}
       </h2>
-      {/* 1. 照片 */}
-      <section className="space-y-3">
-        <StepTitle n={1}>{g.stepPhoto}</StepTitle>
-        {/* 键盘与读屏从下面的按钮进入，隐藏的 input 不占 Tab 位 */}
-        <input
-          ref={inputRef}
-          type="file"
-          accept={site.upload.contentTypes.join(',')}
-          className="sr-only"
-          tabIndex={-1}
-          aria-label={g.dropTitle}
-          data-testid="photo-input"
-          onChange={(event) => {
-            void selectFile(event.target.files?.[0])
-            event.target.value = ''
-          }}
-        />
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => inputRef.current?.click()}
-          onDragOver={(event) => {
-            event.preventDefault()
-            setDragging(true)
-          }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={(event) => {
-            event.preventDefault()
-            setDragging(false)
-            void selectFile(event.dataTransfer.files?.[0])
-          }}
-          className={`flex w-full items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 text-center transition ${
-            dragging ? 'border-accent bg-accent/5' : 'border-line hover:border-fg/40'
-          }`}
-        >
-          {photo ? (
-            <span className="flex items-center gap-4 text-left">
-              <img src={photo.previewUrl} alt="" className="size-20 rounded-lg object-cover" />
-              <span className="space-y-1">
-                <span className="flex items-center gap-1.5 text-sm font-semibold">
-                  {uploading ? <Spinner /> : <CircleCheck className="size-4 text-emerald-600" />}
-                  {uploading ? g.uploading : g.uploaded}
-                </span>
-                <span className="block text-xs text-muted underline">{g.change}</span>
-              </span>
-            </span>
-          ) : (
-            <span className="flex flex-col items-center gap-2.5">
-              <span className="grid size-11 place-items-center rounded-full bg-ink text-ink-fg">
-                <Upload className="size-5" />
-              </span>
-              <span className="text-sm font-semibold">{g.dropTitle}</span>
-              <span className="text-xs text-muted">{g.dropHint}</span>
-            </span>
-          )}
-        </button>
-        <p className="text-xs leading-5 text-muted">{g.guidance}</p>
-      </section>
-
-      {/* 2. 时长 */}
-      <section className="space-y-3">
-        <StepTitle n={2}>{g.stepLength}</StepTitle>
-        <div className="grid grid-cols-3 gap-1 rounded-xl bg-bg-soft p-1" role="radiogroup" aria-label={g.stepLength}>
-          {site.durations.map((d) => {
-            const active = d.id === durationId
-            return (
-              <button
-                key={d.id}
-                type="button"
-                role="radio"
-                aria-checked={active}
-                disabled={busy}
-                data-testid={`duration-${d.id}`}
-                onClick={() => setDurationId(d.id)}
-                className={`rounded-lg px-2 py-2 text-center transition ${active ? 'bg-card shadow-sm ring-1 ring-line' : 'text-muted hover:text-fg'}`}
-              >
-                <span className="block text-sm font-semibold">
-                  {g.seconds(d.seconds)}
-                  {'isFull' in d && d.isFull ? ` · ${g.full}` : ''}
-                </span>
-                <span className="block text-xs text-muted">{g.creditsLabel(d.credits)}</span>
-              </button>
-            )
-          })}
-        </div>
-      </section>
-
-      <label className="flex items-start gap-3 text-xs leading-5 text-muted">
-        <input
-          type="checkbox"
-          checked={consent}
-          onChange={(event) => setConsent(event.target.checked)}
-          className="mt-0.5 size-4 shrink-0 accent-[var(--ink)]"
-          data-testid="consent"
-        />
-        <span>{g.consent}</span>
-      </label>
-
-      {/* CTA */}
-      <div className="space-y-2">
-        {loading ? (
-          <div className="btn-primary w-full py-3.5 opacity-60">
-            <Spinner />
-          </div>
-        ) : !user ? (
-          <a href={signInHref(config, pathname, lp('/sign-in'))} className="btn-primary w-full py-3.5" data-testid="generator-sign-up">
-            <GoogleIcon /> {g.ctaSignUp}
-          </a>
-        ) : shortfall > 0 ? (
-          <LocalLink to="/pricing" className="btn-primary w-full py-3.5" data-testid="generator-buy">
-            {g.ctaBuy}
-          </LocalLink>
-        ) : (
+      <div className="card min-w-0 space-y-5 p-5 shadow-[0_1px_0_var(--line),0_20px_40px_-24px_rgba(0,0,0,0.25)] sm:p-6">
+        {/* 1. 照片 */}
+        <section className="space-y-3">
+          <StepTitle n={1}>{g.stepPhoto}</StepTitle>
+          {/* 键盘与读屏从下面的按钮进入，隐藏的 input 不占 Tab 位 */}
+          <input
+            ref={inputRef}
+            type="file"
+            accept={site.upload.contentTypes.join(',')}
+            className="sr-only"
+            tabIndex={-1}
+            aria-label={g.dropTitle}
+            data-testid="photo-input"
+            onChange={(event) => {
+              void selectFile(event.target.files?.[0])
+              event.target.value = ''
+            }}
+          />
           <button
             type="button"
-            className="btn-primary w-full py-3.5"
-            disabled={busy || !photo || !consent}
-            onClick={generate}
-            data-testid="generate"
+            disabled={busy}
+            onClick={() => inputRef.current?.click()}
+            onDragOver={(event) => {
+              event.preventDefault()
+              setDragging(true)
+            }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={(event) => {
+              event.preventDefault()
+              setDragging(false)
+              void selectFile(event.dataTransfer.files?.[0])
+            }}
+            className={`flex w-full items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 text-center transition ${
+              dragging ? 'border-accent bg-accent/5' : 'border-line hover:border-fg/40'
+            }`}
           >
-            {submitting ? <Spinner /> : null}
-            {g.ctaGenerate(duration.credits)}
+            {photo ? (
+              <span className="flex items-center gap-4 text-left">
+                <img src={photo.previewUrl} alt="" className="size-20 rounded-lg object-cover" />
+                <span className="space-y-1">
+                  <span className="flex items-center gap-1.5 text-sm font-semibold">
+                    {uploading ? <Spinner /> : <CircleCheck className="size-4 text-emerald-600" />}
+                    {uploading ? g.uploading : g.uploaded}
+                  </span>
+                  <span className="block text-xs text-muted underline">{g.change}</span>
+                </span>
+              </span>
+            ) : (
+              <span className="flex flex-col items-center gap-2.5">
+                <span className="grid size-11 place-items-center rounded-full bg-ink text-ink-fg">
+                  <Upload className="size-5" />
+                </span>
+                <span className="text-sm font-semibold">{g.dropTitle}</span>
+                <span className="text-xs text-muted">{g.dropHint}</span>
+              </span>
+            )}
           </button>
-        )}
-        {user ? (
-          <p className="text-center text-xs text-muted" data-testid="generator-balance">
-            {g.balance(user.credits)}
-            {shortfall > 0 ? ` · ${g.needMore(shortfall)}` : ''}
-          </p>
-        ) : null}
-        {user && photo && !consent && !generation ? <p className="text-center text-xs text-muted">{g.needConsent}</p> : null}
-        <ErrorText code={error} />
+          <p className="text-xs leading-5 text-muted">{g.guidance}</p>
+        </section>
+
+        {/* 2. 时长 */}
+        <section className="space-y-3">
+          <StepTitle n={2}>{g.stepLength}</StepTitle>
+          <div className="grid grid-cols-3 gap-1 rounded-xl bg-bg-soft p-1" role="radiogroup" aria-label={g.stepLength}>
+            {site.durations.map((d) => {
+              const active = d.id === durationId
+              return (
+                <button
+                  key={d.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  disabled={busy}
+                  data-testid={`duration-${d.id}`}
+                  onClick={() => setDurationId(d.id)}
+                  className={`rounded-lg px-2 py-2 text-center transition ${active ? 'bg-card shadow-sm ring-1 ring-line' : 'text-muted hover:text-fg'}`}
+                >
+                  <span className="block text-sm font-semibold">
+                    {g.seconds(d.seconds)}
+                    {'isFull' in d && d.isFull ? ` · ${g.full}` : ''}
+                  </span>
+                  <span className="block text-xs text-muted">{g.creditsLabel(d.credits)}</span>
+                </button>
+              )
+            })}
+          </div>
+        </section>
+
+        <section className="space-y-3">
+          <StepTitle n={3}>{g.stepFormat}</StepTitle>
+          <div className="grid grid-cols-2 gap-1 rounded-xl bg-bg-soft p-1" role="radiogroup" aria-label={g.stepFormat}>
+            {(['9:16', '16:9'] as const).map((ratio) => (
+              <button
+                key={ratio}
+                type="button"
+                role="radio"
+                aria-checked={aspectRatio === ratio}
+                disabled={busy || generation !== null}
+                onClick={() => setAspectRatio(ratio)}
+                className={`flex items-center justify-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold transition ${aspectRatio === ratio ? 'bg-card shadow-sm ring-1 ring-line' : 'text-muted hover:text-fg'}`}
+              >
+                <span aria-hidden className={`rounded-sm border-2 border-current ${ratio === '9:16' ? 'h-7 w-4' : 'h-4 w-7'}`} />
+                {ratio === '9:16' ? g.portrait : g.landscape}
+                <span className="text-xs font-normal text-muted">{ratio}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <label className="flex items-start gap-3 text-xs leading-5 text-muted">
+          <input
+            type="checkbox"
+            checked={consent}
+            onChange={(event) => setConsent(event.target.checked)}
+            className="mt-0.5 size-4 shrink-0 accent-[var(--ink)]"
+            data-testid="consent"
+          />
+          <span>{g.consent}</span>
+        </label>
+
+        {/* CTA */}
+        <div className="space-y-2">
+          {loading ? (
+            <div className="btn-primary w-full py-3.5 opacity-60">
+              <Spinner />
+            </div>
+          ) : !user ? (
+            <a href={signInHref(config, pathname, lp('/sign-in'))} className="btn-primary w-full py-3.5" data-testid="generator-sign-up">
+              {g.ctaSignUp}
+            </a>
+          ) : shortfall > 0 ? (
+            <LocalLink to="/pricing" className="btn-primary w-full py-3.5" data-testid="generator-buy">
+              {g.ctaBuy}
+            </LocalLink>
+          ) : (
+            <button
+              type="button"
+              className="btn-primary w-full py-3.5"
+              disabled={busy || !photo || !consent}
+              onClick={generate}
+              data-testid="generate"
+            >
+              {submitting ? <Spinner /> : null}
+              {g.ctaGenerate(duration.credits)}
+            </button>
+          )}
+          {user ? (
+            <p className="text-center text-xs text-muted" data-testid="generator-balance">
+              {g.balance(user.credits)}
+              {shortfall > 0 ? ` · ${g.needMore(shortfall)}` : ''}
+            </p>
+          ) : null}
+          {user && photo && !consent && !generation ? <p className="text-center text-xs text-muted">{g.needConsent}</p> : null}
+          <ErrorText code={error} />
+        </div>
+
       </div>
 
-      {generation ? <GenerationResult generation={generation} onReset={reset} /> : null}
+      <section className="card min-w-0 space-y-5 p-5 sm:p-6" aria-labelledby="video-preview-title" data-testid="video-preview">
+        <h3 id="video-preview-title" className="text-sm font-semibold">{generation?.status === 'succeeded' ? g.succeeded : g.previewTitle}</h3>
+        {generation?.status !== 'succeeded' || !generation.videoUrl ? (
+          <div className={`mx-auto flex w-full flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-line bg-bg-soft px-6 text-center ${aspectRatio === '9:16' ? 'aspect-[9/16] max-w-[260px]' : 'aspect-video'}`}>
+            <Film className="size-9 text-muted" aria-hidden />
+            {!generation ? <p className="text-sm leading-6 text-muted">{photo ? g.previewPending : g.previewEmpty}</p> : null}
+          </div>
+        ) : null}
+        <div aria-live="polite">
+          {generation ? <GenerationResult generation={generation} onReset={reset} /> : null}
+        </div>
+      </section>
     </section>
   )
 }
@@ -269,7 +305,7 @@ function GenerationResult({ generation, onReset }: { generation: Generation; onR
   const g = useContent().generator
   const locale = useLocale()
   return (
-    <div className="space-y-3 rounded-xl border border-line bg-bg-soft p-4" data-testid="generation-status" data-status={generation.status}>
+    <div className="space-y-3" data-testid="generation-status" data-status={generation.status}>
       {isActiveGeneration(generation) ? (
         <p className="flex items-start gap-2 text-sm">
           <Spinner className="mt-0.5 size-4 shrink-0" />

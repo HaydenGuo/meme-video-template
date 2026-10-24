@@ -36,7 +36,7 @@ test('死信：任务判失败并只退一次积分；健康检查告警，同�
 
   // 服务商一直不完成，队列消息最终进入死信队列：任务判失败、退积分
   const stuck = await generate(request, 'hang')
-  expect(await credits(request)).toBe(before - 6)
+  expect(await credits(request)).toBe(before - 5)
   await expect.poll(() => status(request, stuck), { timeout: 30_000, intervals: [500] }).toBe('processing')
   expect(await json(post(request, '/api/dev/dead-letter', { generationId: stuck }))).toEqual({ failed: true })
   expect(await status(request, stuck)).toBe('failed')

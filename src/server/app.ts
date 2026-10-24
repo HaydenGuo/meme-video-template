@@ -9,6 +9,7 @@ import { runHealthCheck } from './alerts'
 import { backupDatabase } from './backup'
 import { classifyTouch, deviceFromUserAgent, requestAttribution, sanitizeTouch } from './attribution'
 import { deletedEmailHash, endSession, loadSessionUser, publicUser, startSession, upsertUser } from './auth'
+import { authPurpose, consumeAuthCode, emailPasswordEnabled, emailVerificationEnabled, hashPassword, limitEmailAction, normalizeAuthEmail, sendAuthCode, validatePassword, verifyPassword } from './email-auth'
 import { CLIENT_ERROR_PATH, summarizeClientError } from './client-error'
 import { clawbackStatements, expireStatements, ledgerStatements } from './credits'
 import { CSP_REPORT_PATH, summarizeCspReports } from './csp'
@@ -114,6 +115,8 @@ app.get('/api/me', async (c) => {
     config: {
       googleClientId: googleClientId(c.env) ?? null,
       devLogin: !isProduction(c.env),
+      emailPassword: emailPasswordEnabled(c.env),
+      emailVerification: emailVerificationEnabled(c.env, isLocalDevRequest(c)),
       paymentProvider: c.env.PAYMENT_PROVIDER,
       turnstileSiteKey: turnstileSiteKey(c.env),
       notice: publicNotice(await getSettings(c.env)),
@@ -124,6 +127,80 @@ app.get('/api/me', async (c) => {
 // ---------- Auth ----------
 
 const ONE_TAP_NONCE_COOKIE = 'g_nonce'
+
+app.post('/api/auth/email/code', async (c) => {
+  c.header('Cache-Control', 'no-store')
+  await rateLimit(c.env.AUTH_LIMITER, `email-code:${c.req.header('cf-connecting-ip') ?? 'local'}`)
+  const body = await readJson<{ email: string; purpose: string; locale: string }>(c)
+  const email = normalizeAuthEmail(body.email)
+  const purpose = authPurpose(body.purpose)
+  // 注册与重置一律发送相同格式的验证码，不在发送阶段泄露邮箱是否已有账户。
+  return c.json(await sendAuthCode(c.env, email, purpose, isLocale(body.locale) ? body.locale : undefined, isLocalDevRequest(c)))
+})
+
+app.post('/api/auth/email/register', async (c) => {
+  await rateLimit(c.env.AUTH_LIMITER, `email-register:${c.req.header('cf-connecting-ip') ?? 'local'}`)
+  const body = await readJson<{ email: string; password: string; code: string; challengeId: string; locale: string }>(c)
+  const email = normalizeAuthEmail(body.email)
+  validatePassword(body.password)
+  await consumeAuthCode(c.env, email, 'register', body.challengeId, body.code)
+  const passwordHash = await hashPassword(c.env, body.password)
+  const user = await upsertUser(c.env, {
+    email, name: null, picture: null, googleSub: null,
+    country: c.req.header('cf-ipcountry') ?? null,
+    locale: isLocale(body.locale) ? body.locale : null,
+    attribution: requestAttribution(c, 'first'), referral: await requestReferral(c),
+  })
+  const now = nowIso()
+  const added = await c.env.DB.prepare(
+    'INSERT INTO email_credentials (user_id, password_hash, verified_at, updated_at) VALUES (?, ?, ?, ?) ON CONFLICT(user_id) DO NOTHING',
+  ).bind(user.id, passwordHash, now, now).run()
+  if (!added.meta.changes) throw new ApiError(409, 'email_account_exists')
+  await startSession(c, user.id, passwordHash)
+  c.header('Cache-Control', 'no-store')
+  return c.json({ user: publicUser(user) })
+})
+
+app.post('/api/auth/email/login', async (c) => {
+  await rateLimit(c.env.AUTH_LIMITER, `email-login:${c.req.header('cf-connecting-ip') ?? 'local'}`)
+  const body = await readJson<{ email: string; password: string }>(c)
+  const email = normalizeAuthEmail(body.email)
+  if (typeof body.password !== 'string' || body.password.length > 128) throw new ApiError(401, 'invalid_credentials')
+  await limitEmailAction(c.env, `login:${email}`, 10, 15 * 60_000)
+  const account = await c.env.DB.prepare(
+    'SELECT u.*, ec.password_hash FROM users u JOIN email_credentials ec ON ec.user_id = u.id WHERE lower(trim(u.email)) = ?',
+  ).bind(email).first<UserRow & { password_hash: string }>()
+  const valid = await verifyPassword(c.env, body.password, account?.password_hash ?? null)
+  if (!account || !valid || account.status !== 'active') throw new ApiError(401, 'invalid_credentials')
+  const user = await upsertUser(c.env, { email, name: null, picture: null, googleSub: null, country: null, locale: null })
+  await c.env.DB.prepare('DELETE FROM email_auth_limits WHERE scope = ?').bind(`login:${email}`).run()
+  await startSession(c, user.id, account.password_hash)
+  c.header('Cache-Control', 'no-store')
+  return c.json({ user: publicUser(user) })
+})
+
+app.post('/api/auth/email/reset-password', async (c) => {
+  await rateLimit(c.env.AUTH_LIMITER, `email-reset:${c.req.header('cf-connecting-ip') ?? 'local'}`)
+  const body = await readJson<{ email: string; password: string; code: string; challengeId: string }>(c)
+  const email = normalizeAuthEmail(body.email)
+  validatePassword(body.password)
+  await consumeAuthCode(c.env, email, 'reset', body.challengeId, body.code)
+  const user = await c.env.DB.prepare('SELECT * FROM users WHERE lower(trim(email)) = ?').bind(email).first<UserRow>()
+  if (!user || user.status !== 'active') throw new ApiError(400, 'email_account_missing')
+  const passwordHash = await hashPassword(c.env, body.password)
+  const now = nowIso()
+  await c.env.DB.batch([
+    c.env.DB.prepare(
+      `INSERT INTO email_credentials (user_id, password_hash, verified_at, updated_at) VALUES (?, ?, ?, ?)
+       ON CONFLICT(user_id) DO UPDATE SET password_hash = excluded.password_hash, verified_at = excluded.verified_at, updated_at = excluded.updated_at`,
+    ).bind(user.id, passwordHash, now, now),
+    c.env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(user.id),
+    c.env.DB.prepare('DELETE FROM email_auth_limits WHERE scope = ?').bind(`login:${email}`),
+  ])
+  await startSession(c, user.id, passwordHash)
+  c.header('Cache-Control', 'no-store')
+  return c.json({ user: publicUser(user) })
+})
 
 app.get('/api/auth/google/start', async (c) => {
   await rateLimit(c.env.AUTH_LIMITER, c.req.header('cf-connecting-ip') ?? 'local')
@@ -284,7 +361,9 @@ app.post('/api/generations', async (c) => {
   const settings = await getSettings(c.env)
   assertOpen(settings, user)
   await rateLimit(c.env.GENERATE_LIMITER, user.id)
-  const body = await readJson<{ uploadId: string; durationId: string; mockOutcome: string; locale: string }>(c)
+  const body = await readJson<{ uploadId: string; durationId: string; aspectRatio?: string; mockOutcome: string; locale: string }>(c)
+  const aspectRatio = body.aspectRatio ?? '9:16'
+  if (aspectRatio !== '9:16' && aspectRatio !== '16:9') throw new ApiError(400, 'invalid_aspect_ratio')
   const duration = findDuration(body.durationId ?? '')
   if (!duration) throw new ApiError(400, 'invalid_duration')
   const db = c.env.DB
@@ -303,8 +382,9 @@ app.post('/api/generations', async (c) => {
   await rememberLocale(c.env, user, body.locale)
 
   const providerId = activeVideoProviderId(c.env)
+  if (providerId === 'fal' && aspectRatio !== '9:16') throw new ApiError(400, 'aspect_ratio_unavailable')
   const mockOutcome = providerId === 'mock' && (body.mockOutcome === 'fail' || body.mockOutcome === 'hang') ? body.mockOutcome : null
-  const meta = mockOutcome ? JSON.stringify({ mockOutcome }) : null
+  const meta = JSON.stringify({ aspectRatio, ...(mockOutcome ? { mockOutcome } : {}) })
   const id = createId('gen')
   const now = nowIso()
   try {
@@ -860,6 +940,9 @@ app.delete('/api/account', async (c) => {
     db.prepare('DELETE FROM generations WHERE user_id = ?').bind(user.id),
     db.prepare('DELETE FROM uploads WHERE user_id = ?').bind(user.id),
     db.prepare('DELETE FROM email_outbox WHERE user_id = ?').bind(user.id),
+    db.prepare('DELETE FROM email_credentials WHERE user_id = ?').bind(user.id),
+    db.prepare('DELETE FROM email_auth_challenges WHERE email = ?').bind(user.email),
+    db.prepare('DELETE FROM email_auth_limits WHERE scope IN (?, ?)').bind(`login:${user.email}`, `send:${user.email}`),
     ...clawbackStatements(db, {
       userId: user.id,
       maxAmount: 1_000_000_000, // 全部剩余积分

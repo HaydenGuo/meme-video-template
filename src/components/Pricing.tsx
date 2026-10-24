@@ -81,7 +81,7 @@ export function Pricing() {
           <h3 className="pt-6 text-center font-display text-2xl">{p.packsTitle}</h3>
         </>
       ) : null}
-      <div className="grid gap-5 md:grid-cols-3">
+      <div className={`mx-auto grid gap-5 ${site.packages.length === 2 ? 'max-w-3xl md:grid-cols-2' : 'md:grid-cols-3'}`}>
         {site.packages.map((pack) => {
           const info = p.packages[pack.id] ?? { name: pack.id, tagline: '' }
           const highlight = 'highlight' in pack && pack.highlight

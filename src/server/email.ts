@@ -184,6 +184,10 @@ export async function deliverEmail(env: Env, id: string) {
 
 // Cron：补发到期的 pending，删除超过保留期的记录（含收件地址，属于个人数据）
 export async function runEmailMaintenance(env: Env) {
+  await env.DB.batch([
+    env.DB.prepare('DELETE FROM email_auth_challenges WHERE expires_at <= ?').bind(nowIso()),
+    env.DB.prepare('DELETE FROM email_auth_limits WHERE window_start <= ?').bind(new Date(Date.now() - 86400_000).toISOString()),
+  ])
   const due = await env.DB.prepare(
     `SELECT id FROM email_outbox WHERE status = 'pending' AND next_attempt_at <= ? ORDER BY next_attempt_at LIMIT ${RETRY_BATCH}`,
   )

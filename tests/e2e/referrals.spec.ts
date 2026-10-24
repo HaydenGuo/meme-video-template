@@ -70,7 +70,7 @@ test('邀请奖励：好友经链接注册并首单付款，邀请人得积分�
     const inviterContext = await newContext()
     await devLogin(inviterContext, inviterEmail)
     const first = await buyPackage(friend, 'starter')
-    expect(await credits(friend)).toBe(20)
+    expect(await credits(friend)).toBe(25)
     expect(await credits(inviterContext)).toBe(REWARD)
     expect((await ledger(inviterContext)).map((e) => [e.reason, e.delta, e.ref_id])).toEqual([['referral', REWARD, first]])
     expect(await json<Referral>(inviterContext.get('/api/referral'))).toMatchObject({ invited: 1, rewarded: 1, credits: REWARD })
@@ -84,7 +84,7 @@ test('邀请奖励：好友经链接注册并首单付款，邀请人得积分�
     const refund = () => post(friend, '/api/mock-payments/complete', { orderId: first, outcome: 'refunded', eventId: `${first}_refund` })
     expect((await json<{ status: string }>(refund())).status).toBe('processed')
     expect((await json<{ status: string }>(refund())).status).toBe('duplicate')
-    expect(await credits(friend)).toBe(20)
+    expect(await credits(friend)).toBe(25)
     expect(await credits(inviterContext)).toBe(0)
     expect((await ledger(inviterContext)).map((e) => [e.reason, e.delta, e.ref_id])).toEqual([
       ['referral_refund', -REWARD, first],

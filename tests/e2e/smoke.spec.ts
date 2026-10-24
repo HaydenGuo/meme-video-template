@@ -12,6 +12,7 @@ test('新用户：登录 → 购买 → 生成 → 个人中心看到视频与�
 
   await page.getByTestId('nav-sign-in').click()
   await expect(page).toHaveURL(/\/sign-in/)
+  await page.locator('details').filter({ has: page.getByTestId('dev-email') }).locator('summary').click()
   await page.getByTestId('dev-email').fill(uniqueEmail('smoke'))
   await page.getByTestId('dev-login').click()
   await expect(page).toHaveURL(/\/dashboard$/)
@@ -23,7 +24,7 @@ test('新用户：登录 → 购买 → 生成 → 个人中心看到视频与�
   await shot('02-mock-checkout')
   await page.getByTestId('mock-pay').click()
   await expect(page.getByTestId('checkout-result')).toHaveAttribute('data-status', 'paid')
-  await expect(page.getByTestId('nav-credits')).toHaveText('20 credits')
+  await expect(page.getByTestId('nav-credits')).toHaveText('25 credits')
   await shot('03-checkout-paid')
 
   await page.goto('/')
@@ -39,7 +40,7 @@ test('新用户：登录 → 购买 → 生成 → 个人中心看到视频与�
   // 成片带 AI 生成标识与保存期限提示
   await expect(page.getByTestId('generator').getByTestId('ai-badge')).toBeVisible()
   await expect(page.getByTestId('ai-notice')).toContainText('AI-generated')
-  await expect(page.getByTestId('nav-credits')).toHaveText('14 credits')
+  await expect(page.getByTestId('nav-credits')).toHaveText('20 credits')
   await shot('04-generation-succeeded')
 
   await page.goto('/dashboard')
@@ -60,14 +61,15 @@ test('新用户：登录 → 购买 → 生成 → 个人中心看到视频与�
   await shot('06-billing')
   const entries = await ledger(page.request)
   expect(entries.map((e) => [e.reason, e.delta]).sort()).toEqual([
-    ['generation', -6],
-    ['purchase', 20],
+    ['generation', -5],
+    ['purchase', 25],
   ])
 })
 
 test('中文站：购买流程全程保持 /zh 前缀', async ({ page }) => {
   await page.goto('/zh/sign-in')
   await expect(page.locator('html')).toHaveAttribute('lang', 'zh-CN')
+  await page.locator('details').filter({ has: page.getByTestId('dev-email') }).locator('summary').click()
   await page.getByTestId('dev-email').fill(uniqueEmail('zh'))
   await page.getByTestId('dev-login').click()
   await expect(page).toHaveURL(/\/zh\/dashboard$/)

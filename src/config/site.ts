@@ -14,6 +14,11 @@ export const LOCALE_META: Record<Locale, { tag: string; ogLocale: string; name: 
 
 export const site = {
   keyword: 'Neon Shuffle',
+  // 首屏关键词介绍；上新词时按真实内容改写，{keyword} 自动替换为当前关键词。
+  keywordOverview: {
+    en: '{keyword} is the example keyword for this demo: a vertical dance clip built around a recognisable rhythm and a solo performance. Explore the reference clip, then create your own version with a photo.',
+    zh: '{keyword} 是本演示站使用的示例关键词，主题是围绕鲜明节奏和单人动作展开的竖屏舞蹈短片。你可以先了解参考片段，再用一张照片制作自己的版本。',
+  },
   brandName: 'Neon Shuffle AI',
   logoMark: 'NS',
   domain: 'example.com',
@@ -27,7 +32,7 @@ export const site = {
   template: {
     id: 'neon-shuffle-v1',
     aspectRatio: '9:16',
-    fullSeconds: 18,
+    fullSeconds: 15,
   },
 
   // 首页展示素材（public/demo/）。换成真实素材时必须拥有授权，credit 写原作者，例如 '@handle · TikTok'。
@@ -35,7 +40,6 @@ export const site = {
     original: { video: '/demo/original.mp4', poster: '/demo/original.jpg', credit: 'Demo clip · original' },
     aiVersions: [
       { video: '/demo/ai1.mp4', poster: '/demo/ai1.jpg', credit: 'Demo clip · AI render' },
-      { video: '/demo/ai2.mp4', poster: '/demo/ai2.jpg', credit: 'Demo clip · AI render' },
     ],
     madeWith: { photo: '/demo/sample-photo.jpg', video: '/demo/madeWith.mp4', poster: '/demo/madeWith.jpg' },
     // “创意”区块：每条 = 一张示例照片 + 一段成片
@@ -48,6 +52,8 @@ export const site = {
 
   // 视频模型，服务商由 VIDEO_PROVIDER 选择。换模型时同时检查 src/server/video/ 下对应文件的入参与出参。
   video: {
+    // 对应 Bridge 的允许模板；估算单价由运营者按实际服务商账单配置。
+    hypit: { templateId: 'reference-video', costCentsPerSecond: 0 },
     // fal.ai queue API（默认）
     falModel: 'fal-ai/wan/v2.2-14b/animate/replace',
     resolution: '480p',
@@ -69,18 +75,17 @@ export const site = {
   },
 
   durations: [
-    { id: 'short', seconds: 6, credits: 6, source: 'neon-shuffle-v1-6s.mp4' },
+    { id: 'short', seconds: 5, credits: 5, source: 'neon-shuffle-v1-5s.mp4' },
     { id: 'medium', seconds: 12, credits: 12, source: 'neon-shuffle-v1-12s.mp4' },
-    { id: 'full', seconds: 18, credits: 18, source: 'neon-shuffle-v1-18s.mp4', isFull: true },
+    { id: 'full', seconds: 15, credits: 15, source: 'neon-shuffle-v1-15s.mp4', isFull: true },
   ],
 
   // 积分包：一次性购买，买的积分永不过期（赠送积分可以设有效期，扣费时先扣快到期的）。价格用于展示与订单记录，实际收费以支付商后台为准。
   // 可选 anchorPriceCents：划线原价，价格卡显示原价和“Save X%”。只能填这个套餐真实卖过的价格
   // （欧盟要求以降价前 30 天内的最低价为准），不能编一个从没卖过的高价；没有就不填
   packages: [
-    { id: 'starter', credits: 20, priceCents: 990, currency: 'USD' },
+    { id: 'starter', credits: 25, priceCents: 990, currency: 'USD' },
     { id: 'party', credits: 60, priceCents: 1990, currency: 'USD', highlight: true },
-    { id: 'squad', credits: 100, priceCents: 2990, currency: 'USD' },
   ],
 
   // 订阅：按月或按年自动续费，每月发 credits 积分，当期结束时作废（不累积）；年付一次收一年的钱，积分按月发放。
@@ -88,7 +93,7 @@ export const site = {
   // 开关 subscriptionsEnabled：false 时不再卖新订阅（定价页、条款、退款政策和 FAQ 里的订阅内容一起隐藏，下单接口拒绝套餐），
   // 已有订阅照常续费、退款，账单页仍能取消和进门户；这时要保留 *_PRODUCTS 里套餐的商品，支付商 webhook 也别退订订阅事件。
   // 使用手册见 docs/subscriptions.md
-  subscriptionsEnabled: true as boolean,
+  subscriptionsEnabled: false as boolean,
   plans: [
     { id: 'monthly', interval: 'month', credits: 60, priceCents: 1490, currency: 'USD' },
     { id: 'yearly', interval: 'year', credits: 60, priceCents: 14900, currency: 'USD', highlight: true },

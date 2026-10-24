@@ -1,4 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
+import { site } from '#/config/site'
 import { buyPackage, credits, devLogin, json, ledger, ORIGIN, post, uniqueEmail } from './helpers'
 
 type Result = { status: 'processed' | 'duplicate' | 'ignored' | 'orphan' | 'mismatch'; note?: string; orderId?: string }
@@ -6,6 +7,9 @@ type Sub = { status: string; cancelAtPeriodEnd: boolean; currentPeriodEnd: strin
 type OrderView = { id: string; status: string; packageId: string; credits: number; subscriptionId: string | null }
 
 const DAY = 86400_000
+
+// 当前模板仅售积分包；启用新订阅销售后再运行订阅购买流程。
+test.skip(!site.subscriptionsEnabled, '当前模板已关闭新订阅销售')
 
 // 模拟支付商的续费扣款和订阅状态 webhook（作用于当前用户最近的 mock 订阅）
 const subEvent = (request: APIRequestContext, action: string, extra: Record<string, unknown> = {}) =>
@@ -118,11 +122,11 @@ test('年付：按月补发（重复执行不重发）、状态事件乱序、�
   expect((await json<Result>(post(request, '/api/mock-payments/complete', { orderId, outcome: 'refunded', eventId: `${orderId}_refund` }))).status).toBe(
     'processed',
   )
-  expect(await credits(request)).toBe(20)
+  expect(await credits(request)).toBe(25)
   const refund = (await ledger(request)).find((e) => e.reason === 'order_refund')
   expect(refund).toMatchObject({ delta: -120, ref_id: orderId })
 
   // 当期订单已退款：之后不再补发
-  expect(await grant(62)).toMatchObject({ granted: 0, credits: 20 })
+  expect(await grant(62)).toMatchObject({ granted: 0, credits: 25 })
   expect((await subscription(request))!.nextGrantAt).toBeNull()
 })

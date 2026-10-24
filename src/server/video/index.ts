@@ -1,6 +1,7 @@
 import { ApiError, isProduction } from '../util'
 import { createFalProvider } from './fal'
 import { createYirProvider } from './yir'
+import { createHypitProvider } from './hypit'
 import type { VideoProvider } from './types'
 
 // mock：本地与 e2e 用。几秒后“完成”，输出直接复制该时长档位的模板源视频。
@@ -24,6 +25,7 @@ function createMockProvider(): VideoProvider {
 }
 
 export function activeVideoProviderId(env: Env): VideoProvider['id'] {
+  if (env.VIDEO_PROVIDER === 'hypit') return 'hypit'
   if (env.VIDEO_PROVIDER === 'fal') return 'fal'
   if (env.VIDEO_PROVIDER === 'yir') return 'yir'
   if (env.VIDEO_PROVIDER === 'mock' && !isProduction(env)) return 'mock'
@@ -31,6 +33,7 @@ export function activeVideoProviderId(env: Env): VideoProvider['id'] {
 }
 
 export function getVideoProvider(env: Env, id: string = activeVideoProviderId(env)): VideoProvider {
+  if (id === 'hypit') return createHypitProvider(env)
   if (id === 'fal') return createFalProvider(env)
   if (id === 'yir') return createYirProvider(env)
   if (id === 'mock' && !isProduction(env)) return createMockProvider()

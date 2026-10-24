@@ -55,7 +55,7 @@ export function createYirProvider(env: Env): VideoProvider {
             { role: 'reference_video', url: input.sourceVideoUrl },
           ],
         },
-        parameters: { duration: input.durationSeconds, resolution, aspect_ratio: 'auto', generate_audio: false, n: 1 },
+        parameters: { duration: input.durationSeconds, resolution, aspect_ratio: input.aspectRatio ?? 'auto', generate_audio: false, n: 1 },
       }
       if (routingOnly?.length) body.routing = { only: routingOnly }
       // yir 只投递 443 端口的 HTTPS 地址；本地 http 开发环境不带，靠轮询

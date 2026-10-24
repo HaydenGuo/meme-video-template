@@ -32,20 +32,22 @@ function Home() {
   const ex = site.examples
   return (
     <>
-      {/* Hero：左侧生成器，右侧原版 vs AI 版对比 */}
+      {/* 首屏先介绍目标关键词，再引导用户制作视频。 */}
       <section className="relative overflow-hidden">
         <div className="hero-glow pointer-events-none absolute inset-0" aria-hidden />
         <div className="container-page relative grid gap-10 py-10 lg:grid-cols-[minmax(0,430px)_1fr] lg:gap-16 lg:py-14">
-          <div className="space-y-5" id="create">
+          <div className="flex flex-col justify-center space-y-5" data-testid="keyword-intro">
+            <p className="eyebrow text-accent-text">{c.whatIs.title}</p>
             <h1 className="font-display text-5xl leading-[1.04] tracking-tight sm:text-6xl">{c.hero.title}</h1>
+            <p className="text-lg leading-8 text-muted">{c.whatIs.paragraphs[0]}</p>
             <p className="text-lg leading-8 text-muted">{c.hero.subtitle}</p>
-            <Generator />
+            <a href="#create" className="btn-primary w-fit">{c.finalCta.cta} <ArrowRight className="size-4" /></a>
           </div>
           <div className="flex flex-col justify-center gap-5">
             <span className="chip w-fit">
               <Flame className="size-4 text-accent" /> {c.hero.badge}
             </span>
-            <div className="grid grid-cols-3 gap-3 sm:gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <VideoCard video={ex.original.video} poster={ex.original.poster} label={c.hero.original} credit={ex.original.credit} />
               {ex.aiVersions.map((v) => (
                 <VideoCard
@@ -78,6 +80,13 @@ function Home() {
               </LocalLink>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section id="create" className="scroll-mt-20 border-t border-line bg-bg-soft/60 py-12">
+        <div className="container-page">
+          <h2 className="mb-5 font-display text-3xl">{c.generator.title}</h2>
+          <Generator />
         </div>
       </section>
 

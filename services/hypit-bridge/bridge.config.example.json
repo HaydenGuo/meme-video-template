@@ -1,0 +1,30 @@
+{
+  "host": "127.0.0.1",
+  "port": 8788,
+  "publicUrl": "http://127.0.0.1:8788",
+  "mode": "mock",
+  "dataDir": "./hypit/.hypit/bridge",
+  "maxActive": 1,
+  "maxQueued": 20,
+  "maxAgeMs": 2100000,
+  "retentionMs": 86400000,
+  "maxStorageBytes": 2147483648,
+  "projectRoot": "./hypit",
+  "runtimeProfile": "./hypit/hypit.runtime.json",
+  "sites": {
+    "shrimpreel": {
+      "mediaOrigins": ["http://127.0.0.1:3000", "http://localhost:3000"],
+      "templates": {
+        "reference-video": {
+          "durations": [5, 12, 15],
+          "model": "mini",
+          "resolution": "720p",
+          "aspectRatio": "9:16",
+          "imagePersonReference": true,
+          "videoPersonReference": true,
+          "prompt": "The person in the reference image performs the movement from the reference video. Preserve the reference video's timing and camera motion. Use the image to establish the person's appearance."
+        }
+      }
+    }
+  }
+}

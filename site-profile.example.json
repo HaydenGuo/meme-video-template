@@ -1,0 +1,19 @@
+{
+  "keyword": "Moon Hop",
+  "slug": "moon-hop",
+  "brandName": "Moon Hop AI",
+  "domain": "moon-hop.example.com",
+  "port": 3000,
+  "platform": "TikTok",
+  "overview": {
+    "zh": "替换成这个梗的实际介绍：画面里发生了什么、标志动作是什么，以及你想让用户如何二创。不要编造起源或播放量。",
+    "en": "Replace this with a factual description of the meme: what happens in the clip, its distinctive action, and how users can remix it."
+  },
+  "media": {
+    "sourceVideo": "./materials/original.mp4",
+    "exampleVideo": "./materials/ai-example.mp4",
+    "photo": "./materials/photo.jpg",
+    "credit": "替换成素材来源或作者署名",
+    "authorized": false
+  }
+}

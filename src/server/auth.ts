@@ -5,7 +5,7 @@ import { ledgerStatements } from './credits'
 import { bindReferralStatement, type SignupReferral } from './referrals'
 import { getSettings } from './settings'
 import type { AppContext, UserRow } from './types'
-import { ApiError, createId, isProduction, nowIso, randomToken, sha256Hex } from './util'
+import { ApiError, createId, isProduction, isUniqueConstraintError, nowIso, randomToken, sha256Hex } from './util'
 
 const SESSION_DAYS = 30
 
@@ -28,11 +28,16 @@ export async function loadSessionUser(c: Context<AppContext>): Promise<UserRow |
   return user
 }
 
-export async function startSession(c: Context<AppContext>, userId: string) {
+export async function startSession(c: Context<AppContext>, userId: string, expectedPasswordHash?: string) {
   const token = randomToken()
   const expires = new Date(Date.now() + SESSION_DAYS * 86400_000)
-  await c.env.DB.prepare(
-    'INSERT INTO sessions (id, user_id, expires_at, created_at, user_agent, ip) VALUES (?, ?, ?, ?, ?, ?)',
+  const created = await c.env.DB.prepare(
+    `INSERT INTO sessions (id, user_id, expires_at, created_at, user_agent, ip) SELECT ?, ?, ?, ?, ?, ?${
+      expectedPasswordHash === undefined ? '' : ` WHERE EXISTS (
+        SELECT 1 FROM email_credentials ec JOIN users u ON u.id = ec.user_id
+        WHERE ec.user_id = ? AND ec.password_hash = ? AND u.status = 'active'
+      )`
+    }`,
   )
     .bind(
       await sha256Hex(token),
@@ -41,8 +46,11 @@ export async function startSession(c: Context<AppContext>, userId: string) {
       nowIso(),
       c.req.header('user-agent')?.slice(0, 300) ?? null,
       c.req.header('cf-connecting-ip') ?? null,
+      ...(expectedPasswordHash === undefined ? [] : [userId, expectedPasswordHash]),
     )
     .run()
+  // 密码校验后如发生并发重置，禁止旧密码再签发一个新会话。
+  if (!created.meta.changes) throw new ApiError(401, 'invalid_credentials')
   setCookie(c, sessionCookieName(c.env), token, {
     httpOnly: true,
     secure: isProduction(c.env),
@@ -86,15 +94,15 @@ export async function deletedEmailHash(env: Env, email: string) {
   return sha256Hex(`deleted-email:${env.SESSION_SECRET ?? ''}:${email.trim().toLowerCase()}`)
 }
 
-// Google 登录与 dev 登录共用：先按 google_sub、再按 email 找人，没有就创建并发放注册赠送积分（后台运营参数，默认取 site.ts）。
+// Google、已验证邮箱与 dev 登录共用：先按 google_sub、再按规范化邮箱找人，没有就创建并发放注册赠送积分。
 // 账号以 Google 的 sub 为准：邮箱相同但已绑定另一个 sub 时拒绝登录（Google 账号被删后同一邮箱可以注册成新账号），
-// 只有 google_sub 为空的账号（dev 登录创建的）才按邮箱绑定
-export async function upsertUser(env: Env, profile: SignInProfile): Promise<UserRow> {
+// 只有 google_sub 为空的账号（邮箱或 dev 登录创建的）才按邮箱绑定；调用方必须先验证邮箱归属。
+export async function upsertUser(env: Env, profile: SignInProfile, retried = false): Promise<UserRow> {
   const email = profile.email.trim().toLowerCase()
   const db = env.DB
   const existing = await db
     .prepare(
-      `SELECT * FROM users WHERE (google_sub IS NOT NULL AND google_sub = ?1) OR email = ?2
+      `SELECT * FROM users WHERE (google_sub IS NOT NULL AND google_sub = ?1) OR lower(trim(email)) = ?2
        ORDER BY CASE WHEN google_sub = ?1 THEN 0 ELSE 1 END LIMIT 1`,
     )
     .bind(profile.googleSub, email)
@@ -162,7 +170,13 @@ export async function upsertUser(env: Env, profile: SignInProfile): Promise<User
       }),
     )
   }
-  await db.batch(statements)
+  try {
+    await db.batch(statements)
+  } catch (error) {
+    // Google 和邮箱注册同时创建同一邮箱：整批回滚后复用胜出的账户，赠送积分仍只发一次。
+    if (!retried && isUniqueConstraintError(error)) return upsertUser(env, profile, true)
+    throw error
+  }
   return (await db.prepare('SELECT * FROM users WHERE id = ?').bind(id).first<UserRow>())!
 }
 

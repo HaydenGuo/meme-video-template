@@ -50,7 +50,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     } catch {
       return
     }
-    track('sign_up', { method: config?.googleClientId ? 'google' : 'dev' })
+    // 启用多种登录方式后，不能仅凭站点是否配置 Google 推断注册方式。
+    track('sign_up')
   }, [user, config])
 
   const value = useMemo(() => ({ user, config, loading, refresh, signOut }), [user, config, loading, refresh, signOut])
@@ -68,9 +69,8 @@ export function useSession() {
   return value
 }
 
-// Google 登录入口：配置了 Google 直接跳 OAuth，否则去登录页（本地 dev 登录）
-export function signInHref(config: ClientConfig | null, redirect: string, signInPath: string) {
-  if (config?.googleClientId) return `/api/auth/google/start?redirect=${encodeURIComponent(redirect)}`
+// 统一进入登录页，用户选择 Google 或邮箱密码；回跳路径仍交给服务端校验。
+export function signInHref(_config: ClientConfig | null, redirect: string, signInPath: string) {
   return `${signInPath}?redirect=${encodeURIComponent(redirect)}`
 }
 

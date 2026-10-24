@@ -76,7 +76,7 @@ test('付款金额或套餐与订单不符、找不到订单：不入账、告�
   expect((await complete(discounted, { paidAmountCents: 500, discounted: true }, 'dsc')).status).toBe('processed')
   const localCurrency = await checkout()
   expect((await complete(localCurrency, { paidAmountCents: 150000, paidCurrency: 'JPY' }, 'jpy')).status).toBe('processed')
-  expect(await credits(request)).toBe(40)
+  expect(await credits(request)).toBe(50)
 
   // 找不到订单：本站（或没带 site）记 orphan；共用商户号的其他站点的事件直接忽略
   const anyOrder = await checkout()
@@ -90,7 +90,7 @@ test('付款金额或套餐与订单不符、找不到订单：不入账、告�
   // 站长在支付商后台退款：没入账的订单直接结案为 refunded，不动积分，不再计入告警
   expect((await json<Result>(post(request, '/api/mock-payments/complete', { orderId: underpaid, outcome: 'refunded' }))).status).toBe('processed')
   expect(await orderStatus(underpaid)).toBe('refunded')
-  expect(await credits(request)).toBe(40)
+  expect(await credits(request)).toBe(50)
   const second = await json<HealthCheck>(post(request, '/api/dev/health-check', { since }))
   expect(second.stats.paymentReview.count).toBe(2)
 
@@ -109,12 +109,12 @@ test('积分已部分消费后退款：最多扣到 0，流水记录实际扣除
   const orderId = await buyPackage(request, 'starter')
   const { upload } = await json<{ upload: { id: string } }>(uploadPhoto(request), 201)
   await json(post(request, '/api/generations', { uploadId: upload.id, durationId: 'short' }), 201)
-  expect(await credits(request)).toBe(14)
+  expect(await credits(request)).toBe(20)
 
   await json(post(request, '/api/mock-payments/complete', { orderId, outcome: 'refunded' }))
   expect(await credits(request)).toBe(0)
   const refund = (await ledger(request)).find((e) => e.reason === 'order_refund')
-  expect(refund?.delta).toBe(-14)
+  expect(refund?.delta).toBe(-20)
 })
 
 test('两次部分退款：按金额比例回收积分，重放幂等，累计退满后订单转 refunded', async ({ page }) => {

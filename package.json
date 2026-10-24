@@ -8,6 +8,8 @@
   },
   "scripts": {
     "dev": "vite dev --port 3000",
+    "dev:infisical": "node scripts/dev-infisical.mjs",
+    "site:init": "node scripts/init-site.mjs",
     "build": "vite build",
     "preview": "npm run build && wrangler dev --port 8787",
     "typecheck": "tsc --noEmit",

@@ -59,7 +59,7 @@ export async function storeOutputFromUrl(
   await env.MEDIA.put(key, bytes, { httpMetadata })
   return true
 }
-const POLL_DELAY_SECONDS: Record<string, number> = { mock: 2, fal: 20, yir: 20 }
+const POLL_DELAY_SECONDS: Record<string, number> = { mock: 2, fal: 20, yir: 20, hypit: 20 }
 
 export async function enqueueJob(env: Env, message: VideoJobMessage, delaySeconds = 0) {
   await env.VIDEO_QUEUE.send(message, delaySeconds > 0 ? { delaySeconds } : undefined)
@@ -134,6 +134,7 @@ async function submitGeneration(env: Env, generation: GenerationRow) {
     const result = await provider.submit({
       generationId: generation.id,
       durationSeconds: generation.duration_seconds,
+      aspectRatio: baseMeta.aspectRatio === '16:9' ? '16:9' : '9:16',
       imageUrl: await signedUploadUrl(env, upload.id, Date.parse(generation.created_at)),
       sourceVideoUrl: templateSourceUrl(env, duration.source),
       sourceVideoKey: `templates/${duration.source}`,
@@ -144,7 +145,7 @@ async function submitGeneration(env: Env, generation: GenerationRow) {
     await env.DB.prepare(
       `UPDATE generations SET provider_request_id = ?, provider_meta = ?, started_at = ?, updated_at = ? WHERE id = ?`,
     )
-      .bind(result.requestId, JSON.stringify(result.meta), now, now, generation.id)
+      .bind(result.requestId, JSON.stringify({ ...baseMeta, ...result.meta }), now, now, generation.id)
       .run()
     await enqueueJob(env, { kind: 'poll', generationId: generation.id }, POLL_DELAY_SECONDS[provider.id])
   } catch (error) {

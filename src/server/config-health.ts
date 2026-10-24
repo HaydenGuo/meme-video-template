@@ -42,7 +42,7 @@ const PAYMENT_SECRETS: Record<string, string[]> = {
   waffo: ['WAFFO_MERCHANT_ID', 'WAFFO_PRIVATE_KEY'],
   dodo: ['DODO_API_KEY', 'DODO_WEBHOOK_SECRET'],
 }
-const VIDEO_SECRETS: Record<string, string[]> = { fal: ['FAL_KEY'], yir: ['YIR_API_KEY'] }
+const VIDEO_SECRETS: Record<string, string[]> = { fal: ['FAL_KEY'], yir: ['YIR_API_KEY'], hypit: ['HYPIT_BRIDGE_TOKEN'] }
 const MODERATION_SECRETS: Record<string, string[]> = { openai: ['OPENAI_API_KEY'], none: [] }
 const PLACEHOLDER_HOSTS = /(^|\.)(example\.(com|org|net)|localhost)$|^127\.|SUBDOMAIN/i
 
@@ -94,8 +94,11 @@ export function checkConfig(input: ConfigInput): ConfigIssue[] {
   const missingBindings = REQUIRED_BINDINGS.filter((name) => !input.bindings.includes(name))
   if (missingBindings.length) error('bindings', `缺少绑定：${missingBindings.join('、')}`)
 
-  // 只有 Google 登录：不配就没人能登录
-  if (!vars('GOOGLE_CLIENT_ID')) error('GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_ID 为空：站点只有 Google 登录，用户无法登录')
+  // Google 可选；新用户也能通过已配置发件服务的邮箱注册。
+  if (!vars('GOOGLE_CLIENT_ID')) {
+    warn('GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_ID 为空：Google 登录按钮不可用')
+    if (!vars('EMAIL_FROM') || !input.bindings.includes('EMAIL')) error('auth', 'Google 和邮箱验证均未配置：新用户无法注册')
+  }
   else requireSecrets(['GOOGLE_CLIENT_SECRET'], 'Google 登录')
 
   const sessionSecret = input.secrets.SESSION_SECRET
@@ -136,8 +139,19 @@ export function checkConfig(input: ConfigInput): ConfigIssue[] {
 
   const video = vars('VIDEO_PROVIDER')
   if (video === 'mock') error('VIDEO_PROVIDER', 'VIDEO_PROVIDER=mock：生产环境提交生成会返回 503')
-  else if (!VIDEO_SECRETS[video]) error('VIDEO_PROVIDER', `未知的 VIDEO_PROVIDER=${video || '(空)'}，可选 fal、yir`)
+  else if (!VIDEO_SECRETS[video]) error('VIDEO_PROVIDER', `未知的 VIDEO_PROVIDER=${video || '(空)'}，可选 fal、yir、hypit`)
   else requireSecrets(VIDEO_SECRETS[video], `${video} 视频生成`)
+  if (video === 'hypit') {
+    try {
+      const bridge = new URL(vars('HYPIT_BRIDGE_URL'))
+      if (bridge.protocol !== 'https:' || bridge.username || bridge.password || bridge.pathname !== '/' || bridge.search || bridge.hash || PLACEHOLDER_HOSTS.test(bridge.hostname)) throw new Error()
+    } catch {
+      error('HYPIT_BRIDGE_URL', 'Hypit Bridge 上线地址必须为 HTTPS origin，不能带路径、凭据或查询参数')
+    }
+    if (!/^[a-z0-9][a-z0-9_-]{0,63}$/.test(vars('HYPIT_SITE_ID'))) error('HYPIT_SITE_ID', 'Hypit 站点标识不能为空，且只能包含小写字母、数字、下划线和连字符')
+    const bridgeToken = input.secrets.HYPIT_BRIDGE_TOKEN
+    if (typeof bridgeToken === 'string' && text(bridgeToken).length < 32) error('HYPIT_BRIDGE_TOKEN', 'Hypit Bridge 访问令牌至少 32 个随机字符')
+  }
 
   const moderation = vars('MODERATION_PROVIDER')
   if (moderation === 'mock') error('MODERATION_PROVIDER', 'MODERATION_PROVIDER=mock：生产环境上传图片一律返回 503')
@@ -170,7 +184,7 @@ export function checkConfig(input: ConfigInput): ConfigIssue[] {
 
   const from = vars('EMAIL_FROM')
   const fromDomain = from.split('@')[1]?.toLowerCase() ?? ''
-  if (!from) warn('EMAIL_FROM', 'EMAIL_FROM 为空：不发交易邮件和管理员提醒')
+  if (!from) warn('EMAIL_FROM', 'EMAIL_FROM 为空：邮箱注册与重置密码不可用，也不发交易邮件和管理员提醒')
   else if (!fromDomain || PLACEHOLDER_HOSTS.test(fromDomain)) error('EMAIL_FROM', `EMAIL_FROM=${from}：不是可发信的地址`)
   else if (production && !PLACEHOLDER_HOSTS.test(input.siteDomain) && !sameSite(fromDomain, input.siteDomain.toLowerCase())) {
     warn('EMAIL_FROM', `EMAIL_FROM 的域名 ${fromDomain} 与站点域名 ${input.siteDomain} 不同：确认该域名已在 Email Service 完成 Onboard`)

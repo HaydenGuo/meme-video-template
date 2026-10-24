@@ -17,6 +17,7 @@ test('登录后的跳转只落在站内：恶意 redirect 回退到个人中心�
 
   // 未登录：在登录页提交后跳转
   await page.goto(`/sign-in?redirect=${encodeURIComponent(OFFSITE[0]!)}`)
+  await page.locator('details').filter({ has: page.getByTestId('dev-email') }).locator('summary').click()
   await page.getByTestId('dev-email').fill(uniqueEmail('redirect'))
   await page.getByTestId('dev-login').click()
   await expect(page).toHaveURL(`${ORIGIN}/dashboard`)

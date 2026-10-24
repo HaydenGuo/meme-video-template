@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { site } from '#/config/site'
+import { sellingPlans, site } from '#/config/site'
 import { runProbe } from '#/server/probes'
 import type { UserRow } from '#/server/types'
 import { kvShim } from './d1-sqlite'
@@ -7,7 +7,7 @@ import { kvShim } from './d1-sqlite'
 const admin = { id: 'usr_admin', email: 'admin@example.com', role: 'admin' } as UserRow
 const DODO_KEY = 'dodo_test_key_1234567890'
 // 积分包和订阅套餐都要有商品
-const ITEMS = [...site.packages, ...site.plans]
+const ITEMS = [...site.packages, ...sellingPlans]
 const DODO_PRODUCTS = JSON.stringify(Object.fromEntries(ITEMS.map((pack) => [pack.id, `pdt_${pack.id}`])))
 
 type Reply = { status?: number; body?: unknown }
@@ -34,6 +34,17 @@ const probe = (target: Parameters<typeof runProbe>[1], env: Record<string, unkno
 
 afterEach(() => {
   vi.unstubAllGlobals()
+})
+
+it('Hypit 探测只读健康接口，模拟模式与待核对提交报告 warn', async () => {
+  const env = { APP_ENV: 'development', VIDEO_PROVIDER: 'hypit', HYPIT_BRIDGE_URL: 'http://127.0.0.1:8788', HYPIT_BRIDGE_TOKEN: 'x'.repeat(40) }
+  const calls = stubFetch({ '/health': { body: { ok: true, mode: 'mock' } } })
+  expect(await probe('video', env)).toMatchObject({ status: 'warn', provider: 'hypit' })
+  expect(calls).toHaveLength(1)
+  stubFetch({ '/health': { body: { ok: true, mode: 'hypit', jobs: [] } } })
+  expect(await probe('video', env)).toMatchObject({ status: 'ok' })
+  stubFetch({ '/health': { body: { ok: true, mode: 'hypit', jobs: [{ state: 'attention', count: 1 }] } } })
+  expect(await probe('video', env)).toMatchObject({ status: 'warn' })
 })
 
 describe('支付探测', () => {

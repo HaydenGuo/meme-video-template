@@ -43,6 +43,12 @@ function ready(overrides: { vars?: Record<string, string>; secrets?: ConfigInput
 const keys = (input: ConfigInput) => checkConfig(input).map((i) => `${i.level}:${i.key}`)
 
 describe('checkConfig', () => {
+  it('Hypit 上线配置检查 HTTPS origin、站点标识与令牌强度', () => {
+    const vars = { VIDEO_PROVIDER: 'hypit', HYPIT_BRIDGE_URL: 'https://bridge.moonhop.ai', HYPIT_SITE_ID: 'moonhop' }
+    expect(keys(ready({ vars, secrets: { HYPIT_BRIDGE_TOKEN: SECRET } }))).toEqual([])
+    expect(keys(ready({ vars, secrets: { HYPIT_BRIDGE_TOKEN: 'short' } }))).toEqual(['error:HYPIT_BRIDGE_TOKEN'])
+    expect(keys(ready({ vars: { ...vars, HYPIT_BRIDGE_URL: 'http://127.0.0.1:8788' }, secrets: { HYPIT_BRIDGE_TOKEN: SECRET } }))).toEqual(['error:HYPIT_BRIDGE_URL'])
+  })
   it('完整的生产配置没有任何报告；www 子域名和发信子域名算同一站点', () => {
     expect(checkConfig(ready())).toEqual([])
     expect(checkConfig(ready({ vars: { SITE_URL: 'https://www.moonhop.ai' } }))).toEqual([])

@@ -1,5 +1,25 @@
 # ShrimpReel（虾片）
 
+Hypit Bridge 源码与空白配置示例见 [services/hypit-bridge](services/hypit-bridge/README.md)。Hypit 另行安装，模板不附带凭据和本地运行数据。
+
+**自动初始化梗视频站**：在新模板副本执行 `npm ci` 后，运行 `npm run site:init -- --profile <站点资料.json>` 预览，再加 `--apply --local` 完成配置、素材处理及本地导入。每站只需提供梗资料和本地素材，公共服务配置可跨站复用。见 [自动初始化说明](docs/site-initialization.md)。不自动发布或创建云端资源。
+
+首页创意区围绕梗视频二创：群聊接梗、视频表情包和朋友各做同梗不同版本。
+
+制作区第 3 步可选竖版（9:16）或横版（16:9），右侧预览同步切换；比例传递给 Hypit Bridge 和 yir，fal 暂只支持竖版。本地 mock 成片仍沿用源视频尺寸。
+
+首屏和制作区已移除重复的每秒积分说明，时长选项和生成按钮仍显示所需积分。
+
+Google 登录作为模板通用模块，各站配置凭据和授权回调地址即可；本地可通过 `dev:infisical` 注入本站密钥目录。见 [Google 配置](docs/google-auth.md)。
+
+支持 Google 登录及普通邮箱密码注册/登录：注册需验证邮箱，可通过邮件验证码重置密码，同一邮箱共用用户 ID 与积分。配置与本地使用见 [邮箱认证](docs/email-auth.md)。
+
+制作区在桌面端左侧显示上传和生成设置，右侧显示待生成视频、任务状态及成片；手机端上下排列。
+
+当前模板首屏介绍 `site.keyword`，中英文介绍在 `site.keywordOverview`。生成档位为 5、12、15 秒，每秒消耗 1 积分；充值仅销售一次性积分包：$9.90 / 25 积分、$19.90 / 60 积分。已关闭新订阅销售。更换热词时同步更新关键词、介绍和参考视频；新视频素材需运行 `npm run seed:local` 加载到本地 R2。上线前同步支付商商品的价格与积分说明。
+
+支持自托管 `VIDEO_PROVIDER=hypit`：通过独立 VPS Bridge 共用 Hypit Runtime，沿用队列、积分退款和 R2。先在本地用模拟任务验证，步骤见 [Hypit 接入](docs/hypit.md)。
+
 [English](README.md) | 简体中文
 
 作者：[浅水虾](https://x.com/qianshuixia2026)，一只朝着深海出发的浅水虾。
@@ -75,7 +95,7 @@ npm run dev -- --host 127.0.0.1      # http://127.0.0.1:3000
    - 删除 `wrangler.staging.jsonc`（模板自身的预发配置）。
 
    积分包价格（`packages`）、订阅开关和套餐（`subscriptionsEnabled`、`plans`，开关设为 `false` 只卖积分包）、`durations`、`video.falModel` 按需在 `src/config/site.ts` 手改。套餐可加 `anchorPriceCents` 显示划线原价和折扣，只能填这个套餐真实卖过的价格（欧盟按降价前 30 天内最低价算），新站一般不填。
-3. **改文案**：`src/content/en.ts`、`src/content/zh.ts`。文案通过 `{keyword}` 等变量套用。每个词至少要重写 hero、whatIs、ideas、FAQ 和两篇文章，首页正文要自然覆盖长尾词。首页的痛点（`problem`）和对比（`withWithout`）区块按新趋势改，写不出真实内容就设为 `null`，不渲染。整站只换关键词会被 Google 判为 [scaled content abuse](https://developers.google.com/search/docs/essentials/spam-policies#scaled-content)。
+3. **改文案**：`src/content/en.ts`、`src/content/zh.ts`。文案通过 `{keyword}` 等变量套用。每个词至少要重写 hero、whatIs、ideas、FAQ 和两篇文章，首页正文要自然覆盖长尾词。首页的痛点（`problem`）和对比（`withWithout`）区块目前中英文均设为 `null`，不渲染。整站只换关键词会被 Google 判为 [scaled content abuse](https://developers.google.com/search/docs/essentials/spam-policies#scaled-content)。
    - **文章**：在 `site.ts` 的 `articles` 加一项（`key`、`slug`、发布和更新日期，可选 `related`），再在每种语言的 `articles` 里补同名 key，缺了 typecheck 会报错。文章页地址是 `/<slug>`，自动进入 `/guides` 列表、sitemap 和其它文章的“相关文章”。`trend`、`howTo` 两篇被首页直接链接，不要删。建议每站至少一篇 1,200 词以上的支柱页，加 4–6 篇长尾页（教程、灵感、排错、对比）。
    - 文案按语言拆包，浏览器只下载当前语言（含法律页全文）。组件里照常用 `getContent(locale)`；只有在根路由之外、渲染之前要用文案时，才需要先 `await loadContent(locale)`。
    - 加一种语言：在 `site.ts` 的 `LOCALES` 和 `LOCALE_META` 里登记，新建 `src/content/<locale>.ts`（类型与 `en.ts` 一致），再在 `src/lib/i18n.ts` 的 `loaders` 里加一行动态 import。
@@ -85,7 +105,7 @@ npm run dev -- --host 127.0.0.1      # http://127.0.0.1:3000
    - `public/og.png`、`public/favicon.svg`。
    - `node scripts/generate-placeholder-media.mjs`（需要 ffmpeg）按 `site.durations` 的文件名和品牌名重新生成原创占位素材。之后删掉 `seed/templates/` 里旧 `template.id` 的文件。
 5. **改 `wrangler.jsonc` 的 `vars`**：`SITE_URL`、`APP_ENV=production`、`PAYMENT_PROVIDER`、`VIDEO_PROVIDER`、`MODERATION_PROVIDER`、`TURNSTILE_SITE_KEY`、`ADMIN_EMAILS`、`EMAIL_FROM`、`*_PRODUCTS`、`GOOGLE_CLIENT_ID`；创建资源后把 D1/KV id 写回（见下文）。
-6. **在支付商后台建商品**：每个积分包一个一次性商品、每个订阅套餐一个订阅商品，product id 写进 `WAFFO_PRODUCTS` 或 `DODO_PRODUCTS`，例如 `{"starter":"prod_xxx","party":"prod_yyy","squad":"prod_zzz","monthly":"prod_aaa","yearly":"prod_bbb"}`。Waffo 卖订阅还要配 `WAFFO_STORE_ID`，客户门户要用；关掉订阅开关时 setup 脚本不建套餐商品。Waffo 可用 `node scripts/waffo-setup.mjs --store STO_xxx --apply` 批量创建，Dodo 可用 `node scripts/dodo-setup.mjs --apply --write-dev-vars`（加 `--webhook <url>` 同时建 webhook 并把签名密钥写进 `.dev.vars`）。页面价格只用于展示，实际收费以支付商后台为准，两边要一致。
+6. **在支付商后台建商品**：每个积分包一个一次性商品、每个订阅套餐一个订阅商品，product id 写进 `WAFFO_PRODUCTS` 或 `DODO_PRODUCTS`，例如 `{"starter":"prod_xxx","party":"prod_yyy"}`。Waffo 卖订阅还要配 `WAFFO_STORE_ID`，客户门户要用；关掉订阅开关时 setup 脚本不建套餐商品。Waffo 可用 `node scripts/waffo-setup.mjs --store STO_xxx --apply` 批量创建，Dodo 可用 `node scripts/dodo-setup.mjs --apply --write-dev-vars`（加 `--webhook <url>` 同时建 webhook 并把签名密钥写进 `.dev.vars`）。页面价格只用于展示，实际收费以支付商后台为准，两边要一致。
 7. **本地验证**：`npm run typecheck && npm test && npm run test:e2e && npm run seo:check`，然后部署（`npm run deploy` 会先跑部署前体检，见下文）。
 8. **上线后**：
    - 运行 `npm run seo:check -- --base https://<domain> --production`。
@@ -251,7 +271,7 @@ SMOKE_BASE_URL=https://video-template-staging.<子域名>.workers.dev SMOKE_EXPE
   - 失效：停止分享后旧链接返回 404，再分享得到新链接；成片到期或因举报下架返回 410，封面随之删除，之后不能再分享；删除视频时封面一并删除。
   - 迁移 `0015_shares.sql` 给 `generations` 加了 `share_id`、`share_poster_key`、`shared_at`。导出我的数据包含分享链接和开启时间；功能开启时隐私政策多一节“分享的视频”。
 - **成本与毛利**：出片时把服务商成本写入 `generations.provider_cost_cents`：yir 账单已结算时记实际扣费，其余按 `site.video` 里的单价估算。
-  - fal 按帧计费，16 帧算 1 个视频秒，480p 为 $0.04/视频秒（[价格](https://fal.ai/models/fal-ai/wan/v2.2-14b/animate/replace)）。模板源视频是 24fps，所以成片每秒 6 美分，18 秒约 $1.08。换模型、分辨率或源视频帧率时更新 `costCentsPerVideoSecond` 和 `sourceFps`。
+  - fal 按帧计费，16 帧算 1 个视频秒，480p 为 $0.04/视频秒（[价格](https://fal.ai/models/fal-ai/wan/v2.2-14b/animate/replace)）。模板源视频是 24fps，所以成片每秒 6 美分，15 秒约 $0.90。换模型、分辨率或源视频帧率时更新 `costCentsPerVideoSecond` 和 `sourceFps`。
   - 出片后才被判失败的任务（超时、管理员判失败）照样记成本；没出片的失败任务不记。mock 记 0。
   - 后台概览显示近 30 天的服务商成本、消耗积分折算的收入和估算毛利；生成列表逐条显示成本和毛利。每积分实收 = USD 已支付订单的净实收 ÷ 未回收的积分。实际扣费以服务商账单为准。
 - **视频服务商**：`VIDEO_PROVIDER` 可选 `fal`（默认）、`yir` 或 `mock`。[yir.ai](https://yir.ai/?ref=qianshuixia) 是图片视频 API 网关，启用方法：`VIDEO_PROVIDER=yir`，secret 写 `YIR_API_KEY`，模型和提示词在 `site.video.yir` 里改（`src/server/video/yir.ts`）。
