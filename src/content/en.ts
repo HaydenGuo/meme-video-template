@@ -396,8 +396,8 @@ export function en(s: S) {
       redeemSuccess: (credits: number, expires: string | null) =>
         `Added ${credits} ${credits === 1 ? 'credit' : 'credits'}${expires ? `, valid until ${expires}` : ''}.`,
       referralTitle: 'Invite friends',
-      referralBody: (credits: number) =>
-        `Share your link. When a friend signs up through it and makes their first purchase, you get ${credits} ${credits === 1 ? 'credit' : 'credits'}. If that order is refunded, the reward is taken back.`,
+      referralBody: (percent: number) =>
+        `Earn ${percent}% of the credits in your friend's first purchase, rounded down. They must sign up through your link. Refunded orders reverse the reward.`,
       referralCopy: 'Copy link',
       referralCopied: 'Copied',
       referralStats: (invited: number, rewarded: number, credits: number) =>
@@ -565,7 +565,7 @@ export function en(s: S) {
               'The site uses a few cookies and similar browser storage that it needs to work, such as your sign-in session and your light or dark theme preference.',
               'We also set a first-party cookie (vt_attr, kept for 90 days) that records how you first and most recently reached us, such as a referring website or campaign link. We use it only to see which channels lead to sign-ups and purchases, and we do not share it with advertising networks.' +
                 (ga4Id ? ' It is only set after you accept analytics cookies in the banner, and withdrawing consent deletes it.' : ''),
-              s.referralRewardCredits > 0
+              s.referralRewardPercent > 0
                 ? 'If you open a friend’s invite link, we set a cookie (vt_ref, kept for up to 30 days and removed once you sign up) so the invite can be credited. To prevent abuse of invite rewards, we store a salted hash of your IP address with the invite, not the address itself. Neither of you can see the other’s account details.'
                 : '',
               ga4Id || cfBeaconToken ? '' : 'We do not use third-party analytics or advertising cookies.',

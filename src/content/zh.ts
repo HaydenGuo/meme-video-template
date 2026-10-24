@@ -375,7 +375,7 @@ export function zh(s: S): Content {
       redeemButton: '兑换',
       redeemSuccess: (credits: number, expires: string | null) => `已到账 ${credits} 积分${expires ? `，有效期至 ${expires}` : ''}。`,
       referralTitle: '邀请好友',
-      referralBody: (credits: number) => `分享你的邀请链接。好友通过链接注册并完成首次购买后，你获得 ${credits} 积分；这笔订单退款时奖励会收回。`,
+      referralBody: (percent: number) => `好友通过链接注册并首购后，你获得所购积分的 ${percent}%（向下取整）。订单退款时收回奖励。`,
       referralCopy: '复制链接',
       referralCopied: '已复制',
       referralStats: (invited: number, rewarded: number, credits: number) => `已注册 ${invited} 人 · 已购买 ${rewarded} 人 · 获得 ${credits} 积分`,
@@ -540,7 +540,7 @@ export function zh(s: S): Content {
               '网站使用少量运行所必需的 Cookie 和浏览器存储，例如登录会话、你选择的浅色或深色主题。',
               '我们还会写入一个第一方 Cookie（vt_attr，保留 90 天），记录你第一次和最近一次是从哪里来到本站的，例如来源网站或推广链接。它只用于了解哪些渠道带来了注册和购买，不会提供给广告网络。' +
                 (ga4Id ? '它只在你于横幅中接受统计 Cookie 后写入，撤回同意时一并删除。' : ''),
-              s.referralRewardCredits > 0
+              s.referralRewardPercent > 0
                 ? '如果你打开了好友的邀请链接，我们会写入一个 Cookie（vt_ref，最多保留 30 天，注册后即删除），用于记录这次邀请。为防止滥用邀请奖励，邀请记录里保存的是你的 IP 地址加盐后的哈希值，不保存 IP 地址本身。邀请双方都看不到对方的账户信息。'
                 : '',
               ga4Id || cfBeaconToken ? '' : '我们不使用第三方统计或广告 Cookie。',

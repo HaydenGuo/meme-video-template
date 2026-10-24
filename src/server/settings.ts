@@ -12,7 +12,7 @@ export type RuntimeSettings = {
   maintenance: boolean
   signupBonusCredits: number
   signupBonusValidDays: number
-  referralRewardCredits: number
+  referralRewardPercent: number
   generationDailyCap: number
 } & Record<`announcement.${Locale}`, string>
 
@@ -24,7 +24,7 @@ export type SettingField =
   | (FieldBase & { kind: 'int'; min: number; max: number })
   | (FieldBase & { kind: 'text'; maxLength: number })
 
-const referralOn = site.referralRewardCredits > 0
+const referralOn = site.referralRewardPercent > 0
 
 export const SETTING_FIELDS: readonly SettingField[] = [
   {
@@ -45,14 +45,14 @@ export const SETTING_FIELDS: readonly SettingField[] = [
   { key: 'signupBonusCredits', kind: 'int', min: 0, max: 1000, label: '注册赠送积分', help: '新用户注册时发放，0 = 不送。只影响之后注册的用户' },
   { key: 'signupBonusValidDays', kind: 'int', min: 0, max: 3650, label: '赠送积分有效期（天）', help: '0 = 永不过期' },
   {
-    key: 'referralRewardCredits',
+    key: 'referralRewardPercent',
     kind: 'int',
     min: 0,
-    max: referralOn ? 1000 : 0,
-    label: '邀请奖励积分',
+    max: referralOn ? 100 : 0,
+    label: '邀请奖励比例（%）',
     help: referralOn
-      ? '好友首单付款后给邀请人发的积分，0 = 暂停邀请（隐藏邀请卡片，链接不再绑定）'
-      : 'site.ts 里 referralRewardCredits 为 0，邀请功能已关闭；在 site.ts 开启后才能在这里调整（隐私政策按 site.ts 生成）',
+      ? '好友首单所购积分 × 此比例，向下取整。0 = 暂停邀请'
+      : 'site.ts 里 referralRewardPercent 为 0，邀请功能已关闭；在 site.ts 开启后才能在这里调整（隐私政策按 site.ts 生成）',
   },
   {
     key: 'generationDailyCap',
@@ -69,7 +69,7 @@ export const DEFAULT_SETTINGS: RuntimeSettings = {
   ...(Object.fromEntries(LOCALES.map((locale) => [`announcement.${locale}`, ''])) as Record<`announcement.${Locale}`, string>),
   signupBonusCredits: site.signupBonusCredits,
   signupBonusValidDays: site.signupBonusValidDays,
-  referralRewardCredits: site.referralRewardCredits,
+  referralRewardPercent: site.referralRewardPercent,
   generationDailyCap: 0,
 }
 
@@ -140,7 +140,7 @@ export function assertOpen(settings: RuntimeSettings, user: UserRow) {
   if (settings.maintenance && user.role !== 'admin') throw new ApiError(503, 'maintenance')
 }
 
-export const referralActive = (settings: RuntimeSettings) => settings.referralRewardCredits > 0
+export const referralActive = (settings: RuntimeSettings) => settings.referralRewardPercent > 0
 
 // 全站每日生成上限（UTC 自然日）。预检查只为尽早拒绝；并发提交由 batch 里的断言兜底，超出时整个 batch 回滚
 export const utcDayStart = (now: string) => `${now.slice(0, 10)}T00:00:00.000Z`

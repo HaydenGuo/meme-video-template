@@ -36,8 +36,8 @@ describe('后台提交的运营参数', () => {
   })
 
   it('邀请奖励的上限跟随 site.ts：site.ts 关闭邀请时只能是 0', () => {
-    if (site.referralRewardCredits > 0) expect(parseSettingsPatch({ referralRewardCredits: 1000 })).toEqual({ referralRewardCredits: 1000 })
-    else expect(invalid({ referralRewardCredits: 1 })).toContain('邀请奖励积分')
+    if (site.referralRewardPercent > 0) expect(parseSettingsPatch({ referralRewardPercent: 100 })).toEqual({ referralRewardPercent: 100 })
+    else expect(invalid({ referralRewardPercent: 1 })).toContain('邀请奖励比例')
   })
 })
 

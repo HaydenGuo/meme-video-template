@@ -80,9 +80,9 @@ function SettingsPage() {
   )
 }
 
-type Referral = { enabled: false } | { enabled: true; url: string; rewardCredits: number; invited: number; rewarded: number; credits: number }
+type Referral = { enabled: false } | { enabled: true; url: string; rewardPercent: number; invited: number; rewarded: number; credits: number }
 
-// 邀请好友：关闭邀请奖励（site.referralRewardCredits = 0）或加载失败时不显示
+// 邀请好友：关闭邀请奖励（site.referralRewardPercent = 0）或加载失败时不显示
 function ReferralCard() {
   const s = useContent().settings
   const [referral, setReferral] = useState<Referral | null>(null)
@@ -105,7 +105,7 @@ function ReferralCard() {
   return (
     <section className="card space-y-4 p-6" data-testid="referral-card">
       <h2 className="font-display text-2xl">{s.referralTitle}</h2>
-      <p className="text-sm leading-6 text-muted">{s.referralBody(referral.rewardCredits)}</p>
+      <p className="text-sm leading-6 text-muted">{s.referralBody(referral.rewardPercent)}</p>
       <div className="flex flex-wrap gap-2">
         <input className="input max-w-sm font-mono text-sm" readOnly value={url} aria-label={s.referralTitle} onFocus={(e) => e.target.select()} data-testid="referral-link" />
         <button type="button" className="btn-ghost" onClick={copy}>

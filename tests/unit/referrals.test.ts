@@ -12,7 +12,7 @@ import { type Stmt, d1Shim, kvShim, migrate } from './d1-sqlite'
 vi.mock('#/server/notifications', () => ({ notifyOrderPaid: async () => {} }))
 
 const DAY = 86400_000
-const REWARD = site.referralRewardCredits
+const REWARD = Math.floor(20 * site.referralRewardPercent / 100)
 const iso = (offsetMs = 0) => new Date(Date.now() + offsetMs).toISOString()
 
 describe('邀请码与 IP 哈希', () => {
@@ -175,14 +175,14 @@ describe('邀请奖励', () => {
   })
 
   it('奖励积分按后台运营参数发；暂停（0）期间付款的首单记为 rejected（paused），恢复后第二单也不补发', async () => {
-    setting('referralRewardCredits', 25)
+    setting('referralRewardPercent', 25)
     await signup('friend')
     await pay(addOrder('friend'))
-    expect(credits('inviter')).toBe(25)
-    expect(referral('friend')).toMatchObject({ status: 'rewarded', reward_credits: 25 })
+    expect(credits('inviter')).toBe(5)
+    expect(referral('friend')).toMatchObject({ status: 'rewarded', reward_credits: 5 })
 
     kv.store.clear()
-    sqlite.prepare(`UPDATE settings SET value = '0' WHERE key = 'referralRewardCredits'`).run()
+    sqlite.prepare(`UPDATE settings SET value = '0' WHERE key = 'referralRewardPercent'`).run()
     await signup('late')
     await pay(addOrder('late'))
     expect(referral('late')).toMatchObject({ status: 'rejected', reject_reason: 'paused' })
@@ -191,19 +191,19 @@ describe('邀请奖励', () => {
     sqlite.prepare(`DELETE FROM settings`).run()
     await pay(addOrder('late'))
     expect(referral('late')?.status).toBe('rejected')
-    expect(credits('inviter')).toBe(25)
+    expect(credits('inviter')).toBe(5)
   })
 
   it('奖励订单退款（部分退款也算）：整笔回收邀请人的奖励，再退款不重复回收；邀请人已花掉的最多扣到 0', async () => {
     await signup('friend')
     const id = addOrder('friend')
     await pay(id)
-    // 邀请人先花掉 4 积分
-    await run(ledgerStatements(db, { userId: 'inviter', delta: -4, reason: 'generation', idempotencyKey: 'gen:1' }))
+    // 邀请人先花掉 1 积分
+    await run(ledgerStatements(db, { userId: 'inviter', delta: -1, reason: 'generation', idempotencyKey: 'gen:1' }))
     expect(await refundOrder(db, order(id), { refundKey: 'rf_1', amountCents: 300, note: 'partial' })).toBe(true)
     expect(referral('friend')?.status).toBe('reversed')
     expect(credits('inviter')).toBe(0)
-    expect(ledger('inviter').at(-1)).toEqual(['referral_refund', -(REWARD - 4), id])
+    expect(ledger('inviter').at(-1)).toEqual(['referral_refund', -(REWARD - 1), id])
     expect(await refundOrder(db, order(id), { refundKey: 'rf_2', amountCents: null, note: 'rest' })).toBe(true)
     expect(order(id).status).toBe('refunded')
     expect(ledger('inviter').filter(([reason]) => reason === 'referral_refund')).toHaveLength(1)

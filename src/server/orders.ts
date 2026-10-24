@@ -72,7 +72,7 @@ async function applyEvent(env: Env, provider: PaymentProviderId, event: PaymentE
       return { status: 'mismatch', orderId: order.id, note: mismatch }
     }
     // 被邀请人的第一笔付款：同一个 batch 里给邀请人发奖励（见 referrals.ts）
-    const referral = await referralRewardStatements(db, order, (await getSettings(env)).referralRewardCredits, now)
+    const referral = await referralRewardStatements(db, order, (await getSettings(env)).referralRewardPercent, now)
     const fulfill = [
       ...ledgerStatements(db, {
         userId: order.user_id,
@@ -241,7 +241,7 @@ async function applySubscriptionStart(
     current_period_end: charge.periodEnd ?? addInterval(periodStart, plan.interval),
   }
   const subscriptionId = createId('sub')
-  const referral = await referralRewardStatements(db, order, (await getSettings(env)).referralRewardCredits, now)
+  const referral = await referralRewardStatements(db, order, (await getSettings(env)).referralRewardPercent, now)
   const statements = [
     ...ledgerStatements(db, {
       userId: order.user_id,

@@ -107,8 +107,8 @@ export const site = {
   // 注册赠送积分的有效期（天），0 = 永不过期
   signupBonusValidDays: 0 as number,
 
-  // 邀请奖励：被邀请人第一笔付款入账后给邀请人发的积分，0 = 关闭（不显示邀请卡片，/i/ 链接不再绑定）
-  referralRewardCredits: 10 as number,
+  // 邀请奖励：首单所购积分的百分比，向下取整；0 = 关闭邀请。
+  referralRewardPercent: 10 as number,
   // 同一邀请人在同一 IP（IPv6 按 /64）下最多绑定几个新账号，超出的不发奖励
   referralMaxPerIp: 3,
   // 每个邀请人 30 天内最多获得几次奖励

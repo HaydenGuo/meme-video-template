@@ -531,14 +531,14 @@ app.get('/i/:code', async (c) => {
 // 邀请卡片：第一次打开时生成邀请码
 app.get('/api/referral', async (c) => {
   const user = requireUser(c)
-  const { referralRewardCredits } = await getSettings(c.env)
-  if (referralRewardCredits <= 0) return c.json({ enabled: false })
+  const { referralRewardPercent } = await getSettings(c.env)
+  if (referralRewardPercent <= 0) return c.json({ enabled: false })
   const code = await ensureReferralCode(c.env.DB, user.id)
   return c.json({
     enabled: true,
     code,
     url: `${new URL(c.req.url).origin}/i/${code}`,
-    rewardCredits: referralRewardCredits,
+    rewardPercent: referralRewardPercent,
     ...(await referralSummary(c.env.DB, user.id)),
   })
 })

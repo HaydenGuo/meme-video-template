@@ -10,7 +10,7 @@ import { isUniqueConstraintError, nowIso, sha256Hex } from './util'
 // 被邀请人第一笔付款入账时，在同一个 D1 batch 里给邀请人发积分；这笔订单退款（含部分退款）时整笔回收。
 // 防刷：奖励只在真实付款后发；同一邀请人在同一 IP（IPv6 按 /64）下最多绑定 referralMaxPerIp 个账号，超出的记为 rejected；
 // 每个邀请人 30 天内最多获得 referralMonthlyCap 次奖励（已回收的也算）。
-// 奖励积分是后台运营参数（settings.ts，默认 site.referralRewardCredits），设为 0 暂停邀请：不再绑定、不再发奖，已发的照常回收。
+// 奖励积分是后台运营参数（settings.ts，默认 site.referralRewardPercent），设为 0 暂停邀请：不再绑定、不再发奖，已发的照常回收。
 
 export const REFERRAL_COOKIE = 'vt_ref'
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -64,10 +64,12 @@ export function bindReferralStatement(db: D1Database, inviteeId: string, referra
 // （同一被邀请人两笔订单并发入账，后提交的断言失败，调用方去掉这些语句重试，只发一次）
 export async function referralRewardStatements(
   db: D1Database,
-  order: Pick<OrderRow, 'id' | 'user_id'>,
-  credits: number,
+  order: Pick<OrderRow, 'id' | 'user_id' | 'credits'>,
+  percent: number,
   now = nowIso(),
 ) {
+  // 积分账本使用整数；按订单锁定的实购积分计算，向下取整。已发奖励不随费率变化。
+  const credits = Math.floor(order.credits * percent / 100)
   const row = await db
     .prepare(
       `SELECT r.inviter_id, u.status AS inviter_status,
@@ -79,7 +81,7 @@ export async function referralRewardStatements(
   if (!row) return []
   // 暂停期间付款的首单也记为 rejected（paused），恢复后不会拿第二单补发
   const reject =
-    credits <= 0 ? 'paused' : row.inviter_status !== 'active' ? 'inviter_inactive' : row.recent >= site.referralMonthlyCap ? 'monthly_cap' : null
+    percent <= 0 ? 'paused' : credits <= 0 ? 'below_minimum' : row.inviter_status !== 'active' ? 'inviter_inactive' : row.recent >= site.referralMonthlyCap ? 'monthly_cap' : null
   if (reject) {
     return [
       db
