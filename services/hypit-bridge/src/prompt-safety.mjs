@@ -53,7 +53,8 @@ export async function scanWaffoPrompt({ merchantId, privateKey, prompt, locale =
     const hash = base64(await crypto.subtle.digest('SHA-256', encode(body)))
     const signature = base64(await crypto.subtle.sign('RSASSA-PKCS1-v1_5', await signingKey(privateKey), encode(`POST\n${path}\n${timestamp}\n${hash}`)))
     const response = await fetcher(`https://api.waffo.ai${path}`, {
-      method: 'POST', redirect: 'error', signal: AbortSignal.timeout(15000),
+      // Workers 不支持 redirect:error；manual 保留 3xx，再由下方非 2xx 检查拒绝。
+      method: 'POST', redirect: 'manual', signal: AbortSignal.timeout(15000),
       headers: { 'Content-Type': 'application/json', 'X-Merchant-Id': merchantId.trim(), 'X-Timestamp': timestamp, 'X-Signature': signature }, body,
     })
     if (response.status === 429) {
