@@ -48,6 +48,8 @@ jobs:
         run: |
           cp .dev.vars.example .dev.vars
           sed -i "s/^SESSION_SECRET=.*/SESSION_SECRET=$(openssl rand -hex 32)/" .dev.vars
+          # 派生站会改写 ADMIN_EMAILS；测试环境固定使用用例中的管理员身份。
+          printf '\nADMIN_EMAILS=admin@example.com\n' >> .dev.vars
       - run: npm run seed:local
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v7
