@@ -48,13 +48,12 @@ function Home() {
               <Flame className="size-4 text-accent" /> {c.hero.badge}
             </span>
             <div className="grid grid-cols-2 gap-3 sm:gap-4">
-              <VideoCard video={ex.original.video} poster={ex.original.poster} label={c.hero.original} credit={ex.original.credit} />
+                <VideoCard video={ex.original.video} poster={ex.original.poster} label={c.hero.original} />
               {ex.aiVersions.map((v) => (
                 <VideoCard
                   key={v.video}
                   video={v.video}
                   poster={v.poster}
-                  credit={v.credit}
                   label={
                     <>
                       <Sparkles className="size-3" /> {c.hero.aiVersion}
@@ -70,7 +69,6 @@ function Home() {
                 </span>
               ))}
             </div>
-            <p className="text-center text-xs text-muted">{c.hero.creditNote}</p>
             <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm font-medium">
               <LocalLink to={articlePath('trend')} className="inline-flex items-center gap-1.5 hover:text-accent">
                 {c.articles.trend.title} <ArrowRight className="size-4" />
