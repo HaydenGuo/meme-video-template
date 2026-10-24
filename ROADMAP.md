@@ -1,5 +1,10 @@
 # ROADMAP
 
+## 共用 Hypit VPS 部署（2026-10-24）
+
+- 新增 Debian 部署脚本与 Runtime 进程监督，按 GitHub commit 部署 Bridge，固定 Node/Hypit 版本，持久配置与数据分离。
+- 预设开机启动、进程资源限制、日志和 Bridge 并发/存储/任务限制。没有模型服务商凭据和站点白名单时拒绝生成任务；HTTPS 域名后续配置。
+
 ## 模板命名（2026-10-24）
 
 - 仓库及 npm 包名统一为 `meme-video-template`，README 更新模板入口；保留原项目版权及上游地址。

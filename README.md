@@ -1,5 +1,7 @@
 # Meme Video Template
 
+See [shared Hypit VPS deployment](docs/hypit-vps.md) for provisioning the runtime services, reusable defaults and the provider API information still required.
+
 [Use this template](https://github.com/new?template_owner=HaydenGuo&template_name=meme-video-template) · [Repository](https://github.com/HaydenGuo/meme-video-template)
 
 Hypit Bridge source and blank configuration examples are included in [services/hypit-bridge](services/hypit-bridge/README.md). Install Hypit separately; no credentials or local runtime data are included.
