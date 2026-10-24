@@ -21,7 +21,7 @@ test('未登录与普通用户进不了后台，后台接口同样拒绝', async
 // 密钥登记名单与 sync-secrets 的输入约束一致，不按响应内容排除任何实际 secret。
 function localSecrets() {
   if (!existsSync('.dev.vars')) return {}
-  const secretNames = new Set([...readFileSync('.dev.vars.example', 'utf8').matchAll(/^([A-Z0-9_]+)=/gm)].map((m) => m[1]))
+  const secretNames = new Set([...readFileSync('.dev.vars.example', 'utf8').matchAll(/^\s*#?\s*([A-Z][A-Z0-9_]*)=/gm)].map((m) => m[1]))
   const pairs = readFileSync('.dev.vars', 'utf8')
     .split(/\r?\n/)
     .map((line) => line.match(/^([A-Z0-9_]+)=(.*)$/))
