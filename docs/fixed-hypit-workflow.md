@@ -14,7 +14,7 @@
 4. 同一个 Build 中只包含一次 Seedance 表演生成，后续依赖节点执行媒体归一化、分镜窗口、原声音轨、Film 和 HTML 视频合成。镜头窗口使用同一连续表演，不分别调用模型。
 5. 检查最终文件大小、画幅、时长及视频/音频轨道后交付。检查不保证人物相似度、动作质量或听感，需要人工抽查。
 
-Bridge 轮询原 Build，服务重启后继续查询；提交回执不确定时保留 attention 占位，禁止盲目重新付费。服务商拒绝时任务失败，网站走已有退款路径；不自动修改提示词再试。底层 Provider 自身的重试策略须由运营者另外核验。Hypit 执行缓存与 Bridge 成片目录的清理是两件事，仍需监控 Runtime 的磁盘占用。
+Bridge 轮询原 Build，服务重启后继续查询；提交回执不确定时保留 attention 占位，禁止盲目重新付费。参数解析或本地 Source/Run 检查明确失败且尚未进入提交边界时，任务才会直接失败；Runtime、凭据、Provider 和网络错误仍按未知回执保留 attention。服务商拒绝时任务失败，网站走已有退款路径；不自动修改提示词再试。底层 Provider 自身的重试策略须由运营者另外核验。Hypit 执行缓存与 Bridge 成片目录的清理是两件事，仍需监控 Runtime 的磁盘占用。
 
 ## 本地运行
 
@@ -24,6 +24,20 @@ Bridge 轮询原 Build，服务重启后继续查询；提交回执不确定时�
 node scripts/dev-hypit.mjs --project D:/HBCodeRepo/hypit --runtime D:/HBCodeRepo/hypit/productions/ai-dancer-replica-20261024/runtime.json
 ```
 
-该命令配置独立本地 Bridge、随机令牌、真实视频服务和 Vite。私有配置在 `.dev.vars` 与 `.tmp/hypit-local/`，不进入 Git；原有账户与余额不重置。启动本身不提交任务，点击生成才产生费用。Runtime 必须已有模型凭据、媒体工具、HTML renderer 和运行中的 Worker；脚本不自动读取其他项目的凭据或创建云资源。
+该命令配置独立本地 Bridge、随机令牌、真实视频服务和 Vite。它只在运行期间临时覆盖 `.dev.vars` 中的 `VIDEO_PROVIDER`、`HYPIT_BRIDGE_URL` 和必要的 `HYPIT_BRIDGE_TOKEN`，正常退出、信号或启动异常时逐项恢复；并发修改的键会保留当前值。Vite 子进程同时接收 `CLOUDFLARE_INCLUDE_PROCESS_ENV=true`。私有配置在 `.dev.vars` 与 `.tmp/hypit-local/`，不进入 Git；原有账户与余额不重置。启动本身不提交任务，点击生成才产生费用。Runtime 必须已有模型凭据、媒体工具、HTML renderer 和运行中的 Worker；脚本会在启动 Bridge 前校验站点文件、媒体 origin 和 Vite，不自动读取其他项目的凭据或创建云资源。
+
+## attention 恢复
+
+恢复操作必须先停止 Bridge。命令会取得与服务相同的 `instance.sqlite` 独占锁；在线服务存在时直接拒绝。它只接受人工提供的 Build ID，先执行 Hypit `status --json`，确认返回的 Build ID 和 `title` 都与 `bridge:<job hash>` 完全一致，再把本地 job 补回 `running`，不会再次 `submit`：
+
+```powershell
+node services/hypit-bridge/src/recover.mjs --config D:/path/to/bridge.config.json --job <64位job hash> --build <Hypit Build ID>
+```
+
+若已由运营者确认外部没有提交，才使用以下命令释放占位并让网站原有失败退款逻辑处理：
+
+```powershell
+node services/hypit-bridge/src/recover.mjs --config D:/path/to/bridge.config.json --job <64位job hash> --confirm-no-submission
+```
 
 网站仍使用本地模拟支付和审核；Google OAuth、普通邮箱实际发信、生产支付、正式域名及 VPS 接入需分别配置。该本地命令不部署 VPS，也不能通过启动成功宣称线上链路可用。

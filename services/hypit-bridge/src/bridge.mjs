@@ -135,17 +135,26 @@ export async function createBridge(config, { token, outputSecret, runner } = {})
     }
   }
 
+  function markAdvanceError(row, error) {
+    const current = job(row.id)
+    if (current?.state === 'submitting') {
+      const rejectedBeforeSubmit = error?.code === 'hypit_submission_rejected'
+      return update(row.id, rejectedBeforeSubmit ? 'failed' : 'attention', rejectedBeforeSubmit ? 'hypit_submit_rejected' : 'submission_unknown')
+    }
+    if (current?.state === 'preparing') return update(row.id, 'failed', 'preparation_failed')
+  }
+
   async function tick() {
     if (pumping || stopped) return
     pumping = true
     try {
       for (const row of rows("SELECT * FROM jobs WHERE state IN ('running','preparing')")) {
-        try { await advance(row) } catch { if (job(row.id).state === 'submitting') update(row.id, 'attention', 'submission_unknown'); else if (row.state === 'preparing') update(row.id, 'failed', 'preparation_failed') }
+        try { await advance(row) } catch (error) { markAdvanceError(row, error) }
       }
       while (!stopped && rows("SELECT id FROM jobs WHERE state IN ('running','preparing','submitting','attention')").length < config.maxActive) {
         const row = rows("SELECT * FROM jobs WHERE state='queued' ORDER BY created LIMIT 1")[0]
         if (!row) break
-        try { await advance(row) } catch { update(row.id, job(row.id).state === 'submitting' ? 'attention' : 'failed', job(row.id).state === 'submitting' ? 'submission_unknown' : 'preparation_failed') }
+        try { await advance(row) } catch (error) { markAdvanceError(row, error) }
       }
       for (const row of rows("SELECT * FROM jobs WHERE state IN ('completed','failed') AND updated < ?", Date.now() - config.retentionMs)) {
         await rm(directory(row.id), { recursive: true, force: true })

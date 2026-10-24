@@ -7,6 +7,14 @@ import { remixComposition } from './workflow.mjs'
 
 const exec = promisify(execFile)
 const xml = (text) => String(text).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' })[c])
+const unsubmittedErrorPrefixes = ['MARKUP_']
+
+// 这些错误来自参数解析或本地 Source/Run 编译，Hypit 尚未进入提交边界。
+// 其它 CLI_ERROR（包括 Runtime、凭据、Provider 和网络错误）必须保留为未知回执。
+function isKnownUnsubmittedCliError(result) {
+  const code = result?.format === 'hypit.cli-error@1' ? result.error?.code : undefined
+  return typeof code === 'string' && (code === 'CLI_USAGE' || unsubmittedErrorPrefixes.some((prefix) => code.startsWith(prefix)))
+}
 
 // 只运行服务端安装的固定 CLI，不接受浏览器提供的命令、路径或 SVML。
 export function createHypitRunner(config) {
@@ -71,7 +79,14 @@ ${composition?.body ?? ''}
     async check(run) { return command(['check', run]) },
     async submit(run, id) {
       const result = await command(['build', run, '--title', `bridge:${id}`])
-      if (!result.build?.id) throw new Error('Hypit submission receipt missing')
+      if (!result.build?.id) {
+        if (isKnownUnsubmittedCliError(result)) {
+          const error = new Error(`Hypit rejected the Build before submission (${result.error.code})`)
+          error.code = 'hypit_submission_rejected'
+          throw error
+        }
+        throw new Error('Hypit submission receipt missing')
+      }
       return result.build.id
     },
     async status(buildId) {
