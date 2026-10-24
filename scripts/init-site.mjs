@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url'
 import ts from 'typescript'
 import { generateBrandAssets } from './generate-brand-assets.mjs'
 import { launchVars, patchWranglerVars } from './launch-config.mjs'
+import { assetDimensions, ASSET_PIXELS } from '../services/hypit-bridge/src/media-preflight.mjs'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const args = process.argv.slice(2)
@@ -177,7 +178,17 @@ const probe = JSON.parse(run(ffprobe, ['-v', 'error', '-show_format', '-show_str
 if (Number(probe.format?.duration) + 0.001 < fullSeconds || !Number.isFinite(Number(probe.format?.duration)) || !probe.streams?.some((s) => s.codec_type === 'video')) throw new Error(`源视频必须包含视频流且至少 ${fullSeconds} 秒`)
 if (workflow && !probe.streams.some((s) => s.codec_type === 'audio')) throw new Error('原声合成模板需要参考片包含音轨')
 const ff = (argv) => run(ffmpeg, ['-v', 'error', '-nostdin', '-y', ...argv])
-const videoOut = (input, output, seconds) => ff(['-i', input, '-t', String(seconds), '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-movflags', '+faststart', join(stage, output)])
+const videoOut = (input, output, seconds) => {
+  const info = JSON.parse(run(ffprobe, ['-v', 'error', '-show_streams', '-of', 'json', input]).toString())
+  const stream = info.streams?.find(s => s.codec_type === 'video')
+  const rotation = Number(stream?.side_data_list?.find(s => s.rotation != null)?.rotation ?? stream?.tags?.rotate ?? 0)
+  const swap = Math.abs(rotation % 180) === 90
+  const size = assetDimensions(swap ? stream?.height : stream?.width, swap ? stream?.width : stream?.height)
+  const target = join(stage, output)
+  ff(['-i', input, '-t', String(seconds), '-vf', `scale=${size.width}:${size.height}:flags=lanczos,setsar=1`, '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-movflags', '+faststart', target])
+  const result = JSON.parse(run(ffprobe, ['-v', 'error', '-show_streams', '-of', 'json', target]).toString()).streams?.find(s => s.codec_type === 'video')
+  if (!result || result.width * result.height < ASSET_PIXELS.min || result.width * result.height > ASSET_PIXELS.max) throw new Error('模板视频像素数不符合模型要求')
+}
 videoOut(media.sourceVideo, `${assetDir}/original.mp4`, fullSeconds)
 videoOut(media.exampleVideo, `${assetDir}/ai.mp4`, fullSeconds)
 for (const seconds of durations) {

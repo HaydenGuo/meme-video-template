@@ -1,5 +1,7 @@
 # Meme Video Template（梗视频站模板）
 
+Hypit Bridge 在模型提交前检查并归一化人像与参考视频尺寸，站点初始化沿用同一像素限制。见 [Bridge 运维说明](services/hypit-bridge/README.md)。
+
 指南自动提供 `/feed.xml` 和 `/zh/feed.xml` 两种语言的 RSS，页面 head 包含订阅发现链接。可在 `site.articles[].sources` 配置双语来源名称和网址，同步渲染到文章与结构化数据；不要把来源链接当作素材使用授权。
 
 生成请求在扣积分前执行本站关键词预检，Hypit 提交前执行相同规则，Seedance 服务商执行自身审核。拒绝时停止，不绕过；用户须确认授权。默认不依赖 Waffo 扫描接口或支付凭据。见[内容安全](docs/content-safety.md)。

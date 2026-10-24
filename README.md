@@ -1,5 +1,7 @@
 # Meme Video Template
 
+Hypit Bridge validates and normalizes portrait and reference-video dimensions before model submission. Site initialization uses the same pixel limits; see [Bridge operations](services/hypit-bridge/README.md).
+
 Guides expose localized RSS feeds at `/feed.xml` and `/zh/feed.xml`, with automatic discovery links in page metadata. Optional `site.articles[].sources` appear on the article and in its structured data.
 
 Generation uses server-side keyword prechecks and provider safety checks. Default generation does not depend on Waffo credentials. See [content safety](docs/content-safety.md).

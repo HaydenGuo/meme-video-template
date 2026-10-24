@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto'
 import { resolve } from 'node:path'
 import { remixComposition } from './workflow.mjs'
 import { composeVideoPrompt, scanLocalPrompt } from './prompt-safety.mjs'
+import { prepareModelMedia } from './media-preflight.mjs'
 
 const exec = promisify(execFile)
 const xml = (text) => String(text).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' })[c])
@@ -58,6 +59,12 @@ export function createHypitRunner(config) {
         const image = await probe(resolve(dir, 'image.png'))
         if (!image.streams?.some((s) => s.codec_type === 'video' && s.width > 0 && s.height > 0)) throw new Error('Invalid portrait')
       }
+      // 原视频先通过模板哈希校验；只将独立派生文件交给模型，音轨仍使用原视频。
+      const prepared = passthrough ? null : {
+        image: await prepareModelMedia({ dir, kind: 'image', probe, config }),
+        video: await prepareModelMedia({ dir, kind: 'video', probe, config, durationSeconds: job.durationSeconds }),
+      }
+      if (prepared) await writeFile(resolve(dir, 'media-preflight.json'), JSON.stringify({ version: 1, image: prepared.image, video: prepared.video }), { mode: 0o600 })
       const source = `<?svml using="@hypit/markup@1"?>
 <svml>
   <import as="media" from="@hypit/media@1"/>
@@ -70,11 +77,12 @@ ${passthrough ? composition ? '  <media:Video id="reference" src="./source.mp4"/
   <mediaop:Transform id="prepared" source={normalized.media}><mediaop:Retime rate="1"/></mediaop:Transform>` : `  <import as="text" from="@hypit/text@1"/>
   <import as="seedance" from="@hypit/seedance@1"/>
   <media:Video id="reference" src="./source.mp4"/>
-  <media:Image id="portrait" src="./image.png" media-type="${xml(job.imageMediaType ?? 'image/png')}"/>
+  <media:Video id="model-reference" src="./${prepared?.video.file}"/>
+  <media:Image id="portrait" src="./${prepared?.image.file}" media-type="image/png"/>
   <text:Value id="direction">${xml(prompt)}</text:Value>
   <seedance:ReferenceVideo id="generated" model="${xml(template.model)}" prompt={direction} duration="${job.durationSeconds}" resolution="${xml(template.resolution)}" aspect-ratio="${xml(job.aspectRatio ?? template.aspectRatio)}" generate-audio="false">
     <seedance:Reference image={portrait} person-reference="${template.imagePersonReference === true}"/>
-    <seedance:Reference video={reference} person-reference="${template.videoPersonReference === true}"/>
+    <seedance:Reference video={model-reference} person-reference="${template.videoPersonReference === true}"/>
   </seedance:ReferenceVideo>`}
 ${composition?.body ?? ''}
 </svml>`
