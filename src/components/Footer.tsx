@@ -26,6 +26,7 @@ export function Footer() {
         { to: '/privacy-policy', label: c.footer.privacy },
         { to: '/terms-of-service', label: c.footer.terms },
         { to: '/refund-policy', label: c.footer.refund },
+        { to: '/acceptable-use-policy', label: c.footer.aup },
         { to: '/report', label: c.footer.report },
       ],
       // 只有启用 GA4 时才有同意横幅，才需要“Cookie 设置”
@@ -73,7 +74,7 @@ export function Footer() {
       </div>
       <div className="border-t border-white/10">
         <div className="container-page flex flex-col gap-2 py-6 text-xs text-[#f2ede4]/55 sm:flex-row sm:justify-between">
-          <span>{c.footer.rights}</span>
+          <span>{c.footer.rights}{c.footer.operator ? ` · ${c.footer.operator}` : ''}</span>
           <a href={`mailto:${site.supportEmail}`} className="hover:text-white">
             {site.supportEmail}
           </a>

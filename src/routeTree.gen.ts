@@ -24,6 +24,7 @@ import { Route as AdminSettingsRouteImport } from './routes/admin/settings'
 import { Route as AdminTakedownsRouteImport } from './routes/admin/takedowns'
 import { Route as Char123LocaleChar125IndexRouteImport } from './routes/{-$locale}/index'
 import { Route as Char123LocaleChar125SlugRouteImport } from './routes/{-$locale}/$slug'
+import { Route as Char123LocaleChar125AcceptableUsePolicyRouteImport } from './routes/{-$locale}/acceptable-use-policy'
 import { Route as Char123LocaleChar125ContactRouteImport } from './routes/{-$locale}/contact'
 import { Route as Char123LocaleChar125DashboardRouteRouteImport } from './routes/{-$locale}/dashboard/route'
 import { Route as Char123LocaleChar125GuidesRouteImport } from './routes/{-$locale}/guides'
@@ -121,6 +122,12 @@ const Char123LocaleChar125SlugRoute =
   Char123LocaleChar125SlugRouteImport.update({
     id: '/$slug',
     path: '/$slug',
+    getParentRoute: () => Char123LocaleChar125RouteRoute,
+  } as any)
+const Char123LocaleChar125AcceptableUsePolicyRoute =
+  Char123LocaleChar125AcceptableUsePolicyRouteImport.update({
+    id: '/acceptable-use-policy',
+    path: '/acceptable-use-policy',
     getParentRoute: () => Char123LocaleChar125RouteRoute,
   } as any)
 const Char123LocaleChar125ContactRoute =
@@ -255,6 +262,7 @@ export interface FileRoutesByFullPath {
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/takedowns': typeof AdminTakedownsRoute
   '/{-$locale}/$slug': typeof Char123LocaleChar125SlugRoute
+  '/{-$locale}/acceptable-use-policy': typeof Char123LocaleChar125AcceptableUsePolicyRoute
   '/{-$locale}/contact': typeof Char123LocaleChar125ContactRoute
   '/{-$locale}/guides': typeof Char123LocaleChar125GuidesRoute
   '/{-$locale}/pricing': typeof Char123LocaleChar125PricingRoute
@@ -289,6 +297,7 @@ export interface FileRoutesByTo {
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/takedowns': typeof AdminTakedownsRoute
   '/{-$locale}/$slug': typeof Char123LocaleChar125SlugRoute
+  '/{-$locale}/acceptable-use-policy': typeof Char123LocaleChar125AcceptableUsePolicyRoute
   '/{-$locale}/contact': typeof Char123LocaleChar125ContactRoute
   '/{-$locale}/guides': typeof Char123LocaleChar125GuidesRoute
   '/{-$locale}/pricing': typeof Char123LocaleChar125PricingRoute
@@ -327,6 +336,7 @@ export interface FileRoutesById {
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/takedowns': typeof AdminTakedownsRoute
   '/{-$locale}/$slug': typeof Char123LocaleChar125SlugRoute
+  '/{-$locale}/acceptable-use-policy': typeof Char123LocaleChar125AcceptableUsePolicyRoute
   '/{-$locale}/contact': typeof Char123LocaleChar125ContactRoute
   '/{-$locale}/guides': typeof Char123LocaleChar125GuidesRoute
   '/{-$locale}/pricing': typeof Char123LocaleChar125PricingRoute
@@ -366,6 +376,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/takedowns'
     | '/{-$locale}/$slug'
+    | '/{-$locale}/acceptable-use-policy'
     | '/{-$locale}/contact'
     | '/{-$locale}/guides'
     | '/{-$locale}/pricing'
@@ -400,6 +411,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/takedowns'
     | '/{-$locale}/$slug'
+    | '/{-$locale}/acceptable-use-policy'
     | '/{-$locale}/contact'
     | '/{-$locale}/guides'
     | '/{-$locale}/pricing'
@@ -437,6 +449,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/takedowns'
     | '/{-$locale}/$slug'
+    | '/{-$locale}/acceptable-use-policy'
     | '/{-$locale}/contact'
     | '/{-$locale}/guides'
     | '/{-$locale}/pricing'
@@ -570,6 +583,13 @@ declare module '@tanstack/react-router' {
       path: '/$slug'
       fullPath: '/{-$locale}/$slug'
       preLoaderRoute: typeof Char123LocaleChar125SlugRouteImport
+      parentRoute: typeof Char123LocaleChar125RouteRoute
+    }
+    '/{-$locale}/acceptable-use-policy': {
+      id: '/{-$locale}/acceptable-use-policy'
+      path: '/acceptable-use-policy'
+      fullPath: '/{-$locale}/acceptable-use-policy'
+      preLoaderRoute: typeof Char123LocaleChar125AcceptableUsePolicyRouteImport
       parentRoute: typeof Char123LocaleChar125RouteRoute
     }
     '/{-$locale}/contact': {
@@ -782,6 +802,7 @@ const Char123LocaleChar125DashboardRouteRouteWithChildren =
 interface Char123LocaleChar125RouteRouteChildren {
   Char123LocaleChar125DashboardRouteRoute: typeof Char123LocaleChar125DashboardRouteRouteWithChildren
   Char123LocaleChar125SlugRoute: typeof Char123LocaleChar125SlugRoute
+  Char123LocaleChar125AcceptableUsePolicyRoute: typeof Char123LocaleChar125AcceptableUsePolicyRoute
   Char123LocaleChar125ContactRoute: typeof Char123LocaleChar125ContactRoute
   Char123LocaleChar125GuidesRoute: typeof Char123LocaleChar125GuidesRoute
   Char123LocaleChar125PricingRoute: typeof Char123LocaleChar125PricingRoute
@@ -801,6 +822,8 @@ const Char123LocaleChar125RouteRouteChildren: Char123LocaleChar125RouteRouteChil
     Char123LocaleChar125DashboardRouteRoute:
       Char123LocaleChar125DashboardRouteRouteWithChildren,
     Char123LocaleChar125SlugRoute: Char123LocaleChar125SlugRoute,
+    Char123LocaleChar125AcceptableUsePolicyRoute:
+      Char123LocaleChar125AcceptableUsePolicyRoute,
     Char123LocaleChar125ContactRoute: Char123LocaleChar125ContactRoute,
     Char123LocaleChar125GuidesRoute: Char123LocaleChar125GuidesRoute,
     Char123LocaleChar125PricingRoute: Char123LocaleChar125PricingRoute,

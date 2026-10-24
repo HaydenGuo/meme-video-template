@@ -1,0 +1,44 @@
+import type { site as Site } from '#/config/site'
+
+// 审核相关文案必须描述实际状态，不能把待接通的审核或支付写成已上线。
+export function reviewPoliciesEn(s: typeof Site) {
+  const email = s.supportEmail
+  const operator = s.business.operatorName || s.brandName
+  return {
+    operator: {
+      h: 'Who operates this service',
+      p: [`${s.brandName} is operated by ${operator}. Contact ${email} for service, privacy, billing and content reports. The operator is responsible for the product, delivery and customer support.`, `When enabled, purchases are processed by ${s.business.paymentProcessor} as merchant of record. Its checkout identifies the legal seller and applicable taxes. A configured payment provider does not mean that this product has received payment approval.`],
+    },
+    model: {
+      h: 'AI model and service availability',
+      p: [s.business.videoModel
+        ? `The video model configured for this site is ${s.business.videoModel}${s.business.videoProcessor ? `, accessed through ${s.business.videoProcessor}` : ''}. Hypit orchestrates the video workflow; it is not the underlying generation model.`
+        : 'No production video model has been disclosed for this site yet. Model details must be published before accepting paid generation requests.',
+      'The generator shows whether video creation is available. Published examples demonstrate individual results, not a guarantee that every request will produce the same quality. AI output is synthetic and does not document a real performance.'],
+    },
+    rights: {
+      h: 'Rights in references and output',
+      p: ['You must have the rights required to upload, transform and share every image, reference, soundtrack, logo or character you supply. Upload permission does not grant rights to third-party music, choreography, trademarks or characters. A purchase does not grant a license to those third-party assets.', 'Do not use the service to impersonate a real person, invent endorsements or depict a real person saying or doing something they did not say or do. Our Acceptable Use Policy applies to uploads, prompts, generated results and sharing.'],
+    },
+    privacy: [
+      { h: 'Data controller and processing purposes', p: [`${operator} operates ${s.brandName} and handles privacy requests at ${email}. Account and service data are used to deliver the service; security and abuse-prevention records are used to protect users; billing records are retained for applicable legal obligations. We do not sell personal information or send marketing email.`] },
+      { h: 'Named service providers and international processing', p: [`Cloudflare provides website hosting, D1 account storage and R2 media storage. Google provides optional Google sign-in and shares the verified account information you authorize. Support email is handled by the provider of ${email}.`, `When generation is enabled${s.business.videoProcessor ? `, ${s.business.videoProcessor}` : ', the disclosed video provider'} processes the submitted media and prompt for the requested video${s.business.videoModel ? ` using ${s.business.videoModel}` : ''}. Hypit is the workflow software. When checkout is enabled, ${s.business.paymentProcessor} processes payment and tax information; we store order references and payment status, not full card numbers.`, 'Cloud infrastructure and generation providers may process data outside your country, including the United States and, depending on the selected provider, China. Do not submit material that you cannot lawfully transfer to those services. We do not claim that all processing stays within your country or that an unverified data-transfer agreement is in place.'] },
+      { h: 'Privacy requests and security', p: [`You may request access, correction, deletion, portability, restriction or objection to processing, and withdrawal of consent where applicable, by emailing ${email}. You may also complain to your local data protection authority. We aim to respond within 30 calendar days, subject to applicable law.`, 'HTTPS protects data in transit. Server credentials stay on the server, passwords are stored as salted hashes, and account pages require authentication. No system is perfectly secure; report suspected exposure to our support email. The service is intended for adults aged 18 or older.'] },
+    ],
+    aup: {
+      title: 'Acceptable Use Policy',
+      sections: [
+        { h: 'Scope', p: [`This policy applies to ${s.brandName}, including uploads, background descriptions, AI results and shared links. The service is for adults aged 18 or older. AI-generated media must never be presented as authentic footage.`] },
+        { h: '1. Sexual content and NSFW', p: ['Do not request or upload pornography, nudity, sexual exploitation, sexualized depictions or non-consensual intimate imagery. Removing clothes from a person in an image or video is prohibited.'] },
+        { h: '2. Violence and gore', p: ['Do not create graphic violence, gore, torture, threats or content encouraging violence or self-harm.'] },
+        { h: '3. Hate and harassment', p: ['Do not generate hate speech, dehumanizing attacks, targeted harassment or discriminatory content against protected groups or individuals.'] },
+        { h: '4. Child safety', p: ['Do not upload images of minors or generate sexual, exploitative or otherwise unsafe content involving children. Suspected child sexual abuse material must not be redistributed; report it through the appropriate authorities.'] },
+        { h: '5. Deepfakes and impersonation', p: ['Do not swap a real person’s face or identity onto another person, fabricate speech or behavior by a real person, create synthetic intimate interactions, impersonate public figures or invent endorsements. Consent and an AI label do not override restrictions imposed by law or our service providers.'] },
+        { h: '6. Copyright and trademarks', p: ['Do not upload or generate content that infringes copyright, trademark, publicity or other rights. Do not assume that content found online is licensed for reproduction or commercial use. The site does not grant rights to third-party references, characters or music.'] },
+        { h: 'Review and current operating state', p: ['The current preview permits browsing and account access; user video generation and purchases remain disabled. We do not claim that a live prompt or output moderation service is running in this preview.', 'Before opening generation, the operator must connect input and prompt checks and review generated output before delivery. Provider rejection must not be bypassed. Automatic review can make mistakes and does not establish ownership or consent. Human review is required for disputed or uncertain cases.'] },
+        { h: 'Reports and action', p: [`Use the public report form or email ${email} with the subject “Content Report”. Include the page or video URL, the reason, supporting evidence and a contact email. You do not need an account. Avoid attaching unlawful material; provide its location instead.`, `Reports are recorded for review. We assess the report, may request evidence, and can remove hosted media, disable shared links, block reuploads or restrict accounts. We aim to remove qualifying reported content within ${s.takedownSlaHours} hours. Unused paid credits and refunds remain subject to applicable consumer rights.`, 'Report details and decisions are retained to document handling and prevent repeated abuse, with access limited to service administration. This is not a promise that every publicly available item has already been reviewed.'] },
+        { h: 'Appeals', p: [`Email ${email} with the subject “Content Appeal” and the report, account or video reference. Explain the mistake and provide relevant evidence. A disputed removal or account restriction can be reconsidered; an appeal does not automatically restore content.`] },
+      ],
+    },
+  }
+}

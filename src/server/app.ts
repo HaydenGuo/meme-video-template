@@ -79,7 +79,9 @@ app.use('/api/*', async (c, next) => {
   const accountRead = c.req.method === 'GET' && ['/api/generations', '/api/orders', '/api/credits/ledger', '/api/credits/expiring', '/api/referral', '/api/subscription', '/api/account/export'].includes(path)
   const accountAuth = path.startsWith('/api/auth/') && path !== '/api/auth/dev-login'
   const accountDelete = c.req.method === 'DELETE' && path === '/api/account'
-  if (showcase && !['/api/health', '/api/me'].includes(path) && !(authEnabled && (accountAuth || accountRead || accountDelete))) {
+  // 展示中的素材也需要可用的举报与客服入口；继续执行原有 CSRF、限流和字段校验。
+  const supportRequest = c.req.method === 'POST' && ['/api/contact', '/api/takedowns'].includes(path)
+  if (showcase && !['/api/health', '/api/me'].includes(path) && !supportRequest && !(authEnabled && (accountAuth || accountRead || accountDelete))) {
     const hidden = c.req.path.startsWith('/api/dev/') || c.req.path.startsWith('/api/mock-payments/') || c.req.path === '/api/auth/dev-login'
     return c.json({ error: hidden ? 'not_found' : 'service_unavailable' }, hidden ? 404 : 503)
   }

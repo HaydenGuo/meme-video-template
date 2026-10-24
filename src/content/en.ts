@@ -1,6 +1,7 @@
 // 英文文案。所有关键词/品牌通过 site 配置插值，上新词时通常只需改 site.ts；
 // 文章与 FAQ 建议按新趋势重写，保证内容原创、贴合关键词。
 import type { ArticleKey, site as Site } from '#/config/site'
+import { reviewPoliciesEn } from './review-policies-en'
 
 type S = typeof Site
 type ArticleContent = { title: string; description: string; intro: string; sections: Array<{ h: string; p: string[] }> }
@@ -15,6 +16,7 @@ export function en(s: S) {
   // 是否在卖订阅（site.subscriptionsEnabled 且有套餐），决定订阅相关文案是否出现
   const subs = s.subscriptionsEnabled && s.plans.length > 0
   const b = s.brandName
+  const review = reviewPoliciesEn(s)
   const { uploadDays, outputDays } = s.retention
   const photoRetention = uploadDays > 0 ? `deleted automatically ${uploadDays} days after upload` : 'kept until you delete them'
   const videoRetention = outputDays > 0 ? `kept for ${outputDays} days after they finish` : 'kept until you delete them'
@@ -180,8 +182,8 @@ export function en(s: S) {
       buying: 'Opening checkout…',
       credits: (n: number) => `${n} credits`,
       approx: (videos: number, seconds: number) => `≈ ${videos} videos of ${seconds} s`,
-      bullets: ['Credits never expire', 'All video lengths', 'HD MP4 download, no watermark', 'Automatic refund on failed renders'],
-      note: 'Prices in USD. Taxes are calculated at checkout by our payment partner.',
+      bullets: ['Purchased credits do not expire', 'All listed video lengths', 'MP4 download', 'Credits restored on failed renders'],
+      note: `One-time purchase${subs ? '' : ', no automatic renewal'}. Prices in USD; applicable taxes and the final total appear before payment. ${s.business.paymentProcessor} handles checkout when purchases are enabled. Unused packs: refund requests within 14 days.`,
       // 价格页底部的教程链接
       guide: `Before you buy: how to get a great ${k} video`,
       packages: {
@@ -240,6 +242,8 @@ export function en(s: S) {
       cta: 'Create my video',
     },
     footer: {
+      operator: s.business.operatorName ? `Operated by ${s.business.operatorName}` : '',
+      aup: 'Acceptable Use Policy',
       statement: `${b} is an independent project and is not affiliated with ${s.trendPlatform} or the creators of the original trend.`,
       resources: 'Resources',
       legal: 'Legal',
@@ -447,7 +451,8 @@ export function en(s: S) {
       } as Record<string, string>,
       details: 'Details (optional)',
       isDepicted: 'I am the person shown, or I am authorised to act on their behalf.',
-      attest: 'I believe in good faith that this content was made or shared without the consent of the person shown, and the information in this report is accurate.',
+      attest: 'I believe in good faith that the reported content violates rights or the Acceptable Use Policy, and the information in this report is accurate.',
+      emailAlternative: 'You can also email a report with the subject “Content Report”, including the content link and supporting details:',
       submit: 'Send report',
       sent: (id: string) => `Report received. Your reference is ${id}. We may contact you at the email above if we need more information.`,
       urgent: 'If someone is in immediate danger, contact local emergency services. Child sexual abuse material should also be reported to the NCMEC CyberTipline or your national hotline.',
@@ -554,14 +559,16 @@ export function en(s: S) {
       account_conflict: `This email is linked to a different Google account. Sign in with that account, or email ${s.supportEmail} for help.`,
     } as Record<string, string>,
     legal: {
-      updated: '2026-10-21',
+      updated: '2026-10-24',
+      aup: review.aup,
       privacy: {
         title: 'Privacy Policy',
         sections: [
+          ...review.privacy,
           { h: 'What we collect', p: [`If you sign in with Google, we receive your name, verified email address and profile picture. If you register with an email and password, we store your verified email and a salted password hash, never your plaintext password. Verification challenges expire after 10 minutes. When you create a video we store the photo you upload and the video we generate. Payment details are handled by our payment partner; ${b} never sees your card number.`] },
-          { h: 'How we use it', p: ['Your photo is used only to render the video you request. We use your email to operate your account, send receipts and service notices (such as when your video is ready or a report you filed is resolved) and answer support requests. We do not send marketing email. We do not sell personal data and do not use your photos to train models.'] },
+          { h: 'How we use it', p: ['We use submitted media and background descriptions for the requested video when generation is available. We use your email for account operation, service notices and support; message delivery depends on the configured mail service. We do not send marketing email, sell personal data or train our own models on your photos. Upstream providers have their own processing policies; we do not promise unverified provider-wide training exclusions. We also store session IP addresses and browser details for account security, and report or contact information you submit for handling those requests.'] },
           { h: 'Storage and retention', p: [`Files are stored with our infrastructure provider in encrypted form. Uploaded photos are ${photoRetention} and generated videos are ${videoRetention}, unless you delete them or your account sooner. Order and payment records are kept as required for tax and accounting. When you delete your account we keep only a one-way hash of your email address, so the same email cannot claim the sign-up bonus twice.`] },
-          { h: 'Safety checks', p: ['Before a photo is used it may be checked by an automated content-safety classifier. The check runs only to enforce our rules, and its result is not used for anything else. Public forms are protected by a bot-detection service that may process your IP address and browser signals.'] },
+          { h: 'Safety checks', p: ['Generation is disabled in the current preview. Before it is enabled, the operator must configure checks for uploaded media, prompts and generated output. The site does not currently claim complete automated moderation. Public forms are rate limited; if Cloudflare Turnstile is enabled, it also processes IP addresses and browser signals for bot detection.'] },
           {
             h: 'Cookies and analytics',
             p: [
@@ -588,13 +595,15 @@ export function en(s: S) {
                 },
               ]
             : []),
-          { h: 'Service providers', p: [`We rely on a small number of processors: cloud hosting, storage and email delivery, an AI rendering provider that processes your photo only for your request, a content-safety classifier, a payment provider acting as merchant of record${ga4Id || cfBeaconToken ? ', and the analytics services described above' : ''}.`] },
           { h: 'Your rights', p: [`You can download or delete your videos at any time. In Settings you can export a copy of your data as JSON or delete your account. For any other privacy request, email ${s.supportEmail}.`] },
         ],
       },
       terms: {
         title: 'Terms of Service',
         sections: [
+          review.operator,
+          review.model,
+          review.rights,
           { h: 'Using the service', p: [`${b} lets you create short AI videos from a photo. You must be at least 18 years old, or the age of majority where you live, to use it.`] },
           { h: 'Your content and consent', p: ['Only upload photos of yourself or of adults who have given you permission. Do not upload photos of minors, celebrities or public figures, and do not use the service to harass, impersonate or deceive anyone. We may remove content and close accounts that break these rules.'] },
           { h: 'Generated videos', p: ['You may use the videos you create for personal and social media purposes. AI output can contain mistakes; review a video before sharing it. Videos are labelled as AI-generated: keep that label, say the video is AI-generated when you share it and never present it as real footage of an event.'] },
@@ -602,14 +611,14 @@ export function en(s: S) {
           {
             h: 'Credits and payments',
             p: [
-              'Credit packs are one-time purchases. Credits have no cash value, and credits from packs do not expire while the service is operating. Payments are processed by our merchant-of-record partner, whose terms also apply.',
+              `Credit packs are one-time purchases in USD: ${s.packages.map((pack) => `${pack.credits} credits for $${(pack.priceCents / 100).toFixed(2)}`).join('; ')}. One second of video costs one credit. Credits have no cash value and purchased credits do not expire while the service is operating. Any applicable tax and final total are shown before payment. ${subs ? '' : 'There is no subscription or automatic renewal. '}Checkout remains unavailable until purchases are enabled.`,
               subs
                 ? 'Subscriptions renew automatically at the end of each billing period (monthly or yearly) at the price you subscribed at, until you cancel. You can cancel at any time under Billing in your account; cancellation takes effect at the end of the current period and you keep your plan until then. Subscription credits are added once a month (yearly plans receive them month by month), expire at the end of that month and do not roll over.'
                 : '',
             ].filter(Boolean),
           },
           { h: 'Availability and liability', p: ['We work to keep the service available but provide it as is. To the extent permitted by law, our liability is limited to the amount you paid in the 12 months before a claim.'] },
-          { h: 'Changes', p: ['We may update these terms. Continued use after an update means you accept the new terms.'] },
+          { h: 'Consumer rights and changes', p: [`Nothing in these terms removes mandatory consumer rights. Read the Refund Policy before purchasing. Material changes are posted with a new effective date; contact ${s.supportEmail} about disputes or your rights.`] },
         ],
       },
       refund: {
@@ -629,7 +638,8 @@ export function en(s: S) {
               ]
             : []),
           { h: 'Quality issues', p: ['If a finished video is clearly broken (for example corrupted or missing the face), contact us with the video ID and we will restore the credits after review.'] },
-          { h: 'How refunds are paid', p: ['Approved refunds go back to the original payment method through our payment partner and may take 5–10 business days to appear.'] },
+          { h: 'How refunds are paid', p: [`Approved monetary refunds go back to the original payment method through ${s.business.paymentProcessor} and may take 5–10 business days after processing. A credit restoration is not a cash refund. Refunded purchased credits and any associated referral reward are removed to prevent double use. You may cancel an unpaid checkout without charge.`] },
+          { h: 'Requesting help and legal rights', p: [`If you are not satisfied, email ${s.supportEmail} with the order ID, video ID and a description of the issue. Do not send card details. Quality claims are reviewed individually; we do not promise an identical recreation or a refund for every subjective preference. Mandatory consumer rights apply even where this policy is narrower.`] },
         ],
       },
     },

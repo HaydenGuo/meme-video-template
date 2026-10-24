@@ -6,7 +6,7 @@ import { api, errorCode } from '#/lib/api'
 import { track } from '#/lib/attribution'
 import { useContent, useLocale, useLocalePath } from '#/lib/i18n'
 import { signInHref, useSession } from '#/lib/session'
-import { ErrorText, Spinner } from './ui'
+import { ErrorText, LocalLink, Spinner } from './ui'
 
 export function Pricing() {
   const c = useContent()
@@ -120,6 +120,11 @@ export function Pricing() {
       </ul>
       <ErrorText code={error} />
       <p className="text-center text-xs text-muted">{p.note}</p>
+      <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs text-muted">
+        <LocalLink to="/terms-of-service" className="underline">{c.footer.terms}</LocalLink>
+        <LocalLink to="/refund-policy" className="underline">{c.footer.refund}</LocalLink>
+        <LocalLink to="/acceptable-use-policy" className="underline">{c.footer.aup}</LocalLink>
+      </div>
     </div>
   )
 }

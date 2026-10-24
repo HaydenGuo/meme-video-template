@@ -82,7 +82,7 @@ Hypit 可选接入：`VIDEO_PROVIDER=hypit`，新增 `HYPIT_BRIDGE_URL`（Bridge
 5. 更新本文件。
 # 展示发布
 
-`SHOWCASE_MODE=true` 可先上线介绍和案例。API 仅开放 `/api/me` 与 `/api/health`，其它 API 返回 503（调试接口返回 404）；不运行队列业务和定时任务。前端隐藏登录并禁用上传、生成与购买。此时 doctor 不要求未启用业务的服务商凭据，但仍检查 HTTPS、会话密钥、资源绑定和迁移。不要将它当作完整生成服务的验收。
+`SHOWCASE_MODE=true` 可先上线介绍和案例。API 开放 `/api/me`、`/api/health` 及 POST `/api/contact`、`/api/takedowns`，客服与举报仍执行 CSRF、字段及限流校验；其它业务 API 返回 503（调试接口返回 404）。不运行队列业务和定时任务；没有发信配置时记录保存到数据库，邮件渠道请直接使用页面公布的客服邮箱。前端隐藏登录并禁用上传、生成与购买。此时 doctor 不要求未启用业务的服务商凭据，但仍检查 HTTPS、会话密钥、资源绑定和迁移。不要将它当作完整生成服务的验收。
 
 展示站可额外设置 `SHOWCASE_AUTH_ENABLED=true`，开放正式登录、退出、账户删除及账户页所需的只读接口。此时需要正常配置 Google OAuth 或真实邮箱验证发信服务；Google 回调为当前 origin 的 `/api/auth/google/callback`。生成、充值、兑换、调试接口和后台仍关闭，会话密钥保持本站独立且稳定。
 
