@@ -1,0 +1,48 @@
+name: Deploy Cloudflare
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # 模板默认不发布；完成站点资源和密钥配置后再开启。
+    if: ${{ vars.CLOUDFLARE_AUTO_DEPLOY == 'true' }}
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 30
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - name: Check deployment credentials
+        shell: pwsh
+        run: |
+          if (-not $env:CLOUDFLARE_API_TOKEN -or -not $env:CLOUDFLARE_ACCOUNT_ID) {
+            throw 'Configure CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID in the production environment.'
+          }
+      - run: npm ci
+      - run: npm run typecheck
+      # 配置错误时必须在修改远端数据库之前终止。
+      - run: npm run doctor -- --offline
+      - run: npm run db:migrate:remote
+      - run: npm run deploy
+      - name: Record deployed source
+        shell: pwsh
+        run: |
+          "Source: $env:GITHUB_SHA" >> $env:GITHUB_STEP_SUMMARY

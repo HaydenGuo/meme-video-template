@@ -1,0 +1,14 @@
+# GitHub 推送后部署 Cloudflare
+
+`.github/workflows/deploy.yml` 在 `main` 推送和手动触发时发布当前提交。模板默认关闭，站点完成配置后开启。
+
+1. 在 Cloudflare 建立该站独立的 D1、R2、KV 和队列，将实际绑定写入 `wrangler.jsonc`。
+2. 配置生产环境、实际服务商和站点地址；运行 `npm run doctor -- --offline`。
+3. 用 `scripts/sync-secrets.mjs` 将运行时密钥直接传给 Worker，密钥文件不要提交 Git。
+4. 在 GitHub 的 `production` environment 设置 `CLOUDFLARE_API_TOKEN` 和 `CLOUDFLARE_ACCOUNT_ID`。API token 限定目标账户，包含 Workers、D1、KV、R2、Queues 的必要编辑权限；不要使用本机 Wrangler OAuth 登录令牌代替 CI token。
+5. 将仓库变量 `CLOUDFLARE_AUTO_DEPLOY` 设为 `true`。
+6. 推送 `main`，检查 Actions 的提交 SHA 与 Worker 部署记录。流程依次安装依赖、类型检查、离线配置检查、数据库迁移和完整部署。
+
+同站部署串行排队。配置检查失败不会继续迁移或发布。数据库迁移不会随 Worker 回滚自动撤销。
+
+域名仍可在 Spaceship 注册。Worker 自定义域名需要已激活的 Cloudflare zone，委派 nameserver 前应核对现有 DNS，取得授权。仅推送代码不会自动完成域名委派、API 服务商开户或 OAuth 回调授权。
