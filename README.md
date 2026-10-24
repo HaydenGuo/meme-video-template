@@ -466,3 +466,6 @@ tests/                  unit, e2e (mock providers), smoke (post-deploy), sandbox
 ## License
 
 [MIT](LICENSE)
+# Preview launch
+
+Set `SHOWCASE_MODE=true` to publish content and examples before service credentials are ready. Sign-up, uploads, generation and purchases stay closed; queues and scheduled tasks pause. Set it to `false` only after completing the full deployment doctor. See [environment settings](docs/env.md).

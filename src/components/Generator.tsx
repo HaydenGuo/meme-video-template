@@ -139,7 +139,7 @@ export function Generator() {
           />
           <button
             type="button"
-            disabled={busy}
+            disabled={busy || loading || config?.showcase}
             onClick={() => inputRef.current?.click()}
             onDragOver={(event) => {
               event.preventDefault()
@@ -191,7 +191,7 @@ export function Generator() {
                   type="button"
                   role="radio"
                   aria-checked={active}
-                  disabled={busy}
+                  disabled={busy || loading || config?.showcase}
                   data-testid={`duration-${d.id}`}
                   onClick={() => setDurationId(d.id)}
                   className={`rounded-lg px-2 py-2 text-center transition ${active ? 'bg-card shadow-sm ring-1 ring-line' : 'text-muted hover:text-fg'}`}
@@ -216,7 +216,7 @@ export function Generator() {
                 type="button"
                 role="radio"
                 aria-checked={aspectRatio === ratio}
-                disabled={busy || generation !== null}
+                disabled={busy || loading || config?.showcase || generation !== null}
                 onClick={() => setAspectRatio(ratio)}
                 className={`flex items-center justify-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold transition ${aspectRatio === ratio ? 'bg-card shadow-sm ring-1 ring-line' : 'text-muted hover:text-fg'}`}
               >
@@ -238,7 +238,7 @@ export function Generator() {
             onChange={(event) => setBackgroundDescription(event.target.value)}
             maxLength={500}
             rows={3}
-            disabled={busy || generation !== null}
+            disabled={busy || loading || config?.showcase || generation !== null}
             placeholder={g.backgroundPlaceholder}
             aria-describedby="background-hint"
             className="w-full resize-y rounded-xl border border-line bg-bg-soft px-4 py-3 text-sm text-fg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-60"
@@ -259,7 +259,9 @@ export function Generator() {
 
         {/* CTA */}
         <div className="space-y-2">
-          {loading ? (
+          {config?.showcase ? (
+            <button type="button" disabled className="btn-primary w-full py-3.5">{c.common.comingSoon}</button>
+          ) : loading ? (
             <div className="btn-primary w-full py-3.5 opacity-60">
               <Spinner />
             </div>

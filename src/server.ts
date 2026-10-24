@@ -60,12 +60,15 @@ export default {
   },
 
   async queue(batch: MessageBatch<VideoJobMessage>, env: Env) {
+    // 保留已有消息，展示模式不得运行服务商或改变积分。
+    if (env.SHOWCASE_MODE === 'true') { batch.retryAll({ delaySeconds: 3600 }); return }
     // 死信队列按约定以 -dlq 结尾（wrangler.jsonc 的 dead_letter_queue）
     if (batch.queue.endsWith('-dlq')) await handleDeadLetterBatch(batch, env)
     else await handleQueueBatch(batch, env)
   },
 
   async scheduled(_controller: ScheduledController, env: Env, ctx: ExecutionContext) {
+    if (env.SHOWCASE_MODE === 'true') return
     ctx.waitUntil(runScheduledMaintenance(env))
     ctx.waitUntil(runNotificationCron(env))
     ctx.waitUntil(runHealthCheck(env).catch((error) => console.error('[alert] health check failed', error)))

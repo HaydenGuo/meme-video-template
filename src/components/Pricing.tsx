@@ -48,11 +48,11 @@ export function Pricing() {
         type="button"
         onClick={() => buy(id)}
         // 会话还在加载时 user 为空，此时点击会把已登录用户误送去登录页
-        disabled={pending !== null || loading}
+        disabled={pending !== null || loading || config?.showcase}
         className={`${primary ? 'btn-primary' : 'btn-ghost'} mt-auto w-full`}
         data-testid={`buy-${id}`}
       >
-        {pending === id ? (
+        {config?.showcase ? c.common.comingSoon : pending === id ? (
           <>
             <Spinner /> {p.buying}
           </>

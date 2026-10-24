@@ -57,6 +57,7 @@ export type PublicUser = {
 }
 
 export type ClientConfig = {
+  showcase?: boolean
   emailPassword: boolean
   emailVerification: boolean
   googleClientId: string | null

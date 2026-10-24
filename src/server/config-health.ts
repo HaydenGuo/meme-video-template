@@ -94,6 +94,10 @@ export function checkConfig(input: ConfigInput): ConfigIssue[] {
   const missingBindings = REQUIRED_BINDINGS.filter((name) => !input.bindings.includes(name))
   if (missingBindings.length) error('bindings', `缺少绑定：${missingBindings.join('、')}`)
 
+  // 展示模式由 API、队列、定时任务共同封锁业务动作，未接通的服务商无需伪配凭据。
+  const showcase = vars('SHOWCASE_MODE') === 'true'
+  if (showcase) warn('SHOWCASE_MODE', '展示发布：注册、上传、生成、购买及后台操作均关闭；队列和定时任务暂停')
+  if (!showcase) {
   // Google 可选；新用户也能通过已配置发件服务的邮箱注册。
   if (!vars('GOOGLE_CLIENT_ID')) {
     warn('GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_ID 为空：Google 登录按钮不可用')
@@ -101,6 +105,7 @@ export function checkConfig(input: ConfigInput): ConfigIssue[] {
   }
   else requireSecrets(['GOOGLE_CLIENT_SECRET'], 'Google 登录')
 
+  }
   const sessionSecret = input.secrets.SESSION_SECRET
   if (typeof sessionSecret === 'string' && text(sessionSecret) && isWeakSessionSecret(text(sessionSecret))) {
     error('SESSION_SECRET', 'SESSION_SECRET 短于 32 个字符或仍是示例值：生成任务提交不出去，上传图片地址返回 503')
@@ -108,6 +113,7 @@ export function checkConfig(input: ConfigInput): ConfigIssue[] {
     requireSecrets(['SESSION_SECRET'], '签名图片地址和视频服务商回调')
   }
 
+  if (!showcase) {
   const payment = vars('PAYMENT_PROVIDER')
   if (payment === 'mock') error('PAYMENT_PROVIDER', 'PAYMENT_PROVIDER=mock：生产环境下单会返回 503')
   else if (!PAYMENT_SECRETS[payment]) error('PAYMENT_PROVIDER', `未知的 PAYMENT_PROVIDER=${payment || '(空)'}，可选 waffo、dodo`)
@@ -159,6 +165,7 @@ export function checkConfig(input: ConfigInput): ConfigIssue[] {
   else if (moderation === 'none') warn('MODERATION_PROVIDER', 'MODERATION_PROVIDER=none：上传图片不做审核')
   else requireSecrets(MODERATION_SECRETS[moderation], '图片审核')
 
+  }
   if (vars('TURNSTILE_SITE_KEY')) requireSecrets(['TURNSTILE_SECRET_KEY'], 'Turnstile')
   else warn('TURNSTILE_SITE_KEY', 'TURNSTILE_SITE_KEY 为空：留言和举报表单没有人机校验，只靠限流')
 

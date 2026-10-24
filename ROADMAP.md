@@ -351,3 +351,6 @@
    - 错误追踪：前端错误目前只进 Workers Logs，堆栈是压缩后的行列号；需要 source map 还原或聚合告警时换成 Sentry。
    - 订单详情页提供发票下载：Dodo 可由服务端代理 `GET /invoices/payments/{payment_id}`（返回 PDF，每条记录每分钟限 5 次），未实测；Waffo 由支付商直接给买家发收据和发票，没有找到公开的下载接口，详情页继续提示查收邮件。
 4. P2（等有数据再定）：每篇文章单独的 og 图、视频 sitemap、`apple-touch-icon` 与 web manifest、海报改 webp/avif、公开页 SSR HTML 边缘缓存、邮箱 magic link 登录、营销邮件、后台 webhook 手动重放与复购 cohort。
+# 展示发布
+
+- 已增加 `SHOWCASE_MODE`：无需模拟业务上线，展示内容和案例；未接通业务由服务端封锁。

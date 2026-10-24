@@ -16,6 +16,7 @@
     "run_worker_first": ["/api/*"]
   },
   "vars": {
+    "SHOWCASE_MODE": "false",
     // staging 按生产行为运行（禁用 mock 和开发登录），但 robots.txt 禁止抓取
     "APP_ENV": "staging",
     // 部署前把 SUBDOMAIN 换成账号的 workers.dev 子域名（Dashboard → Workers & Pages 右侧可见）

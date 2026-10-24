@@ -468,6 +468,8 @@ export function en(s: S) {
       goneBody: 'The video may have been deleted or expired, or its owner stopped sharing it.',
     },
     common: {
+      comingSoon: 'Coming soon',
+      showcaseNotice: 'Explore the meme and examples. Sign-up, video creation and purchases are coming soon.',
       loading: 'Loading…',
       retry: 'Try again',
       home: 'Back to home',

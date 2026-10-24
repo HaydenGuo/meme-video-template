@@ -80,3 +80,8 @@ Hypit 可选接入：`VIDEO_PROVIDER=hypit`，新增 `HYPIT_BRIDGE_URL`（Bridge
 3. 运行 `npm run cf:types`，重新生成 `worker-configuration.d.ts`。没写进 `.dev.vars` 的可选 secret，在 `src/env.d.ts` 里手动补上类型。
 4. 在 `src/server/config-health.ts` 里加上线检查规则，在 `tests/unit/config-health.test.ts` 里加用例。
 5. 更新本文件。
+# 展示发布
+
+`SHOWCASE_MODE=true` 可先上线介绍和案例。API 仅开放 `/api/me` 与 `/api/health`，其它 API 返回 503（调试接口返回 404）；不运行队列业务和定时任务。前端隐藏登录并禁用上传、生成与购买。此时 doctor 不要求未启用业务的服务商凭据，但仍检查 HTTPS、会话密钥、资源绑定和迁移。不要将它当作完整生成服务的验收。
+
+接通登录、发信、视频、审核、支付后，设回 `false`，通过完整 doctor 再发布。已有队列消息会每小时重试，切换前应确认无历史任务；不适合暂停已有活跃订单的站点。

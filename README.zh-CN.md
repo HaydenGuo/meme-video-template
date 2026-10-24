@@ -465,3 +465,6 @@ tests/                  unit（单元）、e2e（mock 服务商）、smoke（部
 ## 许可证
 
 [MIT](LICENSE)
+# 展示发布
+
+`SHOWCASE_MODE=true` 可先发布介绍和案例，关闭注册、上传、生成与购买，并暂停队列和定时任务。服务接通并通过完整 doctor 后再设为 `false`。见 [环境配置](docs/env.md)。
