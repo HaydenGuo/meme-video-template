@@ -1,5 +1,7 @@
 # Meme Video Template
 
+The [fixed Hypit workflow](docs/fixed-hypit-workflow.md) locks each meme's prompt, reference hashes and shot windows, then generates and composes the soundtrack without an interactive language model. Initialization supports custom duration tiers such as 5/12/14 seconds.
+
 See [shared Hypit VPS deployment](docs/hypit-vps.md) for provisioning the runtime services, reusable defaults and the provider API information still required.
 
 [Use this template](https://github.com/new?template_owner=HaydenGuo&template_name=meme-video-template) · [Repository](https://github.com/HaydenGuo/meme-video-template)

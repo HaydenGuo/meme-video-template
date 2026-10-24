@@ -1,7 +1,9 @@
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir, writeFile, readFile } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
 import { resolve } from 'node:path'
+import { remixComposition } from './workflow.mjs'
 
 const exec = promisify(execFile)
 const xml = (text) => String(text).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' })[c])
@@ -21,10 +23,24 @@ export function createHypitRunner(config) {
     })
     return JSON.parse(stdout)
   }
+  async function probe(path) {
+    const { stdout } = await exec(config.ffprobePath ?? 'ffprobe', ['-v', 'error', '-show_format', '-show_streams', '-of', 'json', path], { timeout: 30_000, maxBuffer: 1024 * 1024, windowsHide: true })
+    return JSON.parse(stdout)
+  }
   return {
     async prepare(job, template, dir) {
       await mkdir(dir, { recursive: true })
       const passthrough = config.mode === 'passthrough'
+      if (template.workflow) {
+        const input = await probe(resolve(dir, 'source.mp4'))
+        const length = Number(input.format?.duration)
+        if (!Number.isFinite(length) || Math.abs(length - job.durationSeconds) > 0.1 || !input.streams?.some((s) => s.codec_type === 'video') || !input.streams.some((s) => s.codec_type === 'audio')) throw new Error('Reference duration or soundtrack invalid')
+        const expected = template.referenceHashes?.[job.durationSeconds]
+        const actual = createHash('sha256').update(await readFile(resolve(dir, 'source.mp4'))).digest('hex')
+        if (!expected || actual !== expected) throw new Error('Reference differs from approved template')
+        const image = await probe(resolve(dir, 'image.png'))
+        if (!image.streams?.some((s) => s.codec_type === 'video' && s.width > 0 && s.height > 0)) throw new Error('Invalid portrait')
+      }
       const source = `<?svml using="@hypit/markup@1"?>
 <svml>
   <import as="media" from="@hypit/media@1"/>
@@ -42,8 +58,10 @@ ${passthrough ? `  <import as="time" from="@hypit/timeline-author@1"/>
     <seedance:Reference image={portrait} person-reference="${template.imagePersonReference === true}"/>
     <seedance:Reference video={reference} person-reference="${template.videoPersonReference === true}"/>
   </seedance:ReferenceVideo>`}
+${template.workflow ? remixComposition(job, template, passthrough ? 'prepared.media' : 'generated.video') : ''}
 </svml>`
-      const output = passthrough ? 'prepared.video' : 'generated.video'
+      const output = template.workflow ? 'final.video' : passthrough ? 'prepared.video' : 'generated.video'
+      if (template.workflow) await writeFile(resolve(dir, 'look.svs'), '<?svml using="@hypit/recipe@1"?>\n<sheet version="1">film.main { background: #090D14; }</sheet>')
       await writeFile(resolve(dir, 'source.svml'), source)
       await writeFile(resolve(dir, 'run.svrun'), `<?svml using="@hypit/markup/run@1"?>\n<svrun version="1"><author source="./source.svml"/><target output="${output}"/></svrun>`)
       return { run: resolve(dir, 'run.svrun'), output }
@@ -63,6 +81,14 @@ ${passthrough ? `  <import as="time" from="@hypit/timeline-author@1"/>
     async export(buildId, output, path) {
       const result = await command(['get', buildId, '--output', output, '--to', path])
       if (result.error) throw new Error('Hypit export failed')
+    },
+    async verify(path, input, template) {
+      if (!template.workflow) return
+      const result = await probe(path)
+      const video = result.streams?.find((s) => s.codec_type === 'video')
+      const audio = result.streams?.find((s) => s.codec_type === 'audio')
+      const landscape = (input.aspectRatio ?? template.aspectRatio) === '16:9'
+      if (!video || !audio || video.width !== (landscape ? 1280 : 720) || video.height !== (landscape ? 720 : 1280) || !Number.isFinite(Number(result.format?.duration)) || Math.abs(Number(result.format.duration) - input.durationSeconds) > 0.1) throw new Error('Output verification failed')
     },
     async cancel(buildId) { await command(['cancel', buildId, '--reason', 'Bridge deadline exceeded']) },
   }

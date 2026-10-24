@@ -25,7 +25,7 @@ export function Generator() {
   const [dragging, setDragging] = useState(false)
   const [durationId, setDurationId] = useState<string>(site.durations[site.durations.length - 1]!.id)
   const [consent, setConsent] = useState(false)
-  const [aspectRatio, setAspectRatio] = useState<'9:16' | '16:9'>('9:16')
+  const [aspectRatio, setAspectRatio] = useState<'9:16' | '16:9'>(site.template.aspectRatio as '9:16' | '16:9')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [generation, setGeneration] = useState<Generation | null>(null)

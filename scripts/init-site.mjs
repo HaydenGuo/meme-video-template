@@ -53,6 +53,13 @@ const supportEmail = profile.supportEmail ?? `support@${domain}`
 if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(supportEmail)) throw new Error('客服邮箱格式无效')
 const origin = `http://127.0.0.1:${port}`
 const templateId = `${slug}-v1`
+const durations = profile.durations ?? [5, 12, 15]
+if (!Array.isArray(durations) || durations.length !== 3 || durations.some((n, i) => !Number.isInteger(n) || n < 4 || n > 15 || (i > 0 && n <= durations[i - 1]))) throw new Error('durations 需要三个递增的整数秒数，范围 4–15')
+const fullSeconds = durations.at(-1)
+const aspectRatio = profile.aspectRatio ?? '9:16'
+if (!['9:16', '16:9'].includes(aspectRatio)) throw new Error('aspectRatio 只支持 9:16 或 16:9')
+const workflow = profile.workflow ?? null
+if (workflow && (workflow.type !== 'reference-remix-v1' || !Array.isArray(workflow.cutFrames) || workflow.cutFrames[0] !== 0 || workflow.cutFrames.some((n, i) => !Number.isInteger(n) || n < 0 || n >= fullSeconds * 30 || (i > 0 && n <= workflow.cutFrames[i - 1])))) throw new Error('workflow 需要 reference-remix-v1 及以 0 开始的递增 cutFrames（30fps）')
 const envNames = {
   googleClientId: ['GOOGLE_CLIENT_ID', 'AUTH_GOOGLE_ID'],
   googleClientSecret: ['GOOGLE_CLIENT_SECRET', 'AUTH_GOOGLE_SECRET'],
@@ -96,7 +103,7 @@ if (!credentials.googleClientId) pending.push('补充 Google 凭据：当前仅�
 pending.push('将生成的 Bridge 站点片段合并进 VPS Bridge 配置并重启；复核模型预算后才运行真实生成')
 if (domain.endsWith('.example.com')) pending.push('当前域名为占位值，上线前替换正式域名及相关回调/发件地址')
 console.log(JSON.stringify({ mode: apply ? 'apply' : 'preview', keyword, slug, domain, localUrl: origin,
-  assets: Object.keys(media), durations: [5, 12, 15], packages: ['25 / $9.90', '60 / $19.90'],
+  assets: Object.keys(media), durations, packages: ['25 / $9.90', '60 / $19.90'],
   googleConfigured: Boolean(credentials.googleClientId), bridgeConfigured: Boolean(credentials.hypitBridgeToken), pending }, null, 2))
 if (!apply) { console.log('\n仅预览，未写文件。确认资料后加 --apply；加 --local 导入本地数据库与素材。'); process.exit(0) }
 
@@ -158,12 +165,13 @@ const ffmpeg = process.env.FFMPEG_PATH || 'ffmpeg'
 const ffprobe = process.env.FFPROBE_PATH || 'ffprobe'
 run(ffmpeg, ['-version'])
 const probe = JSON.parse(run(ffprobe, ['-v', 'error', '-show_format', '-show_streams', '-of', 'json', media.sourceVideo]).toString())
-if (Number(probe.format?.duration) < 15 || !Number.isFinite(Number(probe.format?.duration)) || !probe.streams?.some((s) => s.codec_type === 'video')) throw new Error('源视频必须包含视频流且至少 15 秒')
+if (Number(probe.format?.duration) + 0.001 < fullSeconds || !Number.isFinite(Number(probe.format?.duration)) || !probe.streams?.some((s) => s.codec_type === 'video')) throw new Error(`源视频必须包含视频流且至少 ${fullSeconds} 秒`)
+if (workflow && !probe.streams.some((s) => s.codec_type === 'audio')) throw new Error('原声合成模板需要参考片包含音轨')
 const ff = (argv) => run(ffmpeg, ['-v', 'error', '-nostdin', '-y', ...argv])
 const videoOut = (input, output, seconds) => ff(['-i', input, '-t', String(seconds), '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-movflags', '+faststart', join(stage, output)])
-videoOut(media.sourceVideo, `${assetDir}/original.mp4`, 15)
-videoOut(media.exampleVideo, `${assetDir}/ai.mp4`, 15)
-for (const seconds of [5, 12, 15]) {
+videoOut(media.sourceVideo, `${assetDir}/original.mp4`, fullSeconds)
+videoOut(media.exampleVideo, `${assetDir}/ai.mp4`, fullSeconds)
+for (const seconds of durations) {
   const file = `seed/templates/${templateId}-${seconds}s.mp4`
   videoOut(media.sourceVideo, file, seconds)
   files.add(file)
@@ -180,26 +188,28 @@ editObject('src/config/site.ts', 'site', {
   keyword, brandName: brand, supportEmail, trendPlatform: text(profile.platform ?? 'TikTok', 'platform'),
   logoMark: profile.logoMark ?? slug.split('-').map((word) => word[0]).join('').slice(0, 2).toUpperCase(),
   keywordOverview: overview, ogImage: '/site-init/og.png',
+  'template.fullSeconds': fullSeconds, 'template.aspectRatio': aspectRatio,
   'seo.secondaryKeywords': [`${keyword} AI`, `${keyword} video`, `${keyword} meme`],
   examples: { original: { video: '/site-init/original.mp4', poster: '/site-init/original.jpg', credit },
     aiVersions: [{ video: sample.video, poster: sample.poster, credit }], madeWith: sample, ideas: [sample, sample, sample] },
-  durations: [5, 12, 15].map((seconds, i) => ({ id: ['short', 'medium', 'full'][i], seconds, credits: seconds,
-    source: `${templateId}-${seconds}s.mp4`, ...(seconds === 15 ? { isFull: true } : {}) })),
+  durations: durations.map((seconds, i) => ({ id: ['short', 'medium', 'full'][i], seconds, credits: seconds,
+    source: `${templateId}-${seconds}s.mp4`, ...(seconds === fullSeconds ? { isFull: true } : {}) })),
   packages: [{ id: 'starter', credits: 25, priceCents: 990, currency: 'USD' }, { id: 'party', credits: 60, priceCents: 1990, currency: 'USD', highlight: true }],
   subscriptionsEnabled: false, 'video.hypit.templateId': templateId,
 })
 for (const locale of ['en', 'zh']) {
   const zh = locale === 'zh'
   const intro = overview[locale].replaceAll('{keyword}', keyword)
-  const about = zh ? `上传一张照片，制作自己的 ${keyword} 梗视频。选择 5、12 或 15 秒，以及横版或竖版，生成后下载分享。` : `Upload a photo to make your own ${keyword} meme video. Choose 5, 12 or 15 seconds and portrait or landscape, then generate and download.`
+  const lengths = durations.join(' / ')
+  const about = zh ? `上传一张照片，制作自己的 ${keyword} 梗视频。选择 ${lengths} 秒，以及横版或竖版，生成后下载分享。` : `Upload a photo to make your own ${keyword} meme video. Choose ${lengths} seconds and portrait or landscape, then generate and download.`
   const guide = { title: zh ? `如何制作 ${keyword} AI 视频` : `How to make a ${keyword} AI video`, description: about, intro: about,
     sections: zh ? [
       { h: '1. 准备照片', p: ['使用清晰的单人照片，确保照片是本人或已获人物许可。'] },
-      { h: '2. 选择时长和比例', p: ['可选 5、12、15 秒，每秒 1 积分；竖版 9:16 或横版 16:9。'] },
+      { h: '2. 选择时长和比例', p: [`可选 ${lengths} 秒，每秒 1 积分；竖版 9:16 或横版 16:9。`] },
       { h: '3. 生成并下载', p: ['登录后确认授权并提交，完成后下载 MP4；分享时注明 AI 生成。'] },
     ] : [
       { h: '1. Prepare a photo', p: ['Use a clear photo of one person, with permission to use their likeness.'] },
-      { h: '2. Choose duration and format', p: ['Choose 5, 12 or 15 seconds at one credit per second, in portrait 9:16 or landscape 16:9.'] },
+      { h: '2. Choose duration and format', p: [`Choose ${lengths} seconds at one credit per second, in portrait 9:16 or landscape 16:9.`] },
       { h: '3. Generate and download', p: ['Sign in, confirm consent and submit. Download the MP4 when ready and label it as AI-generated when sharing.'] },
     ] }
   editObject(`src/content/${locale}.ts`, locale, {
@@ -239,7 +249,9 @@ const report = { version: 1, fingerprint, templateCommit: commit, initializedAt:
   status: 'LOCAL_CONFIGURED_REVIEW_REQUIRED', localSeeded: false, pending,
   assets: Object.fromEntries([...files].filter((f) => /\.(mp4|jpg|png|svg)$/.test(f)).map((f) => [f, digest(readFileSync(join(stage, f)))])) }
 const bridgeFragment = { [slug]: { mediaOrigins: [origin, `https://${domain}`], templates: { [templateId]: {
-  durations: [5, 12, 15], model: 'mini', resolution: '720p', aspectRatio: '9:16', imagePersonReference: true, videoPersonReference: true,
+  durations, model: 'mini', resolution: '720p', aspectRatio, imagePersonReference: true, videoPersonReference: true,
+  ...(workflow ? { workflow: { type: workflow.type, cutFrames: workflow.cutFrames, frameRate: 30 },
+    referenceHashes: Object.fromEntries(durations.map((seconds) => [seconds, digest(readFileSync(join(stage, `seed/templates/${templateId}-${seconds}s.mp4`)))])) } : {}),
   prompt: profile.prompt ?? `Create a ${keyword} remix using the reference image for the person and the reference video for timing and movement.`,
 } } } }
 writeFileSync(join(stage, 'bridge-site.json'), JSON.stringify(bridgeFragment, null, 2) + '\n')
@@ -273,7 +285,7 @@ if (local) {
   // 只调用本机已安装的 wrangler，不通过 npx 下载软件或执行拼接的 shell 命令。
   const cli = join(root, 'node_modules/wrangler/bin/wrangler.js')
   run(process.execPath, [cli, 'd1', 'migrations', 'apply', 'DB', '--local'], root, 'inherit')
-  for (const seconds of [5, 12, 15]) {
+  for (const seconds of durations) {
     const file = `${templateId}-${seconds}s.mp4`
     run(process.execPath, [cli, 'r2', 'object', 'put', `${slug}-media/templates/${file}`, '--file', join(root, 'seed/templates', file), '--content-type', 'video/mp4', '--local'], root, 'inherit')
   }

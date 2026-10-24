@@ -124,6 +124,8 @@ export async function createBridge(config, { token, outputSecret, runner } = {})
       await hypit.export(row.build_id, row.output_name, resolve(dir, 'output.mp4'))
       const output = await stat(resolve(dir, 'output.mp4'))
       if (!output.size || output.size > 100 * 1024 * 1024) return update(row.id, 'failed', 'output_size')
+      try { await hypit.verify?.(resolve(dir, 'output.mp4'), input, JSON.parse(row.template)) }
+      catch { return update(row.id, 'failed', 'output_invalid') }
       return update(row.id, 'completed')
     }
     if (state === 'failed' || state === 'cancelled') return update(row.id, 'failed', 'hypit_failed')

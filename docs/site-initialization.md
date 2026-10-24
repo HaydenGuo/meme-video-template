@@ -8,7 +8,8 @@
 
 - `keyword`：梗名称；`slug`：英文站点标识。
 - `overview.zh` / `overview.en`：梗的实际介绍。可把中文资料交给 AI 整理成这份文件；脚本不调用翻译或研究 API，不编造起源和热度。
-- `media.sourceVideo`：至少 15 秒的原片，脚本裁出开头 5/12/15 秒。需要不同起点时先提供剪好的原片。
+- `media.sourceVideo`：至少达到最长档位的原片，默认裁出开头 5/12/15 秒。可用 `durations: [5,12,14]` 等三个递增整数配置实际长度；需要不同起点时先提供剪好的原片。
+- `aspectRatio`：默认画幅，`16:9` 或 `9:16`。固定分镜/原声工程配置见 [固定 Hypit 流程](fixed-hypit-workflow.md)。
 - `media.exampleVideo`：已制作的 AI 示例视频，不会以原片冒充 AI 成片。
 - `media.photo`：示例成片使用的照片。
 - `media.credit`：来源署名；确认可用后设 `authorized=true`。

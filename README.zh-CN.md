@@ -1,5 +1,7 @@
 # Meme Video Template（梗视频站模板）
 
+支持无需语言模型现场调试的[固定 Hypit 复刻流程](docs/fixed-hypit-workflow.md)：按站点锁定提示词、参考片哈希和分镜参数，自动生成并合成原声；初始化可设置 5/12/14 等时长。
+
 共用 VPS 的提前配置、模型 API 资料和部署脚本见 [Hypit VPS 部署](docs/hypit-vps.md)。
 
 [使用此模板创建新站](https://github.com/new?template_owner=HaydenGuo&template_name=meme-video-template) · [GitHub 仓库](https://github.com/HaydenGuo/meme-video-template)
