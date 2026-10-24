@@ -1,5 +1,9 @@
 # ROADMAP
 
+## 模板命名（2026-10-24）
+
+- 仓库及 npm 包名统一为 `meme-video-template`，README 更新模板入口；保留原项目版权及上游地址。
+
 ## 模板 GitHub 发布准备（2026-10-24）
 
 - 将自托管 Bridge 通用源码及空白配置纳入 `services/hypit-bridge`，移除接入文档对开发机路径的依赖；不包含实际凭据和运行数据。

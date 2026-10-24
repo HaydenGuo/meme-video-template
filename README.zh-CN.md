@@ -1,4 +1,6 @@
-# ShrimpReel（虾片）
+# Meme Video Template（梗视频站模板）
+
+[使用此模板创建新站](https://github.com/new?template_owner=HaydenGuo&template_name=meme-video-template) · [GitHub 仓库](https://github.com/HaydenGuo/meme-video-template)
 
 Hypit Bridge 源码与空白配置示例见 [services/hypit-bridge](services/hypit-bridge/README.md)。Hypit 另行安装，模板不附带凭据和本地运行数据。
 
