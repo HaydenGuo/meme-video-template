@@ -12,7 +12,7 @@ Hypit Bridge 在模型提交前检查并归一化人像与参考视频尺寸，�
 
 新增公开 AUP 及价格、条款、隐私和退款页之间的链接；`site.business` 填写已核实的经营者、模型、处理方与记录商户。展示模式开放客服和内容举报，继续校验 CSRF、字段与限流。政策当前如实描述预览状态，开放付费生成前须按实际流程更新；页面完善不等于具备支付准入或已接通提示词及成片审核。
 
-展示模式下可用 `SHOWCASE_AUTH_ENABLED=true` 单独开放正式登录，生成与充值继续关闭。邮箱密码注册需配置强随机 `SESSION_SECRET`，注册时不验证邮箱真实性；找回密码仍需已验证的发信服务。启用 Google 登录时还需配置 OAuth 回调。
+展示模式下可用 `SHOWCASE_AUTH_ENABLED=true` 单独开放正式登录，生成与充值继续关闭。邮箱密码注册需配置强随机 `SESSION_SECRET`，注册时不验证邮箱真实性；找回密码仍需已验证的发信服务。启用 Google 登录时，Google OAuth Web 客户端必须登记每个实际提供登录页面的 Authorized JavaScript origins（只填 origin，不带路径）及精确的 `${SITE_URL}/api/auth/google/callback` Authorized redirect URI，详见[Google 登录配置](docs/google-auth.md)。
 
 支持 GitHub → Cloudflare 推送发布，见[自动部署配置](docs/cloudflare-auto-deploy.md)。自动部署仅发布 main 上通过 CI 的确切提交。生产资源和密钥配置完成后再启用仓库变量。
 
@@ -250,7 +250,8 @@ SMOKE_BASE_URL=https://video-template-staging.<子域名>.workers.dev SMOKE_EXPE
 
 | 服务 | 配置位置 | 地址 |
 | --- | --- | --- |
-| Google OAuth | Google Cloud Console → Authorized redirect URIs | `https://<domain>/api/auth/google/callback` |
+| Google OAuth JavaScript 来源 | Google Cloud Console → Authorized JavaScript origins | `https://<domain>`（每个实际访问来源，不带路径） |
+| Google OAuth 回调 | Google Cloud Console → Authorized redirect URIs | `${SITE_URL}/api/auth/google/callback` |
 | Waffo Pancake | Dashboard → Settings → Webhooks | `https://<domain>/api/webhooks/waffo` |
 | Dodo Payments | Dashboard → Webhooks | `https://<domain>/api/webhooks/dodo` |
 | fal.ai | 代码自动带上 | `https://<domain>/api/webhooks/fal` |

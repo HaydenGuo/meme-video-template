@@ -102,7 +102,7 @@ if (existsSync(statePath)) {
   throw new Error('该目录已经初始化，拒绝覆盖已有站点。请在新的模板副本中初始化。')
 }
 const pending = [
-  `Google 控制台登记 ${origin}/api/auth/google/callback 及 https://${domain}/api/auth/google/callback`,
+  `Google OAuth Web 客户端 Authorized JavaScript origins 登记 ${origin}、https://${domain} 和 https://www.${domain}（按实际访问域名取用）；Authorized redirect URI 登记 https://${domain}/api/auth/google/callback`,
   '创建并绑定各站独立 D1、KV、R2 和 Queue；配置正式域名及生产服务商',
   '创建 25/$9.90 与 60/$19.90 的一次性支付商品并登记 webhook',
   '配置真实邮件域名、图片审核及 Turnstile；生产前运行 doctor 并完成登录/充值/生成验证',

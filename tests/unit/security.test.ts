@@ -42,7 +42,7 @@ describe('safeRedirectPath', () => {
 describe('GET /api/auth/google/start', () => {
   async function storedRedirect(redirect: string) {
     const google = env({ GOOGLE_CLIENT_ID: 'client-id', GOOGLE_CLIENT_SECRET: 'client-secret' })
-    const res = await app.request(`/api/auth/google/start?redirect=${encodeURIComponent(redirect)}`, {}, google)
+    const res = await app.request(`https://site.example/api/auth/google/start?redirect=${encodeURIComponent(redirect)}`, {}, google)
     expect(res.status).toBe(302)
     const cookie = /oauth_state=([^;]*)/.exec(res.headers.get('set-cookie') ?? '')?.[1] ?? ''
     return decodeURIComponent(cookie).split('|').slice(3).join('|')

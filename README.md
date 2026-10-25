@@ -12,7 +12,7 @@ Generation uses server-side keyword prechecks and provider safety checks. Defaul
 
 Public AUP, terms, privacy and refund pages are linked from the footer and pricing page. Set verified operator, model, processing provider and merchant-of-record details in `site.business`. Preview mode accepts support and content reports with the normal CSRF, validation and rate limits. Published policy copy currently describes a preview: update it against the actual workflow before enabling paid generation. Policy pages alone do not establish payment eligibility or functioning prompt/output moderation.
 
-Set `SHOWCASE_AUTH_ENABLED=true` alongside `SHOWCASE_MODE=true` to enable real account sign-in while video creation and purchases remain closed. Configure a strong `SESSION_SECRET` for email/password registration. Registration does not verify inbox ownership; password recovery still requires a verified sending service. Configure Google OAuth callbacks if you want Google sign-in.
+Set `SHOWCASE_AUTH_ENABLED=true` alongside `SHOWCASE_MODE=true` to enable real account sign-in while video creation and purchases remain closed. Configure a strong `SESSION_SECRET` for email/password registration. Registration does not verify inbox ownership; password recovery still requires a verified sending service. For Google sign-in, configure the OAuth Web client's Authorized JavaScript origins for every served origin and the exact `${SITE_URL}/api/auth/google/callback` Authorized redirect URI; see [Google auth setup](docs/google-auth.md).
 
 GitHub → Cloudflare push deployment is available in [deployment setup](docs/cloudflare-auto-deploy.md). Automatic deployment uses the exact commit that passed CI on main. Enable the repository variable only after production resources and secrets are configured.
 
@@ -251,7 +251,8 @@ SMOKE_BASE_URL=https://video-template-staging.<subdomain>.workers.dev SMOKE_EXPE
 
 | Service | Where | URL |
 | --- | --- | --- |
-| Google OAuth | Google Cloud Console → Authorized redirect URIs | `https://<domain>/api/auth/google/callback` |
+| Google OAuth JavaScript origin | Google Cloud Console → Authorized JavaScript origins | `https://<domain>` (each served origin; no path) |
+| Google OAuth callback | Google Cloud Console → Authorized redirect URIs | `${SITE_URL}/api/auth/google/callback` |
 | Waffo Pancake | Dashboard → Settings → Webhooks | `https://<domain>/api/webhooks/waffo` |
 | Dodo Payments | Dashboard → Webhooks | `https://<domain>/api/webhooks/dodo` |
 | fal.ai | Added by the code | `https://<domain>/api/webhooks/fal` |

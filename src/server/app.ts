@@ -236,8 +236,13 @@ app.post('/api/auth/email/reset-password', async (c) => {
 })
 
 app.get('/api/auth/google/start', async (c) => {
+  const requestUrl = new URL(c.req.url)
+  const canonicalOrigin = new URL(c.env.SITE_URL).origin
+  if (requestUrl.origin !== canonicalOrigin) {
+    return c.redirect(new URL(`${requestUrl.pathname}${requestUrl.search}`, canonicalOrigin).toString())
+  }
   await rateLimit(c.env.AUTH_LIMITER, c.req.header('cf-connecting-ip') ?? 'local')
-  const config = googleOAuthConfig(c.env, new URL(c.req.url).origin)
+  const config = googleOAuthConfig(c.env, canonicalOrigin)
   if (!config) throw new ApiError(503, 'google_not_configured')
   const { url, state, verifier, nonce } = await googleAuthRedirect(config)
   // 回跳地址放最后：它可能含 |
@@ -260,7 +265,7 @@ app.get('/api/auth/google/callback', async (c) => {
   if (!expectedState || !verifier || !nonce || !code || !constantTimeEqual(state, expectedState)) {
     return c.redirect('/sign-in?error=oauth_state')
   }
-  const config = googleOAuthConfig(c.env, new URL(c.req.url).origin)
+  const config = googleOAuthConfig(c.env, new URL(c.env.SITE_URL).origin)
   if (!config) throw new ApiError(503, 'google_not_configured')
   try {
     const profile = await exchangeGoogleCode(code, config, { verifier, nonce })

@@ -11,13 +11,15 @@ Google 登录模块随模板供各热词站复用。OAuth 配置与 Hypit Bridge
 | `SESSION_SECRET` | 本站独立、稳定的随机密钥，至少 32 字符；不要用 Google Secret 代替 |
 | `SITE_URL` | 本站完整地址，部署时与正式域名一致 |
 
-在 Google 控制台对应 Web 客户端登记各站的授权重定向 URI。代码自动使用当前请求 origin 加 `/api/auth/google/callback`：
+在 Google Cloud 对应 OAuth Web 客户端登记两项：每个实际提供登录页面的 **Authorized JavaScript origins**（只填写 origin，不带路径），以及精确的 **Authorized redirect URI** `${SITE_URL}/api/auth/google/callback`。Google 登录入口会先把别名域名跳转到 `SITE_URL`，再设置 state cookie；授权请求与 token 交换都使用这个规范回调地址。
 
 - 当前本地：`http://127.0.0.1:3016/api/auth/google/callback`
 - 若用 localhost：`http://localhost:3016/api/auth/google/callback`
-- 正式站：`https://<本站域名>/api/auth/google/callback`
+- 正式站 Authorized redirect URI：`https://<本站规范域名>/api/auth/google/callback`
 
-地址、端口和路径必须一致。Halloween 的 Auth.js 路径 `/api/auth/callback/google` 与本模板不同，需另外登记。同一运营方可在同一 Web 客户端登记多个站点；不同品牌的同意屏幕需求可使用各自客户端。
+例如，页面同时支持 `https://example.com` 与 `https://www.example.com` 时，两者都要登记为 Authorized JavaScript origins；Authorized redirect URI 只登记规范 `SITE_URL` 对应的回调。需要本地 Google 登录时，另外登记本地 origin，例如 `http://127.0.0.1:3016`。JavaScript origin 不得带路径或回调地址。
+
+回调地址、端口和路径必须完全一致。Halloween 的 Auth.js 路径 `/api/auth/callback/google` 与本模板不同，需另外登记。同一运营方可在同一 Web 客户端登记多个站点；不同品牌的同意屏幕需求可使用各自客户端。
 
 各站点使用独立数据库和会话；Google 与邮箱密码登录在本站按已验证的规范化邮箱复用用户 ID、积分、订单及视频。复用 OAuth 客户端不会让不同站点共享积分或会话。
 
