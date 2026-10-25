@@ -21,6 +21,16 @@ Google 登录模块随模板供各热词站复用。OAuth 配置与 Hypit Bridge
 
 回调地址、端口和路径必须完全一致。Halloween 的 Auth.js 路径 `/api/auth/callback/google` 与本模板不同，需另外登记。同一运营方可在同一 Web 客户端登记多个站点；不同品牌的同意屏幕需求可使用各自客户端。
 
+### 常见错误
+
+| 错误 | 应检查的位置 |
+| --- | --- |
+| `origin_mismatch` 或提示 origin 不允许 | Google Identity Services 的 **Authorized JavaScript origins**；逐一核对实际打开登录页的 scheme、host 和 port。这里仅填 origin，不填路径。 |
+| `redirect_uri_mismatch` | **Authorized redirect URIs** 是否逐字符匹配授权请求中的 `redirect_uri`，包括 scheme、host、port 和 `/api/auth/google/callback` 路径。 |
+| 回到本站后出现 `oauth_state` | 登录是否在设置 cookie 后跨 apex / www 域名；从 `SITE_URL` 规范域名重新开始，并检查 state cookie 是否被浏览器接收。 |
+
+缺少 JavaScript origin 或回调 URI 时，修正对应白名单即可；不要创建额外 OAuth 客户端或密钥来绕过配置错误。
+
 各站点使用独立数据库和会话；Google 与邮箱密码登录在本站按已验证的规范化邮箱复用用户 ID、积分、订单及视频。复用 OAuth 客户端不会让不同站点共享积分或会话。
 
 ## 本地文件方式

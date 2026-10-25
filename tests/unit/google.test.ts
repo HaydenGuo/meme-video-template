@@ -106,6 +106,17 @@ describe('Google 授权码流程：PKCE 与 nonce', () => {
     expect(res.headers.get('set-cookie')).toBeNull()
   })
 
+  it('回调换取 token 时使用与授权请求相同的 SITE_URL 回调 URI', async () => {
+    const requests = mockGoogle(await idToken({ nonce: 'different-nonce' }))
+    const res = await app.request(
+      'https://site.example/api/auth/google/callback?state=state-1&code=auth-code',
+      { headers: { cookie: 'oauth_state=state-1|verifier-1|expected-nonce|%2Fdashboard' } },
+      env,
+    )
+    expect(res.headers.get('location')).toBe('/sign-in?error=oauth_state')
+    expect(requests[0]?.get('redirect_uri')).toBe('https://site.example/api/auth/google/callback')
+  })
+
   it('回调缺 verifier（旧版 cookie）时按登录过期处理，不去换 token', async () => {
     const fetch = vi.spyOn(globalThis, 'fetch')
     const res = await app.request('/api/auth/google/callback?state=s&code=c', { headers: { cookie: 'oauth_state=s|/dashboard' } }, env)
