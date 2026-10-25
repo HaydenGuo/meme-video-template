@@ -3,6 +3,7 @@
 // 选择存 localStorage，页脚“Cookie 设置”可以重新选择；撤回同意时删除已写入的 _ga Cookie。
 
 export const CONSENT_KEY = 'consent.analytics'
+export const ANALYTICS_EXCLUDED_KEY = 'analytics.excluded'
 export const CONSENT_OPEN_EVENT = 'consent:open'
 export type Consent = 'granted' | 'denied'
 
@@ -14,11 +15,13 @@ export function ga4BootstrapScript(ga4Id: string) {
   const id = JSON.stringify(ga4Id)
   return [
     'window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}',
+    `var excluded=false;try{var mode=new URL(location.href).searchParams.get('analytics');if(mode==='off')localStorage.setItem(${JSON.stringify(ANALYTICS_EXCLUDED_KEY)},'1');if(mode==='on')localStorage.removeItem(${JSON.stringify(ANALYTICS_EXCLUDED_KEY)});excluded=localStorage.getItem(${JSON.stringify(ANALYTICS_EXCLUDED_KEY)})==='1'}catch(e){};window[${JSON.stringify('ga-disable-' + ga4Id)}]=excluded;`,
     `var c=null;try{c=localStorage.getItem(${JSON.stringify(CONSENT_KEY)})}catch(e){}`,
     "gtag('consent','default',{ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',analytics_storage:c==='granted'?'granted':'denied'});",
     "gtag('js',new Date());var u=new URL(location.href);u.searchParams.delete('email');",
-    `gtag('config',${id},{page_location:u.href});`,
-    `if(c==='granted'){var s=document.createElement('script');s.async=true;s.src=${JSON.stringify(GTAG_SRC)}+${id};document.head.appendChild(s)}`,
+    "u.searchParams.delete('analytics');u.searchParams.delete('preview');var authRef=false;try{authRef=new URL(document.referrer).hostname==='accounts.google.com'}catch(e){}",
+    `gtag('config',${id},{page_location:u.href,ignore_referrer:authRef});`,
+    `if(c==='granted'&&!excluded){var s=document.createElement('script');s.async=true;s.src=${JSON.stringify(GTAG_SRC)}+${id};document.head.appendChild(s)}`,
   ].join('')
 }
 
@@ -31,6 +34,11 @@ export function readConsent(): Consent | null {
   }
 }
 
+export function analyticsAllowed() {
+  if (typeof window === 'undefined' || readConsent() !== 'granted') return false
+  try { return localStorage.getItem(ANALYTICS_EXCLUDED_KEY) !== '1' } catch { return false }
+}
+
 type Gtag = (command: 'consent', action: 'update', params: Record<string, string>) => void
 
 export function saveConsent(ga4Id: string, value: Consent) {
@@ -41,7 +49,7 @@ export function saveConsent(ga4Id: string, value: Consent) {
   }
   const gtag = (window as unknown as { gtag?: Gtag }).gtag
   gtag?.('consent', 'update', { analytics_storage: value })
-  if (value === 'granted') {
+  if (value === 'granted' && analyticsAllowed()) {
     if (!document.querySelector(`script[src^="${GTAG_SRC}"]`)) {
       const script = document.createElement('script')
       script.async = true

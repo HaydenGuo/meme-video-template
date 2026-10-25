@@ -1,5 +1,7 @@
 # Meme Video Template（梗视频站模板）
 
+GA4 补齐登录、上传、生成结果和下载点击事件，忽略 Google 登录回流，并支持浏览器调试排除。事件口径、同意与去重边界见 [统计说明](docs/analytics.md)。
+
 搜索引擎提交 `/sitemap-index.xml`，由其引用 `/sitemap-0.xml`；旧 `/sitemap.xml` 继续兼容返回同一子地图。采用游戏站的命名空间、紧凑 XML、内容日期及响应头，多语言网址保持与页面 canonical 一致。
 
 Hypit Bridge 在模型提交前检查并归一化人像与参考视频尺寸，站点初始化沿用同一像素限制。见 [Bridge 运维说明](services/hypit-bridge/README.md)。

@@ -3,7 +3,7 @@
 // 配置了 GA4（有同意横幅）时，vt_attr 和统计 Cookie 一样要等访客接受后才写：之前的触达只记在内存里，
 // 拒绝或撤回时删除。没同意的访客注册、下单时没有归因 Cookie，记为 direct；访问上报不写 Cookie，照常发送。
 
-import { readConsent, type Consent } from './consent'
+import { analyticsAllowed, readConsent, type Consent } from './consent'
 
 const COOKIE = 'vt_attr'
 const MAX_AGE = 90 * 86400
@@ -42,7 +42,7 @@ function currentTouch(): Touch {
   if (document.referrer) {
     try {
       const ref = new URL(document.referrer)
-      if (ref.hostname !== location.hostname) touch.referrer = `${ref.origin}${ref.pathname}`.slice(0, 200)
+      if (ref.hostname !== location.hostname && ref.hostname !== 'accounts.google.com') touch.referrer = `${ref.origin}${ref.pathname}`.slice(0, 200)
     } catch {
       // 非法 referrer 忽略
     }
@@ -112,13 +112,13 @@ export function applyAttributionConsent(value: Consent) {
   }
 }
 
-// GA4 事件（未配置 ga4Id 时 gtag 不存在，直接忽略；访客未同意时只进 dataLayer，gtag.js 没加载就不会发出）
+// 拒绝/撤回或明确排除调试流量时不排队业务事件，避免日后接受时补发。
 type Gtag = (command: 'event', name: string, params?: Record<string, unknown>) => void
 
 export function track(name: string, params?: Record<string, unknown>) {
-  if (typeof window === 'undefined') return
+  if (!analyticsAllowed()) return
   const gtag = (window as unknown as { gtag?: Gtag }).gtag
-  gtag?.('event', name, params)
+  try { gtag?.('event', name, params) } catch { /* 统计失败不影响业务 */ }
 }
 
 // purchase 只在每个订单首次看到 paid 时上报一次

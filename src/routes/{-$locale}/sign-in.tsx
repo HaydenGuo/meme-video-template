@@ -2,6 +2,8 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { ErrorText, GoogleIcon, LocalLink, LogoMark, Spinner } from '#/components/ui'
 import { api, errorCode, featureEnabled } from '#/lib/api'
+import { track } from '#/lib/attribution'
+import { markGoogleLogin } from '#/lib/analytics'
 import { getContent, localeFromParam, pageHead, useContent, useLocale, useLocalePath } from '#/lib/i18n'
 import { safeRedirectPath } from '#/lib/redirect'
 import { useSession } from '#/lib/session'
@@ -95,6 +97,7 @@ function SignInPage() {
     try {
       const action = mode === 'reset' ? 'reset-password' : mode
       await api(`/api/auth/email/${action}`, { json: { email, password, code, challengeId, locale } })
+      track('login', { method: 'email' })
       await refresh()
     } catch (err) {
       setError(errorCode(err))
@@ -131,7 +134,7 @@ function SignInPage() {
         ) : mode !== 'reset' ? (
           <div className="space-y-2">
             {config?.googleClientId ? (
-              <a href={`/api/auth/google/start?redirect=${encodeURIComponent(redirect)}`} className="btn-ghost w-full py-3.5" data-testid="google-sign-in">
+              <a href={`/api/auth/google/start?redirect=${encodeURIComponent(redirect)}`} className="btn-ghost w-full py-3.5" data-testid="google-sign-in" onClick={markGoogleLogin}>
                 <GoogleIcon /> {t.google}
               </a>
             ) : (

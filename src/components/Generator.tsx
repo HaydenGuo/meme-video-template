@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { site } from '#/config/site'
 import { api, errorCode, featureEnabled, isActiveGeneration, type Generation } from '#/lib/api'
 import { track } from '#/lib/attribution'
+import { trackGenerationCreated, trackGenerationResult, trackVideoDownload } from '#/lib/analytics'
 import { useContent, useLocale, useLocalePath } from '#/lib/i18n'
 import { signInHref, useSession } from '#/lib/session'
 import { AiBadge, ErrorText, LocalLink, Spinner, formatDate } from './ui'
@@ -37,6 +38,8 @@ export function Generator() {
   const duration = site.durations.find((d) => d.id === durationId) ?? site.durations[0]!
   const shortfall = user ? Math.max(0, duration.credits - user.credits) : 0
 
+  useEffect(() => { if (generation) trackGenerationResult(generation) }, [generation])
+
   useEffect(() => () => {
     if (photo) URL.revokeObjectURL(photo.previewUrl)
   }, [photo])
@@ -63,7 +66,11 @@ export function Generator() {
       const form = new FormData()
       form.append('file', file)
       const data = await api<{ upload: { id: string } }>('/api/uploads', { form })
+      track('upload_success')
       return data.upload.id
+    } catch (err) {
+      track('upload_failed')
+      throw err
     } finally {
       setUploading(false)
     }
@@ -96,7 +103,7 @@ export function Generator() {
       const uploadId = photo.uploadId ?? (await upload(photo.file))
       if (!photo.uploadId) setPhoto({ ...photo, uploadId })
       const data = await api<{ generation: Generation }>('/api/generations', { json: { uploadId, durationId, aspectRatio, backgroundDescription: backgroundDescription.trim(), locale } })
-      track('generate_video', { duration_id: durationId, credits: data.generation.creditsCost })
+      trackGenerationCreated(data.generation)
       setGeneration(data.generation)
       await refresh()
     } catch (err) {
@@ -351,7 +358,7 @@ function GenerationResult({ generation, onReset }: { generation: Generation; onR
             {generation.expiresAt ? ` ${g.expiresOn(formatDate(generation.expiresAt, locale))}` : null}
           </p>
           <div className="flex flex-wrap gap-2">
-            <a href={`${generation.videoUrl}?download=1`} className="btn-primary px-4 py-2" download>
+            <a href={`${generation.videoUrl}?download=1`} className="btn-primary px-4 py-2" download onClick={() => trackVideoDownload('generator')}>
               <Download className="size-4" /> {g.download}
             </a>
             <LocalLink to="/dashboard" className="btn-ghost px-4 py-2">

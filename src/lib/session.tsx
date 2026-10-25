@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { api, errorCode, type ClientConfig, type PublicUser } from './api'
 import { site } from '#/config/site'
 import { captureAttribution, track } from './attribution'
+import { trackGoogleLoginReturn } from './analytics'
 
 type SessionState = {
   user: PublicUser | null
@@ -24,6 +25,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       const data = await api<{ user: PublicUser | null; config: ClientConfig }>('/api/me')
       setUser(data.user)
       setConfig(data.config)
+      if (data.user) trackGoogleLoginReturn()
     } catch (error) {
       console.error('session load failed', error)
     } finally {
@@ -105,6 +107,7 @@ function GoogleOneTap({ clientId, onSignedIn }: { clientId: string; onSignedIn: 
         callback: async ({ credential }: { credential: string }) => {
           try {
             await api('/api/auth/google/one-tap', { json: { credential } })
+            track('login', { method: 'google' })
             await onSignedIn()
           } catch (error) {
             const code = errorCode(error)

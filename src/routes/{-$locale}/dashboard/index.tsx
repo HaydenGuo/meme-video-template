@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { AiBadge, ErrorText, Spinner, StatusPill, formatDate } from '#/components/ui'
 import { site } from '#/config/site'
 import { api, errorCode, isActiveGeneration, type Generation } from '#/lib/api'
+import { trackGenerationResult, trackVideoDownload } from '#/lib/analytics'
 import { useContent, useLocale, useLocalePath } from '#/lib/i18n'
 import { captureSharePoster } from '#/lib/share-poster'
 import { useSession } from '#/lib/session'
@@ -28,6 +29,7 @@ function VideosPage() {
   const load = useCallback(async () => {
     try {
       const data = await api<{ generations: Generation[] }>('/api/generations')
+      data.generations.forEach(trackGenerationResult)
       setItems(data.generations)
       setError(null)
       return data.generations
@@ -150,7 +152,7 @@ function VideosPage() {
               {!isActiveGeneration(g) ? (
                 <div className="flex flex-wrap gap-2 pt-1">
                   {g.videoUrl ? (
-                    <a href={`${g.videoUrl}?download=1`} className="btn-ghost px-3 py-1.5 text-xs" download>
+                    <a href={`${g.videoUrl}?download=1`} className="btn-ghost px-3 py-1.5 text-xs" download onClick={() => trackVideoDownload('dashboard')}>
                       <Download className="size-3.5" /> {d.download}
                     </a>
                   ) : null}
