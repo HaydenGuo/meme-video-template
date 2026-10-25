@@ -12,7 +12,7 @@ Generation uses server-side keyword prechecks and provider safety checks. Defaul
 
 Public AUP, terms, privacy and refund pages are linked from the footer and pricing page. Set verified operator, model, processing provider and merchant-of-record details in `site.business`. Preview mode accepts support and content reports with the normal CSRF, validation and rate limits. Published policy copy currently describes a preview: update it against the actual workflow before enabling paid generation. Policy pages alone do not establish payment eligibility or functioning prompt/output moderation.
 
-Set `SHOWCASE_AUTH_ENABLED=true` alongside `SHOWCASE_MODE=true` to enable real account sign-in while video creation and purchases remain closed. Configure Google OAuth callbacks and server credentials; email registration requires a verified sending service.
+Set `SHOWCASE_AUTH_ENABLED=true` alongside `SHOWCASE_MODE=true` to enable real account sign-in while video creation and purchases remain closed. Configure a strong `SESSION_SECRET` for email/password registration. Registration does not verify inbox ownership; password recovery still requires a verified sending service. Configure Google OAuth callbacks if you want Google sign-in.
 
 GitHub → Cloudflare push deployment is available in [deployment setup](docs/cloudflare-auto-deploy.md). Automatic deployment uses the exact commit that passed CI on main. Enable the repository variable only after production resources and secrets are configured.
 

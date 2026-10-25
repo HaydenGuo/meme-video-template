@@ -86,6 +86,9 @@ export interface SignInProfile {
   locale: string | null
   attribution?: RequestAttribution | null // 仅新用户注册时写入
   referral?: SignupReferral | null // 仅新用户注册时绑定邀请人
+  createOnly?: boolean // 未验证邮箱的密码注册不得绑定到既有 Google 账户
+  emailVerified?: boolean // 未验证邮箱账户不发注册积分或邀请奖励
+  passwordHash?: string // 新用户和邮箱凭据必须原子创建，避免并发 Google 登录接管竞态
 }
 
 // 注销账号只留邮箱的加盐哈希（deleted_accounts），用来识别“注销后用同一邮箱重新注册”。
@@ -94,9 +97,9 @@ export async function deletedEmailHash(env: Env, email: string) {
   return sha256Hex(`deleted-email:${env.SESSION_SECRET ?? ''}:${email.trim().toLowerCase()}`)
 }
 
-// Google、已验证邮箱与 dev 登录共用：先按 google_sub、再按规范化邮箱找人，没有就创建并发放注册赠送积分。
+// Google、已验证邮箱与 dev 登录共用：先按 google_sub、再按规范化邮箱找人，没有就创建。
 // 账号以 Google 的 sub 为准：邮箱相同但已绑定另一个 sub 时拒绝登录（Google 账号被删后同一邮箱可以注册成新账号），
-// 只有 google_sub 为空的账号（邮箱或 dev 登录创建的）才按邮箱绑定；调用方必须先验证邮箱归属。
+// 只有 google_sub 为空的账号才按邮箱绑定；未验证邮箱的密码注册必须设置 createOnly。
 export async function upsertUser(env: Env, profile: SignInProfile, retried = false): Promise<UserRow> {
   const email = profile.email.trim().toLowerCase()
   const db = env.DB
@@ -108,21 +111,37 @@ export async function upsertUser(env: Env, profile: SignInProfile, retried = fal
     .bind(profile.googleSub, email)
     .first<UserRow>()
   const now = nowIso()
-  const role = isAdminEmail(env, email) ? 'admin' : undefined
+  const role = profile.emailVerified === false ? undefined : isAdminEmail(env, email) ? 'admin' : undefined
 
   if (existing) {
+    if (profile.createOnly) throw new ApiError(409, 'email_account_exists')
     if (existing.status !== 'active') throw new ApiError(403, 'account_disabled')
     if (profile.googleSub && existing.google_sub && existing.google_sub !== profile.googleSub) {
       console.warn('sign-in rejected: email bound to another google account', existing.id)
       throw new ApiError(409, 'account_conflict')
     }
-    await db
-      .prepare(
-        `UPDATE users SET name = COALESCE(?, name), avatar_url = COALESCE(?, avatar_url),
-         google_sub = COALESCE(google_sub, ?), role = COALESCE(?, role), last_login_at = ? WHERE id = ?`,
-      )
-      .bind(profile.name, profile.picture, profile.googleSub, role ?? null, now, existing.id)
-      .run()
+    let retireUnverifiedPassword = false
+    if (profile.googleSub && !existing.google_sub) {
+      const credential = await db.prepare('SELECT verified_at FROM email_credentials WHERE user_id = ?').bind(existing.id).first<{ verified_at: string | null }>()
+      retireUnverifiedPassword = !!credential && credential.verified_at === null
+    }
+    const update = db.prepare(
+      `UPDATE users SET name = COALESCE(?, name), avatar_url = COALESCE(?, avatar_url),
+       google_sub = COALESCE(google_sub, ?), role = COALESCE(?, role), last_login_at = ? WHERE id = ?`,
+    ).bind(profile.name, profile.picture, profile.googleSub, role ?? null, now, existing.id)
+    if (retireUnverifiedPassword) {
+      // Google has now proved control of this address. Retire credentials created before inbox verification
+      // so a registrant who guessed the address cannot keep password access after the rightful owner signs in.
+      await db.batch([
+        db.prepare('DELETE FROM sessions WHERE user_id = ?').bind(existing.id),
+        db.prepare('DELETE FROM email_credentials WHERE user_id = ?').bind(existing.id),
+        db.prepare('DELETE FROM email_auth_challenges WHERE email = ?').bind(email),
+        db.prepare('DELETE FROM email_auth_limits WHERE scope = ?').bind(`login:${email}`),
+        update,
+      ])
+    } else {
+      await update.run()
+    }
     return (await db.prepare('SELECT * FROM users WHERE id = ?').bind(existing.id).first<UserRow>())!
   }
 
@@ -152,14 +171,21 @@ export async function upsertUser(env: Env, profile: SignInProfile, retried = fal
         now,
       ),
   ]
+  if (profile.passwordHash) {
+    statements.push(
+      db.prepare('INSERT INTO email_credentials (user_id, password_hash, verified_at, updated_at) VALUES (?, ?, NULL, ?)')
+        .bind(id, profile.passwordHash, now),
+    )
+  }
   // 注销过的邮箱重新注册：不发注册赠送、不绑定邀请人
   const returning = await db
     .prepare('SELECT 1 AS hit FROM deleted_accounts WHERE email_hash = ?')
     .bind(await deletedEmailHash(env, email))
     .first<{ hit: number }>()
-  if (profile.referral && !returning) statements.push(bindReferralStatement(db, id, profile.referral, now))
+  const emailVerified = profile.emailVerified !== false
+  if (profile.referral && !returning && emailVerified) statements.push(bindReferralStatement(db, id, profile.referral, now))
   const { signupBonusCredits, signupBonusValidDays } = await getSettings(env)
-  if (signupBonusCredits > 0 && !returning) {
+  if (signupBonusCredits > 0 && !returning && emailVerified) {
     statements.push(
       ...ledgerStatements(db, {
         userId: id,
@@ -173,7 +199,8 @@ export async function upsertUser(env: Env, profile: SignInProfile, retried = fal
   try {
     await db.batch(statements)
   } catch (error) {
-    // Google 和邮箱注册同时创建同一邮箱：整批回滚后复用胜出的账户，赠送积分仍只发一次。
+    // Google 和邮箱注册并发时，普通 OAuth 可复用胜出的账户；未验证邮箱注册则不能绑定到该账户。
+    if (profile.createOnly && isUniqueConstraintError(error)) throw new ApiError(409, 'email_account_exists')
     if (!retried && isUniqueConstraintError(error)) return upsertUser(env, profile, true)
     throw error
   }

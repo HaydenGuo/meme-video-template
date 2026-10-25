@@ -5,7 +5,7 @@ import { ApiError, base64Url, base64UrlDecode, constantTimeEqual, createId, hmac
 
 const ITERATIONS = 100_000
 const CODE_MINUTES = 10
-type Purpose = 'register' | 'reset'
+type Purpose = 'reset'
 
 export function emailPasswordEnabled(env: Env) {
   const secret = env.SESSION_SECRET?.trim()
@@ -25,7 +25,7 @@ export function normalizeAuthEmail(value: unknown) {
 }
 
 export function authPurpose(value: unknown): Purpose {
-  if (value !== 'register' && value !== 'reset') throw new ApiError(400, 'invalid_auth_request')
+  if (value !== 'reset') throw new ApiError(400, 'invalid_auth_request')
   return value
 }
 

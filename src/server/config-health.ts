@@ -120,10 +120,9 @@ export function checkConfig(input: ConfigInput): ConfigIssue[] {
   if (!showcase && !features.generation) warn('GENERATION_ENABLED', '新上传与生成关闭，已有任务继续处理，须保留原视频服务凭据')
   if (!showcase && !features.payments) warn('PAYMENTS_ENABLED', '新购买关闭，已有订单和订阅仍需原支付凭据、回调与对账')
   if (features.auth) {
-    // Google 可选；新用户也能通过已配置发件服务的邮箱注册。
+    // Google 可选；邮箱密码注册无需发件服务，但找回密码需要真实邮箱发信。
     if (!vars('GOOGLE_CLIENT_ID')) {
       warn('GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_ID 为空：Google 登录按钮不可用')
-      if (!vars('EMAIL_FROM') || !input.bindings.includes('EMAIL')) error('auth', 'Google 和邮箱验证均未配置：新用户无法注册')
     }
     else requireSecrets(['GOOGLE_CLIENT_SECRET'], 'Google 登录')
   }
@@ -215,7 +214,7 @@ export function checkConfig(input: ConfigInput): ConfigIssue[] {
 
   const from = vars('EMAIL_FROM')
   const fromDomain = from.split('@')[1]?.toLowerCase() ?? ''
-  if (!from) warn('EMAIL_FROM', 'EMAIL_FROM 为空：邮箱注册与重置密码不可用，也不发交易邮件和管理员提醒')
+  if (!from) warn('EMAIL_FROM', 'EMAIL_FROM 为空：邮箱注册仍可用，但密码重置不可用，也不发交易邮件和管理员提醒')
   else if (!fromDomain || PLACEHOLDER_HOSTS.test(fromDomain)) error('EMAIL_FROM', `EMAIL_FROM=${from}：不是可发信的地址`)
   else if (production && !PLACEHOLDER_HOSTS.test(input.siteDomain) && !sameSite(fromDomain, input.siteDomain.toLowerCase())) {
     warn('EMAIL_FROM', `EMAIL_FROM 的域名 ${fromDomain} 与站点域名 ${input.siteDomain} 不同：确认该域名已在 Email Service 完成 Onboard`)

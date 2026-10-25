@@ -5,7 +5,7 @@ import type { AlertKind } from './alerts'
 // 用户输入（姓名、留言内容等）只出现在正文并全部转义，不进 Subject。
 
 export interface TemplateParams {
-  auth_code: { code: string; purpose: 'register' | 'reset'; minutes: number }
+  auth_code: { code: string; purpose: 'reset'; minutes: number }
   generation_succeeded: { generationId: string; expiresAt: string | null }
   generation_failed: { generationId: string; credits: number }
   order_paid: { orderId: string; credits: number; amount: string }
@@ -128,13 +128,13 @@ const ALERTS_ZH: Record<AlertKind, (p: AlertParams) => { title: string; summary:
 const USER_TEMPLATES: { [K in UserTemplate]: Record<Locale, Render<K>> } = {
   auth_code: {
     en: (p) => ({
-      subject: `${brand}: ${p.purpose === 'register' ? 'verify your email' : 'reset your password'}`,
-      heading: p.purpose === 'register' ? 'Verify your email' : 'Reset your password',
+      subject: `${brand}: reset your password`,
+      heading: 'Reset your password',
       paragraphs: [`Your verification code is ${p.code}. It expires in ${p.minutes} minutes and can only be used once.`, 'Do not share this code. If you did not request it, ignore this email.'],
     }),
     zh: (p) => ({
-      subject: `${brand}：${p.purpose === 'register' ? '验证注册邮箱' : '重置密码'}`,
-      heading: p.purpose === 'register' ? '验证你的邮箱' : '重置密码',
+      subject: `${brand}：重置密码`,
+      heading: '重置密码',
       paragraphs: [`你的验证码是 ${p.code}，${p.minutes} 分钟内有效，只能使用一次。`, '请勿向他人透露验证码。如果不是你本人操作，请忽略这封邮件。'],
     }),
   },

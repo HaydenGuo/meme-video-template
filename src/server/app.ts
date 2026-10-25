@@ -9,7 +9,7 @@ import { adminRoutes } from './admin'
 import { runHealthCheck } from './alerts'
 import { backupDatabase } from './backup'
 import { classifyTouch, deviceFromUserAgent, requestAttribution, sanitizeTouch } from './attribution'
-import { deletedEmailHash, endSession, loadSessionUser, publicUser, startSession, upsertUser } from './auth'
+import { deletedEmailHash, endSession, isAdminEmail, loadSessionUser, publicUser, startSession, upsertUser } from './auth'
 import { authPurpose, consumeAuthCode, emailPasswordEnabled, emailVerificationEnabled, hashPassword, limitEmailAction, normalizeAuthEmail, sendAuthCode, validatePassword, verifyPassword } from './email-auth'
 import { CLIENT_ERROR_PATH, summarizeClientError } from './client-error'
 import { clawbackStatements, expireStatements, ledgerStatements } from './credits'
@@ -168,28 +168,23 @@ app.post('/api/auth/email/code', async (c) => {
   const body = await readJson<{ email: string; purpose: string; locale: string }>(c)
   const email = normalizeAuthEmail(body.email)
   const purpose = authPurpose(body.purpose)
-  // 注册与重置一律发送相同格式的验证码，不在发送阶段泄露邮箱是否已有账户。
+  // 只为找回密码发送验证码，不提供通过邮箱注册验证码探测账户状态的接口。
   return c.json(await sendAuthCode(c.env, email, purpose, isLocale(body.locale) ? body.locale : undefined, isLocalDevRequest(c)))
 })
 
 app.post('/api/auth/email/register', async (c) => {
   await rateLimit(c.env.AUTH_LIMITER, `email-register:${c.req.header('cf-connecting-ip') ?? 'local'}`)
-  const body = await readJson<{ email: string; password: string; code: string; challengeId: string; locale: string }>(c)
+  const body = await readJson<{ email: string; password: string; locale: string }>(c)
   const email = normalizeAuthEmail(body.email)
   validatePassword(body.password)
-  await consumeAuthCode(c.env, email, 'register', body.challengeId, body.code)
   const passwordHash = await hashPassword(c.env, body.password)
   const user = await upsertUser(c.env, {
     email, name: null, picture: null, googleSub: null,
     country: c.req.header('cf-ipcountry') ?? null,
     locale: isLocale(body.locale) ? body.locale : null,
     attribution: requestAttribution(c, 'first'), referral: await requestReferral(c),
+    createOnly: true, emailVerified: false, passwordHash,
   })
-  const now = nowIso()
-  const added = await c.env.DB.prepare(
-    'INSERT INTO email_credentials (user_id, password_hash, verified_at, updated_at) VALUES (?, ?, ?, ?) ON CONFLICT(user_id) DO NOTHING',
-  ).bind(user.id, passwordHash, now, now).run()
-  if (!added.meta.changes) throw new ApiError(409, 'email_account_exists')
   await startSession(c, user.id, passwordHash)
   c.header('Cache-Control', 'no-store')
   return c.json({ user: publicUser(user) })
@@ -202,11 +197,14 @@ app.post('/api/auth/email/login', async (c) => {
   if (typeof body.password !== 'string' || body.password.length > 128) throw new ApiError(401, 'invalid_credentials')
   await limitEmailAction(c.env, `login:${email}`, 10, 15 * 60_000)
   const account = await c.env.DB.prepare(
-    'SELECT u.*, ec.password_hash FROM users u JOIN email_credentials ec ON ec.user_id = u.id WHERE lower(trim(u.email)) = ?',
-  ).bind(email).first<UserRow & { password_hash: string }>()
+    'SELECT u.*, ec.password_hash, ec.verified_at FROM users u JOIN email_credentials ec ON ec.user_id = u.id WHERE lower(trim(u.email)) = ?',
+  ).bind(email).first<UserRow & { password_hash: string; verified_at: string | null }>()
   const valid = await verifyPassword(c.env, body.password, account?.password_hash ?? null)
   if (!account || !valid || account.status !== 'active') throw new ApiError(401, 'invalid_credentials')
-  const user = await upsertUser(c.env, { email, name: null, picture: null, googleSub: null, country: null, locale: null })
+  const user = await upsertUser(c.env, {
+    email, name: null, picture: null, googleSub: null, country: null, locale: null,
+    emailVerified: account.verified_at !== null,
+  })
   await c.env.DB.prepare('DELETE FROM email_auth_limits WHERE scope = ?').bind(`login:${email}`).run()
   await startSession(c, user.id, account.password_hash)
   c.header('Cache-Control', 'no-store')
@@ -230,6 +228,7 @@ app.post('/api/auth/email/reset-password', async (c) => {
     ).bind(user.id, passwordHash, now, now),
     c.env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(user.id),
     c.env.DB.prepare('DELETE FROM email_auth_limits WHERE scope = ?').bind(`login:${email}`),
+    c.env.DB.prepare('UPDATE users SET role = COALESCE(?, role) WHERE id = ?').bind(isAdminEmail(c.env, email) ? 'admin' : null, user.id),
   ])
   await startSession(c, user.id, passwordHash)
   c.header('Cache-Control', 'no-store')

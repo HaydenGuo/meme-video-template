@@ -75,7 +75,7 @@ function SignInPage() {
     setError(null)
     try {
       const data = await api<{ challengeId: string; developmentCode?: string }>('/api/auth/email/code', {
-        json: { email, purpose: mode === 'reset' ? 'reset' : 'register', locale },
+        json: { email, purpose: 'reset', locale },
       })
       setChallengeId(data.challengeId)
       setDevelopmentCode(data.developmentCode ?? null)
@@ -91,12 +91,12 @@ function SignInPage() {
   async function emailSubmit(event: FormEvent) {
     event.preventDefault()
     setError(null)
-    if (mode !== 'login' && password !== confirmation) return setError('password_mismatch')
-    if (mode !== 'login' && !challengeId) return setError('invalid_verification_code')
+    if (mode === 'reset' && password !== confirmation) return setError('password_mismatch')
+    if (mode === 'reset' && !challengeId) return setError('invalid_verification_code')
     setPending(true)
     try {
       const action = mode === 'reset' ? 'reset-password' : mode
-      await api(`/api/auth/email/${action}`, { json: { email, password, code, challengeId, locale } })
+      await api(`/api/auth/email/${action}`, { json: mode === 'reset' ? { email, password, code, challengeId, locale } : { email, password, locale } })
       track('login', { method: 'email' })
       await refresh()
     } catch (err) {
@@ -156,7 +156,7 @@ function SignInPage() {
                 </button>
               ))}
             </div>
-            {config?.emailPassword && (mode === 'login' || config.emailVerification) ? (
+            {config?.emailPassword && (mode !== 'reset' || config.emailVerification) ? (
               <form onSubmit={emailSubmit} className="space-y-4 text-left" data-testid="email-auth-form">
                 <label className="block space-y-1.5 text-sm">
                   <span>{t.emailLabel}</span>
@@ -169,9 +169,9 @@ function SignInPage() {
                   <input className="input" type="password" required minLength={mode === 'login' ? 1 : 10} maxLength={128}
                     autoComplete={mode === 'login' ? 'current-password' : 'new-password'} disabled={pending || sending}
                     value={password} onChange={(event) => setPassword(event.target.value)} data-testid="auth-password" />
-                  {mode !== 'login' ? <span className="block text-xs text-muted">{t.passwordHint}</span> : null}
+                  {mode === 'register' ? <span className="block text-xs text-muted">{t.passwordHint}</span> : null}
                 </label>
-                {mode !== 'login' ? (
+                {mode === 'reset' ? (
                   <>
                     <label className="block space-y-1.5 text-sm">
                       <span>{t.confirmPassword}</span>

@@ -30,10 +30,10 @@ Hypit 可选接入：`VIDEO_PROVIDER=hypit`，新增 `HYPIT_BRIDGE_URL`（Bridge
 | `DODO_PRODUCTS` | 同上 | 用 Dodo 时 | `scripts/dodo-setup.mjs` 可以生成 |
 | `VIDEO_PROVIDER` | `fal`、`yir`、`mock` | 是 | 模型和单价在 `site.video` 里配置，yir 的配置在 `site.video.yir` |
 | `MODERATION_PROVIDER` | `openai`、`none`、`mock` | 是 | 上传图片的审核方式。`none` 不审核，检查时给出警告 |
-| `GOOGLE_CLIENT_ID` | OAuth Client ID | 使用 Google 时 | 可留空，用户仍可通过邮箱密码登录；邮箱注册需要发件服务 |
+| `GOOGLE_CLIENT_ID` | OAuth Client ID | 使用 Google 时 | 可留空，用户仍可通过邮箱密码注册/登录；忘记密码需要发件服务 |
 | `TURNSTILE_SITE_KEY` | 站点密钥 | 否 | 留空则留言和举报表单不做人机校验，检查时给出警告 |
 | `ADMIN_EMAILS` | 逗号分隔的邮箱 | 是 | 这些邮箱登录时自动成为管理员，同时接收举报、留言提醒和系统告警。从列表里删掉不会撤销管理员角色 |
-| `EMAIL_FROM` | 发件地址 | 邮箱注册/找回密码时必需 | 域名要先在 Cloudflare Email Service 完成 Onboard，并配置 `EMAIL` binding；留空则邮箱注册及找回密码不可用，交易邮件记为 skipped |
+| `EMAIL_FROM` | 发件地址 | 找回密码或交易邮件时 | 域名要先在 Cloudflare Email Service 完成 Onboard，并配置 `EMAIL` binding；留空时新邮箱密码注册仍可用，但找回密码不可用，交易邮件记为 skipped |
 
 ## Secret
 
@@ -99,7 +99,7 @@ doctor 只要求开启功能对应的服务商凭据。关闭开关不会删除�
 
 `SHOWCASE_MODE=true` 可先上线介绍和案例。API 开放 `/api/me`、`/api/health` 及 POST `/api/contact`、`/api/takedowns`，客服与举报仍执行 CSRF、字段及限流校验；其它业务 API 返回 503（调试接口返回 404）。不运行队列业务和定时任务；没有发信配置时记录保存到数据库，邮件渠道请直接使用页面公布的客服邮箱。前端默认隐藏登录并禁用上传、生成与购买。此时 doctor 不要求未启用业务的服务商凭据，但仍检查 HTTPS、会话密钥、资源绑定和迁移。不要将它当作完整生成服务的验收。
 
-展示站可额外设置 `SHOWCASE_AUTH_ENABLED=true` 且保持 `AUTH_ENABLED=true`，开放正式登录、退出、账户删除及账户页所需的只读接口。此时需要正常配置 Google OAuth 或真实邮箱验证发信服务；Google 回调为当前 origin 的 `/api/auth/google/callback`。生成、充值、兑换、调试接口和后台仍关闭，会话密钥保持本站独立且稳定。
+展示站可额外设置 `SHOWCASE_AUTH_ENABLED=true` 且保持 `AUTH_ENABLED=true`，开放正式登录、退出、账户删除及账户页所需的只读接口。此时需配置稳定的 `SESSION_SECRET` 支持邮箱密码注册；注册不验证邮箱真实性。启用 Google 登录时需配置 OAuth，Google 回调为当前 origin 的 `/api/auth/google/callback`。找回密码需要配置真实发信服务。生成、充值、兑换、调试接口和后台仍关闭，会话密钥保持本站独立且稳定。
 
 阶段命令会将 `SHOWCASE_AUTH_ENABLED` 重置为 `false`，使预设结果确定；需要展示站登录时再显式开启它。同步模板到现有站点时保留本站开关，不用模板默认值覆盖。
 
