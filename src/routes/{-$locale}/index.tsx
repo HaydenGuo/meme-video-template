@@ -30,6 +30,8 @@ const FEATURE_ICONS = [Camera, Film, Smartphone, Clock, ShieldCheck, Coins]
 function Home() {
   const c = useContent()
   const ex = site.examples
+  const heroYoutube = ex.original.youtube
+  const heroYoutubeSrc = heroYoutube?.videoId ? youtubeEmbedUrl(heroYoutube) : null
   const originalAspectRatio = 'aspectRatio' in ex.original && typeof ex.original.aspectRatio === 'string' ? ex.original.aspectRatio : '9 / 16'
   return (
     <>
@@ -43,8 +45,23 @@ function Home() {
             <a href="#create" className="btn-primary w-fit">{c.finalCta.cta} <ArrowRight className="size-4" /></a>
           </div>
           <div className="flex flex-col justify-center gap-5">
-            <div className={`mx-auto w-full ${originalAspectRatio === '9 / 16' ? 'max-w-sm' : 'max-w-2xl'}`}>
-              <VideoCard video={ex.original.video} poster={ex.original.poster} label={c.hero.original} aspectRatio={originalAspectRatio} fit="contain" />
+            <div className={`mx-auto w-full ${heroYoutube || originalAspectRatio !== '9 / 16' ? 'max-w-2xl' : 'max-w-sm'}`}>
+              {heroYoutubeSrc ? (
+                <figure>
+                  <div style={{ aspectRatio: '16 / 9' }} className="overflow-hidden rounded-2xl bg-bg-soft shadow-sm ring-1 ring-line">
+                    <iframe
+                      className="size-full"
+                      src={heroYoutubeSrc}
+                      title={c.hero.original}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      allowFullScreen
+                    />
+                  </div>
+                </figure>
+              ) : (
+                <VideoCard video={ex.original.video} poster={ex.original.poster} label={c.hero.original} aspectRatio={originalAspectRatio} fit="contain" />
+              )}
             </div>
             <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm font-medium">
               <LocalLink to={articlePath('trend')} className="inline-flex items-center gap-1.5 hover:text-accent">
@@ -157,7 +174,6 @@ function Home() {
                 poster={example.poster}
                 aspectRatio="16 / 9"
                 fit="contain"
-                label={c.hero.aiVersion}
               />
             ))}
           </div>
@@ -275,4 +291,12 @@ function Home() {
       </section>
     </>
   )
+}
+
+function youtubeEmbedUrl(youtube: { videoId: string; playlistId?: string; startAt?: number }) {
+  const params = new URLSearchParams()
+  if (youtube.startAt) params.set('start', String(youtube.startAt))
+  if (youtube.playlistId) params.set('list', youtube.playlistId)
+  const query = params.toString()
+  return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(youtube.videoId)}${query ? `?${query}` : ''}`
 }

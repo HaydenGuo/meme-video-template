@@ -50,7 +50,13 @@ export const site = {
 
   // 首页展示素材（public/demo/）。换成真实素材时必须拥有授权，credit 写原作者，例如 '@handle · TikTok'。
   examples: {
-    original: { video: '/demo/original.mp4', poster: '/demo/original.jpg', credit: 'Demo clip · original' },
+    original: {
+      video: '/demo/original.mp4',
+      poster: '/demo/original.jpg',
+      credit: 'Demo clip · original',
+      // 可选：首屏嵌入梗的官方/目标视频。仅用于展示，不替代下方生成所用的 sourceVideo。
+      youtube: null as { videoId: string; playlistId?: string; startAt?: number } | null,
+    },
     aiVersions: [
       { video: '/demo/ai1.mp4', poster: '/demo/ai1.jpg', credit: 'Demo clip · AI render' },
     ],

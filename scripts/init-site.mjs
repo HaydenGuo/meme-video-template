@@ -45,6 +45,41 @@ if (!/^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/.test(domain)) throw new
 const port = profile.port ?? 3000
 if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error('port 应为 1024–65535')
 const overview = { en: text(profile.overview?.en, 'overview.en'), zh: text(profile.overview?.zh, 'overview.zh') }
+const trendArticle = profile.trendArticle ?? null
+if (trendArticle !== null) {
+  for (const locale of ['en', 'zh']) {
+    const article = trendArticle[locale]
+    if (!article || typeof article !== 'object' || Array.isArray(article)) throw new Error(`trendArticle.${locale} 必须提供完整文章`)
+    text(article.title, `trendArticle.${locale}.title`)
+    text(article.description, `trendArticle.${locale}.description`)
+    text(article.intro, `trendArticle.${locale}.intro`)
+    if (!Array.isArray(article.sections) || article.sections.length < 4 || article.sections.length > 10) throw new Error(`trendArticle.${locale}.sections 需要 4–10 个不同主题的小节`)
+    for (const [index, section] of article.sections.entries()) {
+      text(section?.h, `trendArticle.${locale}.sections[${index}].h`)
+      if (!Array.isArray(section.p) || section.p.length < 1 || section.p.length > 5) throw new Error(`trendArticle.${locale}.sections[${index}].p 需要 1–5 段正文`)
+      section.p.forEach((paragraph, paragraphIndex) => text(paragraph, `trendArticle.${locale}.sections[${index}].p[${paragraphIndex}]`))
+    }
+  }
+}
+const trendSources = profile.trendSources ?? []
+if (!Array.isArray(trendSources) || trendSources.length > 20) throw new Error('trendSources 需要是 0–20 条来源的数组')
+const validatedTrendSources = trendSources.map((source, index) => {
+  const url = text(source?.url, `trendSources[${index}].url`)
+  let parsedUrl
+  try { parsedUrl = new URL(url) } catch { throw new Error(`trendSources[${index}].url 无效`) }
+  if (parsedUrl.protocol !== 'https:' || parsedUrl.username || parsedUrl.password) throw new Error(`trendSources[${index}].url 必须是 HTTPS 公共网页`)
+  return { url, name: { en: text(source?.name?.en, `trendSources[${index}].name.en`), zh: text(source?.name?.zh, `trendSources[${index}].name.zh`) } }
+})
+let heroVideo = null
+if (profile.heroVideo != null) {
+  if (!profile.heroVideo || typeof profile.heroVideo !== 'object' || Array.isArray(profile.heroVideo)) throw new Error('heroVideo 必须是对象')
+  const videoId = text(profile.heroVideo.videoId, 'heroVideo.videoId')
+  if (!/^[A-Za-z0-9_-]{11}$/.test(videoId)) throw new Error('heroVideo.videoId 必须是 11 位 YouTube 视频 ID')
+  const playlistId = profile.heroVideo.playlistId == null ? undefined : text(profile.heroVideo.playlistId, 'heroVideo.playlistId')
+  const startAt = profile.heroVideo.startAt ?? 0
+  if (!Number.isInteger(startAt) || startAt < 0 || startAt > 86400) throw new Error('heroVideo.startAt 必须是 0–86400 的整数秒数')
+  heroVideo = { videoId, ...(playlistId ? { playlistId } : {}), ...(startAt ? { startAt } : {}) }
+}
 const credit = text(profile.media?.credit, 'media.credit')
 if (profile.media?.authorized !== true) throw new Error('请确认素材可用于本站：media.authorized=true')
 const media = Object.fromEntries(['sourceVideo', 'exampleVideo', 'photo'].map((key) => {
@@ -160,10 +195,50 @@ function editObject(file, kind, edits) {
       if (found.length !== 1) throw new Error(`${file}: 属性不唯一 ${path}`)
       node = unwrap(found[0].initializer)
     }
-    replacements.push({ start: node.getStart(ast), end: node.end, value: JSON.stringify(value, null, 2) })
+    const start = node.getStart(ast)
+    const lineStart = source.lastIndexOf('\n', start - 1) + 1
+    const baseIndent = /^\s*/.exec(source.slice(lineStart, start))?.[0] ?? ''
+    const formatted = JSON.stringify(value, null, 2).replaceAll('\n', `\n${baseIndent}`)
+    replacements.push({ start, end: node.end, value: formatted })
   }
   replacements.sort((a, b) => b.start - a.start)
   for (const item of replacements) source = source.slice(0, item.start) + item.value + source.slice(item.end)
+  writeFileSync(join(stage, file), source)
+}
+
+function setTrendSources(sources) {
+  if (!sources.length) return
+  const file = 'src/config/site.ts'
+  let source = readFileSync(join(stage, file), 'utf8')
+  const ast = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true)
+  const unwrap = (node) => { while (node && (ts.isAsExpression(node) || ts.isSatisfiesExpression(node) || ts.isParenthesizedExpression(node))) node = node.expression; return node }
+  let siteObject
+  for (const statement of ast.statements) if (ts.isVariableStatement(statement)) {
+    for (const decl of statement.declarationList.declarations) if (decl.name.getText(ast) === 'site') siteObject = unwrap(decl.initializer)
+  }
+  const property = (object, name) => object?.properties.find((item) => ts.isPropertyAssignment(item) && item.name.getText(ast).replace(/^['"]|['"]$/g, '') === name)
+  const articles = unwrap(property(siteObject, 'articles')?.initializer)
+  const trend = articles && ts.isArrayLiteralExpression(articles)
+    ? articles.elements.find((item) => ts.isObjectLiteralExpression(item) && property(item, 'key')?.initializer.getText(ast).replace(/^['"]|['"]$/g, '') === 'trend')
+    : null
+  if (!trend || !ts.isObjectLiteralExpression(trend)) throw new Error(`${file}: 无法定位 trend 文章配置`)
+  const existing = property(trend, 'sources')
+  const lineStart = source.lastIndexOf('\n', trend.getStart(ast) - 1) + 1
+  const baseIndent = /^\s*/.exec(source.slice(lineStart, trend.getStart(ast)))?.[0] ?? ''
+  const propertyIndent = `${baseIndent}  `
+  const formattedSources = JSON.stringify(sources, null, 2).replaceAll('\n', `\n${propertyIndent}`)
+  if (existing) {
+    const value = unwrap(existing.initializer)
+    const valueLineStart = source.lastIndexOf('\n', value.getStart(ast) - 1) + 1
+    const valueIndent = /^\s*/.exec(source.slice(valueLineStart, value.getStart(ast)))?.[0] ?? ''
+    source = source.slice(0, value.getStart(ast)) + JSON.stringify(sources, null, 2).replaceAll('\n', `\n${valueIndent}`) + source.slice(value.end)
+  } else {
+    const insertionPoint = trend.end - 1
+    const before = source.slice(0, insertionPoint)
+    const trimmed = before.trimEnd()
+    const separator = trimmed.endsWith(',') ? '' : ','
+    source = `${trimmed}${separator}\n${propertyIndent}sources: ${formattedSources},\n${baseIndent}${source.slice(insertionPoint)}`
+  }
   writeFileSync(join(stage, file), source)
 }
 
@@ -213,7 +288,7 @@ editObject('src/config/site.ts', 'site', {
   branding: brandAssets?.branding ?? null,
   'template.fullSeconds': fullSeconds, 'template.aspectRatio': aspectRatio,
   'seo.secondaryKeywords': [`${keyword} AI`, `${keyword} video`, `${keyword} meme`],
-  examples: { original: { video: '/site-init/original.mp4', poster: '/site-init/original.jpg', credit },
+  examples: { original: { video: '/site-init/original.mp4', poster: '/site-init/original.jpg', credit, youtube: heroVideo },
     aiVersions: [{ video: sample.video, poster: sample.poster, credit }], madeWith: sample, additional: [], gallery: [], ideas: [sample, sample, sample] },
   durations: durations.map((seconds, i) => ({ id: ['short', 'medium', 'full'][i], seconds, credits: seconds,
     source: `${templateId}-${seconds}s.mp4`, ...(seconds === fullSeconds ? { isFull: true } : {}) })),
@@ -225,6 +300,30 @@ for (const locale of ['en', 'zh']) {
   const intro = overview[locale].replaceAll('{keyword}', keyword)
   const lengths = durations.join(' / ')
   const about = zh ? `上传一张照片，制作自己的 ${keyword} 梗视频。选择 ${lengths} 秒，以及横版或竖版，生成后下载分享。` : `Upload a photo to make your own ${keyword} meme video. Choose ${lengths} seconds and portrait or landscape, then generate and download.`
+  const generatedTrend = zh ? {
+    title: `${keyword} 是什么？`, description: intro, intro,
+    sections: [
+      { h: '视频里发生了什么', p: [intro] },
+      { h: '这个梗如何被复刻', p: ['复刻时先识别原片最容易辨认的动作、节奏和构图，再决定哪些元素需要保留。不同版本可以替换主角或场景，但不要把推测的起源、日期或热度数据写成事实。'] },
+      { h: 'AI 版本如何制作', p: [about, '本页生成器使用配置的参考视频和一张照片制作新版本。选择时长前先查看首屏参考片；提交前确认照片属于本人或已经取得人物许可。'] },
+      { h: '发布前检查', p: ['清楚标注 AI 生成，尊重原作者和人物授权；音乐、片段和肖像的使用范围应按各自平台规则核实。'] },
+    ],
+  } : {
+    title: `What is ${keyword}?`, description: intro, intro,
+    sections: [
+      { h: 'What happens in the clip', p: [intro] },
+      { h: 'How the format is remixed', p: ['Identify the movement, rhythm and framing that make the source recognisable, then decide what a remake should preserve. A version can change the featured person or setting; do not present an unverified origin, date or view count as fact.'] },
+      { h: 'How an AI version is made', p: [about, 'This site uses its configured reference video and one photo to create a new version. Preview the reference clip before choosing a length, and use a photo of yourself or someone who has given permission.'] },
+      { h: 'Before sharing', p: ['Label the result as AI-generated, respect creator and likeness permissions, and check the applicable platform rules for music and footage.'] },
+    ],
+  }
+  const sourceTrend = trendArticle?.[locale]
+  const trend = sourceTrend ? {
+    title: sourceTrend.title,
+    description: sourceTrend.description,
+    intro: sourceTrend.intro,
+    sections: sourceTrend.sections.map((section) => ({ h: section.h, p: section.p })),
+  } : generatedTrend
   const guide = { title: zh ? `如何制作 ${keyword} AI 视频` : `How to make a ${keyword} AI video`, description: about, intro: about,
     sections: zh ? [
       { h: '1. 准备照片', p: ['使用清晰的单人照片，确保照片是本人或已获人物许可。'] },
@@ -241,11 +340,11 @@ for (const locale of ['en', 'zh']) {
     'hero.chips': zh ? ['照片二创', '横竖可选', '下载分享'] : ['Photo remix', 'Portrait or landscape', 'Download and share'],
     'hero.creditNote': credit,
     'whatIs.paragraphs': [intro, about],
-    'articles.trend': { title: zh ? `${keyword} 是什么？` : `What is ${keyword}?`, description: intro, intro,
-      sections: [{ h: zh ? '这个梗的玩法' : 'Make your own version', p: [about] }] },
+    'articles.trend': trend,
     'articles.howTo': guide,
   })
 }
+setTrendSources(validatedTrendSources)
 let wrangler = readFileSync(join(stage, 'wrangler.jsonc'), 'utf8')
 const vars = { ...features, SITE_URL: launch === 'local' ? origin : `https://${domain}`, HYPIT_SITE_ID: slug, HYPIT_BRIDGE_URL: bridge.origin,
   ADMIN_EMAILS: adminEmail, GOOGLE_CLIENT_ID: credentials.googleClientId,
