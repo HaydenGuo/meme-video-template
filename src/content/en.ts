@@ -266,7 +266,7 @@ export function en(s: S) {
     },
     signIn: {
       title: `Sign in to ${b}`,
-      body: 'Continue with Google or use email and password. Email registration does not verify inbox ownership. Your credits stay with the same email account.',
+      body: 'You can sign up without email verification. Password recovery requires inbox access.',
       loginTab: 'Sign in',
       registerTab: 'Create account',
       registerTitle: `Create your ${b} account`,
@@ -275,7 +275,7 @@ export function en(s: S) {
       emailLabel: 'Email address',
       passwordLabel: 'Password',
       confirmPassword: 'Confirm password',
-      passwordHint: 'Use 10–128 characters. Registration does not verify the inbox; password recovery requires access to this email.',
+      passwordHint: 'Use 10–128 characters.',
       codeLabel: 'Email verification code',
       sendCode: 'Send code',
       resendIn: (n: number) => `Resend in ${n}s`,

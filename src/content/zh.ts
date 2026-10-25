@@ -246,7 +246,7 @@ export function zh(s: S): Content {
     },
     signIn: {
       title: `登录 ${b}`,
-      body: '使用 Google 继续，或用邮箱和密码登录。注册无需验证邮箱；同一邮箱对应同一个账户和积分余额。',
+      body: '注册无需验证邮箱；找回密码需要能访问该邮箱。',
       loginTab: '登录',
       registerTab: '注册',
       registerTitle: `注册 ${b} 账号`,
@@ -255,7 +255,7 @@ export function zh(s: S): Content {
       emailLabel: '邮箱地址',
       passwordLabel: '密码',
       confirmPassword: '确认密码',
-      passwordHint: '请输入 10–128 个字符。注册不验证邮箱；找回密码时需要能收取该邮箱的验证码。',
+      passwordHint: '请输入 10–128 个字符。',
       codeLabel: '邮箱验证码',
       sendCode: '发送验证码',
       resendIn: (n: number) => `${n} 秒后重发`,

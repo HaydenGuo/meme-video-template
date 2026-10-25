@@ -50,7 +50,7 @@ The generator includes step 3 for portrait (9:16) or landscape (16:9), with a ma
 
 The hero and generator omit the repeated per-second credit explanation; duration options and the generate button still show the credit cost.
 
-Authentication supports Google and email/password. Registration verifies email ownership; password recovery uses an email code. Both methods share the same user ID and credit balance for the same normalized email. See [email authentication](docs/email-auth.md) for setup and local use.
+Authentication supports Google and email/password. Registration does not verify email ownership; password recovery still requires an email code. Both methods share the same user ID and credit balance for the same normalized email. See [email authentication](docs/email-auth.md) for setup and local use.
 
 Google login is reusable across template sites. Configure each site's credentials and callback URL; `dev:infisical` supports local secret injection. See [Google setup](docs/google-auth.md).
 
