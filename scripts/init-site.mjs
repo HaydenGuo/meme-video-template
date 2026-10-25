@@ -195,7 +195,11 @@ function editObject(file, kind, edits) {
       if (found.length !== 1) throw new Error(`${file}: 属性不唯一 ${path}`)
       node = unwrap(found[0].initializer)
     }
-    replacements.push({ start: node.getStart(ast), end: node.end, value: JSON.stringify(value, null, 2) })
+    const start = node.getStart(ast)
+    const lineStart = source.lastIndexOf('\n', start - 1) + 1
+    const baseIndent = /^\s*/.exec(source.slice(lineStart, start))?.[0] ?? ''
+    const formatted = JSON.stringify(value, null, 2).replaceAll('\n', `\n${baseIndent}`)
+    replacements.push({ start, end: node.end, value: formatted })
   }
   replacements.sort((a, b) => b.start - a.start)
   for (const item of replacements) source = source.slice(0, item.start) + item.value + source.slice(item.end)
@@ -219,14 +223,21 @@ function setTrendSources(sources) {
     : null
   if (!trend || !ts.isObjectLiteralExpression(trend)) throw new Error(`${file}: 无法定位 trend 文章配置`)
   const existing = property(trend, 'sources')
+  const lineStart = source.lastIndexOf('\n', trend.getStart(ast) - 1) + 1
+  const baseIndent = /^\s*/.exec(source.slice(lineStart, trend.getStart(ast)))?.[0] ?? ''
+  const propertyIndent = `${baseIndent}  `
+  const formattedSources = JSON.stringify(sources, null, 2).replaceAll('\n', `\n${propertyIndent}`)
   if (existing) {
     const value = unwrap(existing.initializer)
-    source = source.slice(0, value.getStart(ast)) + JSON.stringify(sources, null, 2) + source.slice(value.end)
+    const valueLineStart = source.lastIndexOf('\n', value.getStart(ast) - 1) + 1
+    const valueIndent = /^\s*/.exec(source.slice(valueLineStart, value.getStart(ast)))?.[0] ?? ''
+    source = source.slice(0, value.getStart(ast)) + JSON.stringify(sources, null, 2).replaceAll('\n', `\n${valueIndent}`) + source.slice(value.end)
   } else {
     const insertionPoint = trend.end - 1
     const before = source.slice(0, insertionPoint)
-    const separator = before.trimEnd().endsWith(',') ? '' : ','
-    source = before + `${separator}\n      sources: ${JSON.stringify(sources, null, 6).replaceAll('\n', '\n      ')},` + source.slice(insertionPoint)
+    const trimmed = before.trimEnd()
+    const separator = trimmed.endsWith(',') ? '' : ','
+    source = `${trimmed}${separator}\n${propertyIndent}sources: ${formattedSources},\n${baseIndent}${source.slice(insertionPoint)}`
   }
   writeFileSync(join(stage, file), source)
 }
