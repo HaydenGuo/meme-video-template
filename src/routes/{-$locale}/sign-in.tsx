@@ -127,7 +127,7 @@ function SignInPage() {
         <LogoMark className="mx-auto size-12 text-base" />
         <div className="space-y-2">
           <h1 className="font-display text-3xl">{mode === 'register' ? t.registerTitle : mode === 'reset' ? t.resetTitle : t.title}</h1>
-          {mode !== 'login' ? <p className="text-sm text-muted">{mode === 'reset' ? t.resetBody : t.body}</p> : null}
+          {mode === 'reset' ? <p className="text-sm text-muted">{t.resetBody}</p> : null}
         </div>
         {loading ? (
           <Spinner className="mx-auto size-5" />

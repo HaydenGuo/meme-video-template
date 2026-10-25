@@ -246,7 +246,7 @@ export function zh(s: S): Content {
     },
     signIn: {
       title: `登录 ${b}`,
-      body: '注册无需验证邮箱；找回密码需要能访问该邮箱。',
+      body: '',
       loginTab: '登录',
       registerTab: '注册',
       registerTitle: `注册 ${b} 账号`,

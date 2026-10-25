@@ -266,7 +266,7 @@ export function en(s: S) {
     },
     signIn: {
       title: `Sign in to ${b}`,
-      body: 'You can sign up without email verification. Password recovery requires inbox access.',
+      body: '',
       loginTab: 'Sign in',
       registerTab: 'Create account',
       registerTitle: `Create your ${b} account`,
