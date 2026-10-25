@@ -257,8 +257,18 @@ function Home() {
             <div className="relative space-y-5">
               <h2 className="font-display text-4xl leading-tight sm:text-5xl">{c.finalCta.title}</h2>
               <a href="#create" className="btn mt-2 bg-ink-fg text-ink hover:opacity-90">
-                {c.finalCta.cta} · {formatPrice(site.packages[0]!.priceCents, site.packages[0]!.currency)}+
+                {c.finalCta.cta} <ArrowRight className="size-4" />
               </a>
+              <div className="mx-auto max-w-3xl space-y-2 text-sm text-ink-fg/75">
+                <p>{c.pricing.subtitle}</p>
+                <p className="flex flex-wrap justify-center gap-x-4 gap-y-1">
+                  {site.packages.map((pack) => (
+                    <span key={pack.id}>
+                      {c.pricing.credits(pack.credits)} · {formatPrice(pack.priceCents, pack.currency)}
+                    </span>
+                  ))}
+                </p>
+              </div>
             </div>
           </div>
         </div>
