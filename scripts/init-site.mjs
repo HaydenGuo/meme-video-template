@@ -317,7 +317,13 @@ for (const locale of ['en', 'zh']) {
       { h: 'Before sharing', p: ['Label the result as AI-generated, respect creator and likeness permissions, and check the applicable platform rules for music and footage.'] },
     ],
   }
-  const trend = trendArticle?.[locale] ?? generatedTrend
+  const sourceTrend = trendArticle?.[locale]
+  const trend = sourceTrend ? {
+    title: sourceTrend.title,
+    description: sourceTrend.description,
+    intro: sourceTrend.intro,
+    sections: sourceTrend.sections.map((section) => ({ h: section.h, p: section.p })),
+  } : generatedTrend
   const guide = { title: zh ? `如何制作 ${keyword} AI 视频` : `How to make a ${keyword} AI video`, description: about, intro: about,
     sections: zh ? [
       { h: '1. 准备照片', p: ['使用清晰的单人照片，确保照片是本人或已获人物许可。'] },
