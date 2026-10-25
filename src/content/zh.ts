@@ -78,7 +78,7 @@ export function zh(s: S): Content {
       stepFormat: '视频比例',
       stepBackground: '背景描述（可选）',
       backgroundPlaceholder: '例如：夜晚的霓虹屋顶舞台，远处是城市天际线',
-      backgroundHint: '留空默认沿用模因背景；填写后会将描述加入视频提示词。最多 500 字。',
+      backgroundHint: '',
       portrait: '竖版',
       landscape: '横版',
       seconds: (n: number) => `${n} 秒`,

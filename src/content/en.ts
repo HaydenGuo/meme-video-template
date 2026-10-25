@@ -86,7 +86,7 @@ export function en(s: S) {
       stepFormat: 'Video format',
       stepBackground: 'Background description (optional)',
       backgroundPlaceholder: 'For example: a neon-lit rooftop at night, with a city skyline in the distance',
-      backgroundHint: 'Leave blank to keep the meme background. Your description will be added to the video prompt. Up to 500 characters.',
+      backgroundHint: '',
       portrait: 'Portrait',
       landscape: 'Landscape',
       seconds: (n: number) => `${n} s`,

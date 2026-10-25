@@ -246,10 +246,8 @@ export function Generator() {
             rows={3}
             disabled={busy || loading || !generationEnabled || generation !== null}
             placeholder={g.backgroundPlaceholder}
-            aria-describedby="background-hint"
             className="w-full resize-y rounded-xl border border-line bg-bg-soft px-4 py-3 text-sm text-fg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-60"
           />
-          <p id="background-hint" className="text-xs leading-5 text-muted">{g.backgroundHint}</p>
         </section>
 
         <label className="flex items-start gap-3 text-xs leading-5 text-muted">
