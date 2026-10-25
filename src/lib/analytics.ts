@@ -42,6 +42,7 @@ export function trackVideoDownload(surface: 'generator' | 'dashboard') {
 }
 
 export function markGoogleLogin() {
+  if (!analyticsAllowed()) return
   try { sessionStorage.setItem(LOGIN, String(Date.now())) } catch { /* 不影响登录 */ }
 }
 
