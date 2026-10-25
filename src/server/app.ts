@@ -194,7 +194,7 @@ app.post('/api/auth/email/login', async (c) => {
   await rateLimit(c.env.AUTH_LIMITER, `email-login:${c.req.header('cf-connecting-ip') ?? 'local'}`)
   const body = await readJson<{ email: string; password: string }>(c)
   const email = normalizeAuthEmail(body.email)
-  if (typeof body.password !== 'string' || body.password.length > 128) throw new ApiError(401, 'invalid_credentials')
+  if (typeof body.password !== 'string' || body.password.length === 0) throw new ApiError(401, 'invalid_credentials')
   await limitEmailAction(c.env, `login:${email}`, 10, 15 * 60_000)
   const account = await c.env.DB.prepare(
     'SELECT u.*, ec.password_hash, ec.verified_at FROM users u JOIN email_credentials ec ON ec.user_id = u.id WHERE lower(trim(u.email)) = ?',

@@ -275,7 +275,6 @@ export function en(s: S) {
       emailLabel: 'Email address',
       passwordLabel: 'Password',
       confirmPassword: 'Confirm password',
-      passwordHint: 'Use 10–128 characters.',
       codeLabel: 'Email verification code',
       sendCode: 'Send code',
       resendIn: (n: number) => `Resend in ${n}s`,
@@ -504,7 +503,7 @@ export function en(s: S) {
     errors: {
       invalid_auth_request: 'Invalid authentication request.',
       invalid_credentials: 'Email or password is incorrect.',
-      invalid_password: 'Use a password between 10 and 128 characters.',
+      invalid_password: 'Enter a password.',
       password_mismatch: 'The passwords do not match.',
       invalid_verification_code: 'The verification code is incorrect, expired or already used. Request a new code if needed.',
       email_account_exists: 'An account already uses this email. Sign in, or continue with Google if that is how you registered.',

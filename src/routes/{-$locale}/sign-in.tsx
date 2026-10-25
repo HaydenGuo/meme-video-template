@@ -166,16 +166,15 @@ function SignInPage() {
                 </label>
                 <label className="block space-y-1.5 text-sm">
                   <span>{t.passwordLabel}</span>
-                  <input className="input" type="password" required minLength={mode === 'login' ? 1 : 10} maxLength={128}
+                  <input className="input" type="password" required
                     autoComplete={mode === 'login' ? 'current-password' : 'new-password'} disabled={pending || sending}
                     value={password} onChange={(event) => setPassword(event.target.value)} data-testid="auth-password" />
-                  {mode === 'register' ? <span className="block text-xs text-muted">{t.passwordHint}</span> : null}
                 </label>
                 {mode === 'reset' ? (
                   <>
                     <label className="block space-y-1.5 text-sm">
                       <span>{t.confirmPassword}</span>
-                      <input className="input" type="password" required minLength={10} maxLength={128} autoComplete="new-password"
+                      <input className="input" type="password" required autoComplete="new-password"
                         disabled={pending || sending} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} data-testid="auth-confirm-password" />
                     </label>
                     <label className="block space-y-1.5 text-sm">

@@ -30,7 +30,7 @@ export function authPurpose(value: unknown): Purpose {
 }
 
 export function validatePassword(value: unknown): asserts value is string {
-  if (typeof value !== 'string' || value.length < 10 || value.length > 128) throw new ApiError(400, 'invalid_password')
+  if (typeof value !== 'string' || value.length === 0) throw new ApiError(400, 'invalid_password')
 }
 
 function authSecret(env: Env) {

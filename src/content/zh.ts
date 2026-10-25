@@ -255,7 +255,6 @@ export function zh(s: S): Content {
       emailLabel: '邮箱地址',
       passwordLabel: '密码',
       confirmPassword: '确认密码',
-      passwordHint: '请输入 10–128 个字符。',
       codeLabel: '邮箱验证码',
       sendCode: '发送验证码',
       resendIn: (n: number) => `${n} 秒后重发`,
@@ -479,7 +478,7 @@ export function zh(s: S): Content {
     errors: {
       invalid_auth_request: '登录请求无效。',
       invalid_credentials: '邮箱或密码不正确。',
-      invalid_password: '密码长度需为 10–128 个字符。',
+      invalid_password: '请输入密码。',
       password_mismatch: '两次输入的密码不一致。',
       invalid_verification_code: '验证码不正确、已过期或已使用，请检查或重新获取。',
       email_account_exists: '该邮箱已有账户，请直接登录；如果之前使用 Google 注册，请继续使用 Google 登录。',
