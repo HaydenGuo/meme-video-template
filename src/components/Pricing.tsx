@@ -54,7 +54,7 @@ export function Pricing() {
         className={`${primary ? 'btn-primary' : 'btn-ghost'} mt-auto w-full`}
         data-testid={`buy-${id}`}
       >
-        {!loading && !canBuy ? c.common.comingSoon : pending === id ? (
+        {!loading && !canBuy ? (featureEnabled(config, 'payments') ? c.common.comingSoon : p.newPurchasesClosed) : pending === id ? (
           <>
             <Spinner /> {p.buying}
           </>

@@ -179,6 +179,7 @@ export function en(s: S) {
       was: 'Regular price',
       save: (percent: number) => `Save ${percent}%`,
       buy: 'Buy credits',
+      newPurchasesClosed: 'Purchases are not open yet',
       buying: 'Opening checkout…',
       credits: (n: number) => `${n} credits`,
       approx: (videos: number, seconds: number) => `≈ ${videos} videos of ${seconds} s`,

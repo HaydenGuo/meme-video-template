@@ -9,6 +9,9 @@
 - `keyword`：梗名称；`slug`：英文站点标识。
 - `overview.zh` / `overview.en`：梗的实际介绍。可把中文资料交给 AI 整理成这份文件；脚本不调用翻译或研究 API，不编造起源和热度。
 - `media.sourceVideo`：至少达到最长档位的原片，默认裁出开头 5/12/15 秒。可用 `durations: [5,12,14]` 等三个递增整数配置实际长度；需要不同起点时先提供剪好的原片。
+- `heroVideo`（可选）：首页首屏展示的 YouTube 目标/官方视频，例如 `{ "videoId": "OPf0YbXqDm0", "playlistId": "RDOPf0YbXqDm0", "startAt": 17 }`。只填视频 ID、可选歌单 ID 与起始秒数；页面使用 YouTube 隐私增强型嵌入。它只影响展示，生成仍使用 `media.sourceVideo`，两者不可混为一谈。
+- `trendArticle`（可选）：可同时提供 `en`/`zh` 的 `title`、`description`、`intro` 和 `sections`，每种语言 4–10 个不同主题的小节，每节 1–5 段。填写后初始化会使用这份文章；未填写时只生成待补充的四节草稿。上线前根据可信来源补全梗的来源/形式/传播和复刻方式，不要只改写 `overview` 或编造日期与热度。
+- `trendSources`（可选）：来源列表，例如 `{ "url": "https://example.org/article", "name": { "en": "Article title", "zh": "文章标题" } }`。只接受 HTTPS URL；来源会显示在趋势指南下方，并写入文章结构化数据。
 - `aspectRatio`：默认画幅，`16:9` 或 `9:16`。固定分镜/原声工程配置见 [固定 Hypit 流程](fixed-hypit-workflow.md)。
 - `media.exampleVideo`：已制作的 AI 示例视频，不会以原片冒充 AI 成片。
 - `media.photo`：示例成片使用的照片。
@@ -50,8 +53,9 @@ npm run dev
 ## 自动完成的内容
 
 - 调用已有 `new-site.mjs` 设置品牌、slug、文章路径、资源名称、日期，清空旧站分析和验证标识；不再删除原有 staging 配置。
-- 将梗介绍写入配置、首屏和趋势指南；生成与照片、时长、比例、积分和下载步骤一致的中英文操作指南。通用 FAQ、法律和场景文案沿用模板，事实/翻译/SEO 仍需审阅。
+- 将梗介绍写入配置、首屏和趋势指南；如 profile 提供完整双语 `trendArticle`，按其写入；否则生成梗的可见形式、复刻方式、本站 AI 流程和发布前检查四节草稿。趋势指南上线前必须补充经来源核实的梗背景与传播原因，避免仅保留初始化草稿或改写同一段简介。通用 FAQ、法律和场景文案沿用模板，事实/翻译/SEO 仍需审阅。
 - 转码原片和真实 AI 示例，生成视频封面、照片、1200×630 OG 图和通用播放图标；展示均引用 `public/site-init/` 的本次素材。三个创意场景暂复用同一真实示例，不伪造额外样片。
+- 当 profile 提供 `heroVideo` 时，首屏用 YouTube 嵌入展示目标视频；本地裁切原片仍供生成流程使用，生成案例单独展示，不在每条案例视频上重复叠加“AI version”徽标。
 - 生成 5/12/15 秒参考视频；固定每秒 1 积分，积分包 $9.90/25 和 $19.90/60，关闭新订阅。
 - 按 `launch` 设置功能开关、环境和 URL，同时写入管理员邮箱、Google 配置和 Bridge 站点 ID；私有密钥仅写入已被 Git 忽略的 `.dev.vars`。默认 `local` 使用 mock，不产生生成费用；线上阶段不使用 mock，尚缺的服务通过 doctor 检查。
 - 输出 `bridge-site.json`，作为 VPS Bridge 的 `sites` 属性下的站点片段。需与现有站点合并后重启；不会覆盖正在运行的 Bridge。

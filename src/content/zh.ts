@@ -162,6 +162,7 @@ export function zh(s: S): Content {
       was: '原价',
       save: (percent: number) => `省 ${percent}%`,
       buy: '购买积分',
+      newPurchasesClosed: '充值暂未开放',
       buying: '正在打开支付页…',
       credits: (n: number) => `${n} 积分`,
       approx: (videos: number, seconds: number) => `约 ${videos} 条 ${seconds} 秒视频`,
