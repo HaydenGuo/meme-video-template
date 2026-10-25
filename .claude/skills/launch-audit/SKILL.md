@@ -67,7 +67,7 @@ SMOKE_BASE_URL=https://<domain> npm run test:smoke 2>&1 | tee $D/smoke.log   # �
 | R2 生命周期 | `npx wrangler r2 bucket lifecycle list <name>-media`：uploads/ 8 天、outputs/ 31 天，`templates/` 没有规则 |
 | R2 模板源视频 | `curl -sI https://<domain>/media/templates/<site.durations[].source>` 每个都返回 200 |
 | Turnstile | `TURNSTILE_SITE_KEY` 已填，密钥已由 doctor 核对；用 Cloudflare 控制台确认 hostname 包含本域名 |
-| Google OAuth | 同意屏幕已发布（不是 Testing），回调地址已配置；用无痕窗口试一次 Google 登录 |
+| Google OAuth | OAuth Web 客户端同意屏幕已发布；Authorized JavaScript origins 登记每个实际访问 origin（scheme/host/port，不带路径），Authorized redirect URI 精确匹配 `${SITE_URL}/api/auth/google/callback`；分别从规范域名与 apex/www 别名实际打开登录，确认 One Tap 无 `origin_mismatch`、授权无 `redirect_uri_mismatch`，回调 token 交换使用相同 URI 且登录态成功；`oauth_state` 则检查别名跳转和 state cookie。修正对应白名单，不创建额外客户端或密钥 |
 | 自定义域名与 HTTPS | 第 2 节的 curl 结果；证书有效 |
 | 后台概览“上线配置检查” | 管理员登录 `/admin` 看卡片没有问题项（也能查出 `SESSION_SECRET` 太弱） |
 

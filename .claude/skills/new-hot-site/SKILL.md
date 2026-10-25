@@ -103,6 +103,6 @@ git grep -n "TODO(site)" -- src wrangler.jsonc
 2. `git diff --stat` 和简介里每个字段落到了哪里。
 3. 验证结果：每条命令和是否通过，seo:check 剩下的 warn。
 4. 剩余的 `TODO(site)`（第 7 步 `git grep` 的结果）。
-5. 上线前必须用户自己做的事（README“上新词流程”第 5–8 步）：创建 Cloudflare 资源并写回 id；把 vars 改成生产值（`APP_ENV=production`、`SITE_URL`、真实服务商、`ADMIN_EMAILS` 等，简介里记下的值一并列出）；`wrangler secret put` 各密钥；在支付商后台建商品；`npm run deploy`；上线后的 seo:check 和站长平台提交。
+5. 上线前必须用户自己做的事（README“上新词流程”第 5–8 步）：创建 Cloudflare 资源并写回 id；把 vars 改成生产值（`APP_ENV=production`、`SITE_URL`、真实服务商、`ADMIN_EMAILS` 等，简介里记下的值一并列出）；`wrangler secret put` 各密钥；在 Google OAuth Web 客户端登记实际访问域名的 Authorized JavaScript origins（仅 origin，不带路径）及 `${SITE_URL}/api/auth/google/callback` 这个 Authorized redirect URI；在支付商后台建商品；`npm run deploy`；上线后的 seo:check 和站长平台提交。
 
 不提交、不推送、不部署，除非用户明确要求。

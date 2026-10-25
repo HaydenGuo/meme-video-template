@@ -25,7 +25,7 @@
 
 支持现有 `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` 或标准 `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`。可由终端或 Infisical 向进程注入环境变量。每个站自动生成独立 SESSION_SECRET，不跨站共用会话和积分。
 
-Google 凭据可复用，但需在 Google 控制台登记新站的准确回调；应用名称沿用 Google 项目的品牌配置。初始化不会修改 Google 控制台。凭据存在只表示已配置，不表示授权回调已通过。
+Google 凭据可复用，但需在 Google 控制台 OAuth Web 客户端登记新站的 **Authorized JavaScript origins** 和准确的 **Authorized redirect URI**。来源只填写 origin（如 `https://example.com`、`https://www.example.com`），回调必须与本站 `SITE_URL` 完全一致：`${SITE_URL}/api/auth/google/callback`。初始化不会修改 Google 控制台。凭据存在只表示已配置，不表示授权回调已通过。
 
 ## 安装后运行
 
