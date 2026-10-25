@@ -4,6 +4,7 @@
 
 export const CONSENT_KEY = 'consent.analytics'
 export const ANALYTICS_EXCLUDED_KEY = 'analytics.excluded'
+export const ANALYTICS_PENDING_KEY = 'analytics.pending-generations'
 export const CONSENT_OPEN_EVENT = 'consent:open'
 export type Consent = 'granted' | 'denied'
 
@@ -61,6 +62,7 @@ export function saveConsent(ga4Id: string, value: Consent) {
       document.head.appendChild(script)
     }
   } else {
+    try { localStorage.removeItem(ANALYTICS_PENDING_KEY) } catch { /* 隐私模式 */ }
     deleteGaCookies()
   }
 }

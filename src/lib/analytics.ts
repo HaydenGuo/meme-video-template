@@ -1,27 +1,27 @@
 // 只记录获准统计的业务动作；任务号仅用于本机去重，不发送给 GA。
 import type { Generation } from './api'
 import { track } from './attribution'
-import { analyticsAllowed } from './consent'
+import { ANALYTICS_PENDING_KEY, analyticsAllowed } from './consent'
 
-const PENDING = 'analytics.pending-generations'
+const PENDING = ANALYTICS_PENDING_KEY
 const LOGIN = 'analytics.login-attempt'
 const MAX_AGE = 7 * 86400_000
 let pending: Record<string, number> = {}
 
 function readPending() {
-  try { pending = { ...pending, ...JSON.parse(localStorage.getItem(PENDING) || '{}') } } catch { /* 内存回退 */ }
+  try { pending = JSON.parse(localStorage.getItem(PENDING) || '{}') || {} } catch { /* 内存回退 */ }
   pending = Object.fromEntries(Object.entries(pending).filter(([, at]) => typeof at === 'number' && Date.now() - at < MAX_AGE).slice(-50))
   return pending
 }
 
 function savePending() {
+  pending = Object.fromEntries(Object.entries(pending).slice(-50))
   try { localStorage.setItem(PENDING, JSON.stringify(pending)) } catch { /* 内存回退 */ }
 }
 
 export function trackGenerationCreated(generation: Generation) {
   if (!analyticsAllowed()) return
   readPending()[generation.id] = Date.now()
-  readPending()
   savePending()
   track('generate_video', { duration_id: generation.durationId, credits: generation.creditsCost })
 }
