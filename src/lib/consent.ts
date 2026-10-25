@@ -20,7 +20,7 @@ export function ga4BootstrapScript(ga4Id: string) {
     "gtag('consent','default',{ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',analytics_storage:c==='granted'?'granted':'denied'});",
     "gtag('js',new Date());var u=new URL(location.href);u.searchParams.delete('email');",
     "u.searchParams.delete('analytics');u.searchParams.delete('preview');var authRef=false;try{authRef=new URL(document.referrer).hostname==='accounts.google.com'}catch(e){}",
-    `gtag('config',${id},{page_location:u.href,ignore_referrer:authRef});`,
+    `gtag('config',${id},{page_location:u.href,...(authRef?{ignore_referrer:true}:{})});`,
     `if(c==='granted'&&!excluded){var s=document.createElement('script');s.async=true;s.src=${JSON.stringify(GTAG_SRC)}+${id};document.head.appendChild(s)}`,
   ].join('')
 }
@@ -36,7 +36,11 @@ export function readConsent(): Consent | null {
 
 export function analyticsAllowed() {
   if (typeof window === 'undefined' || readConsent() !== 'granted') return false
-  try { return localStorage.getItem(ANALYTICS_EXCLUDED_KEY) !== '1' } catch { return false }
+  return !analyticsExcluded()
+}
+
+function analyticsExcluded() {
+  try { return localStorage.getItem(ANALYTICS_EXCLUDED_KEY) === '1' } catch { return false }
 }
 
 type Gtag = (command: 'consent', action: 'update', params: Record<string, string>) => void
@@ -49,7 +53,7 @@ export function saveConsent(ga4Id: string, value: Consent) {
   }
   const gtag = (window as unknown as { gtag?: Gtag }).gtag
   gtag?.('consent', 'update', { analytics_storage: value })
-  if (value === 'granted' && analyticsAllowed()) {
+  if (value === 'granted' && !analyticsExcluded()) {
     if (!document.querySelector(`script[src^="${GTAG_SRC}"]`)) {
       const script = document.createElement('script')
       script.async = true
