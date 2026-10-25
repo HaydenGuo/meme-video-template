@@ -6,10 +6,18 @@ import type { Content } from '#/content/en'
 // - 服务端渲染和客户端路由跳转：根路由 beforeLoad（routes/__root.tsx）
 // - 浏览器首屏：router 模块执行时就开始下载，水合前由 router 的 hydrate 钩子等它完成（src/router.tsx）
 // 加载完成后 getContent / useContent 同步可用
-const loaders: Record<Locale, () => Promise<(s: typeof site) => Content>> = {
-  en: () => import('#/content/en').then((m) => m.en),
-  zh: () => import('#/content/zh').then((m) => m.zh),
-}
+type ContentFactory = (s: typeof site) => Content
+const modules = import.meta.glob<Record<string, unknown>>('../content/*.ts')
+const loaders = Object.fromEntries(LOCALES.map((locale) => {
+  const path = `../content/${locale}.ts`
+  const load = modules[path]
+  if (!load) throw new Error(`文案文件不存在：src/content/${locale}.ts`)
+  return [locale, () => load().then((module) => {
+    const factory = module[locale]
+    if (typeof factory !== 'function') throw new Error(`src/content/${locale}.ts 必须导出 ${locale} 文案工厂`)
+    return factory as ContentFactory
+  })]
+})) as Record<Locale, () => Promise<ContentFactory>>
 const cache = new Map<Locale, Content>()
 const pending = new Map<Locale, Promise<Content>>()
 

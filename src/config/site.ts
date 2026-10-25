@@ -1,15 +1,19 @@
 // 上新词时主要改这个文件：关键词、品牌、模板视频、时长档位、积分包、文章 slug。
 // 文案在 src/content/<locale>.ts，通过 {keyword} 等变量自动套用。
 
-export const LOCALES = ['en', 'zh'] as const
+// 支持的语言全集；LOCALES 只启用当前站点实际提供了文案的语言。
+export const KNOWN_LOCALES = ['en', 'zh', 'de'] as const
+export type KnownLocale = (typeof KNOWN_LOCALES)[number]
+export const LOCALES = ['en', 'zh'] as const satisfies readonly KnownLocale[]
 export type Locale = (typeof LOCALES)[number]
 export const DEFAULT_LOCALE: Locale = 'en'
 
-// 每种语言的 BCP 47 标签（<html lang>、日期格式、Turnstile）、og:locale 和切换器里显示的自称。
-// 加语言时在这里补一行，并在 src/lib/i18n.ts 的 loaders 里登记文案文件
-export const LOCALE_META: Record<Locale, { tag: string; ogLocale: string; name: string }> = {
+// 每种支持语言的 BCP 47 标签（<html lang>、日期格式、Turnstile）、og:locale 和切换器里显示的自称。
+// 启用新语言时更新 KNOWN_LOCALES 和元数据，并在 src/config/site.ts 的 LOCALES 启用及提供 src/content/<locale>.ts。
+export const LOCALE_META: Record<KnownLocale, { tag: string; ogLocale: string; name: string }> = {
   en: { tag: 'en', ogLocale: 'en_US', name: 'English' },
   zh: { tag: 'zh-CN', ogLocale: 'zh_CN', name: '简体中文' },
+  de: { tag: 'de', ogLocale: 'de_DE', name: 'Deutsch' },
 }
 
 export const site = {

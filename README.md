@@ -18,7 +18,7 @@ GitHub → Cloudflare push deployment is available in [deployment setup](docs/cl
 
 Referral rewards are 10% of the credits on a friend's first paid order, rounded down (25 credits → 2, 60 → 6). Configure `referralRewardPercent` from 0–100. Existing awarded amounts and refund clawbacks remain fixed. Legacy fixed-credit settings are ignored; no past rewards are recalculated.
 
-The root URL defaults to English and the initial theme is dark. A saved light/dark choice takes precedence; Chinese remains available under `/zh`.
+The root URL defaults to English and the initial theme is dark. A saved light/dark choice takes precedence; Chinese remains available under `/zh`. To enable another supported language, add it to `LOCALES` in `src/config/site.ts` and provide `src/content/<locale>.ts` with the matching export. German (`de`) is supported by the language metadata and transactional email templates.
 
 Keep the UI concise: section headings replace decorative labels, the hero uses one introduction, and example cards need no playback explanation. Credit packs show their amount and price, with shared benefits listed once. Preserve form labels, constraints, consent, errors and billing terms.
 
@@ -72,7 +72,7 @@ A 72-second tour, no sound ([Chinese version](README.zh-CN.md); MP4 files in [do
 
 > Status: the full flow works locally (unit tests + Playwright e2e). It has not been deployed as a production site yet; [ROADMAP.md](ROADMAP.md) lists what has and hasn't been verified against real services. Code comments, ROADMAP and `docs/` are currently in Chinese.
 
-- Frontend/SSR: TanStack Start (React 19) + Tailwind 4. English at `/`, Chinese at `/zh`.
+- Frontend/SSR: TanStack Start (React 19) + Tailwind 4. English at `/`, Chinese at `/zh`; other enabled languages use their locale prefix.
 - API: Hono (`/api/*`, `/media/*`, `/sitemap.xml`, `/robots.txt`, IndexNow key file); entry point `src/server.ts`.
 - Payments: Waffo Pancake (default) or Dodo Payments, both Merchants of Record. `mock` is for local dev and e2e only.
 - Video: fal.ai queue API (default) or the optional [yir.ai](https://yir.ai/?ref=qianshuixia) router; `mock` for local dev and e2e. See "Video providers" below.

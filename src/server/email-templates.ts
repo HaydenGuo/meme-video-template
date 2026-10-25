@@ -1,4 +1,4 @@
-import { DEFAULT_LOCALE, LOCALE_META, isLocale, localePath, site, type Locale } from '#/config/site'
+import { DEFAULT_LOCALE, LOCALE_META, isLocale, localePath, site, type KnownLocale, type Locale } from '#/config/site'
 import type { AlertKind } from './alerts'
 
 // 交易邮件模板。用户邮件每种语言一份（新增语言时类型检查会要求补齐），管理员邮件固定中文（后台是中文）。
@@ -54,9 +54,10 @@ function date(ctx: Ctx, iso: string, withTime = false) {
   }).format(new Date(iso)) + (withTime ? ' UTC' : '')
 }
 
-const AI_FOOTER: Record<Locale, string> = {
+const AI_FOOTER: Record<KnownLocale, string> = {
   en: `Videos made with ${brand} are AI-generated. Please label them as AI when you share them.`,
   zh: `${brand} 生成的视频均为 AI 生成，分享时请注明。`,
+  de: `Mit ${brand} erstellte Videos sind KI-generiert. Kennzeichne sie beim Teilen als KI-generiert.`,
 }
 
 const REASONS_ZH: Record<string, string> = {
@@ -125,7 +126,7 @@ const ALERTS_ZH: Record<AlertKind, (p: AlertParams) => { title: string; summary:
   }),
 }
 
-const USER_TEMPLATES: { [K in UserTemplate]: Record<Locale, Render<K>> } = {
+const USER_TEMPLATES: { [K in UserTemplate]: Record<KnownLocale, Render<K>> } = {
   auth_code: {
     en: (p) => ({
       subject: `${brand}: reset your password`,
@@ -136,6 +137,11 @@ const USER_TEMPLATES: { [K in UserTemplate]: Record<Locale, Render<K>> } = {
       subject: `${brand}：重置密码`,
       heading: '重置密码',
       paragraphs: [`你的验证码是 ${p.code}，${p.minutes} 分钟内有效，只能使用一次。`, '请勿向他人透露验证码。如果不是你本人操作，请忽略这封邮件。'],
+    }),
+    de: (p) => ({
+      subject: `${brand}: Passwort zurücksetzen`,
+      heading: 'Passwort zurücksetzen',
+      paragraphs: [`Dein Bestätigungscode lautet ${p.code}. Er ist ${p.minutes} Minuten gültig und kann nur einmal verwendet werden.`, 'Gib diesen Code nicht weiter. Wenn du ihn nicht angefordert hast, ignoriere diese E-Mail.'],
     }),
   },
   generation_succeeded: {
@@ -156,6 +162,11 @@ const USER_TEMPLATES: { [K in UserTemplate]: Record<Locale, Render<K>> } = {
       cta: { label: '查看我的视频', url: link(ctx, '/dashboard') },
       footer: AI_FOOTER.zh,
     }),
+    de: (p, ctx) => ({
+      subject: `Dein ${brand}-Video ist fertig`, heading: 'Dein Video ist fertig',
+      paragraphs: ['Dein KI-Video kann jetzt angesehen und heruntergeladen werden.', p.expiresAt ? `Wir speichern es bis zum ${date(ctx, p.expiresAt)} und löschen es danach automatisch. Lade es herunter, wenn du es behalten möchtest.` : ''],
+      cta: { label: 'Meine Videos öffnen', url: link(ctx, '/dashboard') }, footer: AI_FOOTER.de,
+    }),
   },
 
   generation_failed: {
@@ -173,6 +184,11 @@ const USER_TEMPLATES: { [K in UserTemplate]: Record<Locale, Render<K>> } = {
       heading: '视频生成失败',
       paragraphs: [`这次生成没有成功，${p.credits} 个积分已退回你的账户。`, '可以用同一张照片再试一次，或者换一张正脸清晰的照片。'],
       cta: { label: '重新生成', url: link(ctx, '/') },
+    }),
+    de: (p, ctx) => ({
+      subject: `Dein ${brand}-Video ist fehlgeschlagen – Credits erstattet`, heading: 'Dein Video konnte nicht erstellt werden',
+      paragraphs: [`Bei der Erstellung ist ein Fehler aufgetreten. ${p.credits} Credits wurden deinem Guthaben wieder gutgeschrieben.`, 'Du kannst es mit demselben Foto erneut versuchen oder ein klares Foto von vorn verwenden.'],
+      cta: { label: 'Erneut versuchen', url: link(ctx, '/') },
     }),
   },
 
@@ -192,6 +208,11 @@ const USER_TEMPLATES: { [K in UserTemplate]: Record<Locale, Render<K>> } = {
       paragraphs: [`感谢购买！${p.credits} 个积分已加到你的 ${brand} 账户（订单 ${p.orderId}，${p.amount}）。`, '付款收据由支付服务商另行发送。'],
       cta: { label: '开始生成', url: link(ctx, '/') },
     }),
+    de: (p, ctx) => ({
+      subject: `${p.credits} Credits wurden deinem ${brand}-Konto gutgeschrieben`, heading: 'Credits gutgeschrieben',
+      paragraphs: [`Danke für deinen Kauf! ${p.credits} Credits wurden deinem Konto hinzugefügt (Bestellung ${p.orderId}, ${p.amount}).`, 'Den Zahlungsbeleg sendet dir unser Zahlungsanbieter separat.'],
+      cta: { label: 'Video erstellen', url: link(ctx, '/') },
+    }),
   },
 
   takedown_received: {
@@ -210,6 +231,10 @@ const USER_TEMPLATES: { [K in UserTemplate]: Record<Locale, Render<K>> } = {
         `举报编号：${p.reportId}。我们会在 ${date(ctx, p.dueAt, true)} 前处理完毕，结果会发到这个邮箱。`,
         '需要补充信息（例如视频链接或下载文件名）请直接回复本邮件。',
       ],
+    }),
+    de: (p, ctx) => ({
+      subject: `Wir haben deine Meldung erhalten (${p.reportId})`, heading: 'Meldung eingegangen',
+      paragraphs: [`Referenz: ${p.reportId}. Wir prüfen den Fall bis zum ${date(ctx, p.dueAt, true)} und teilen dir das Ergebnis per E-Mail mit.`, 'Wenn du weitere Angaben wie einen Link oder Dateinamen hast, antworte auf diese E-Mail.'],
     }),
   },
 
@@ -236,6 +261,13 @@ const USER_TEMPLATES: { [K in UserTemplate]: Record<Locale, Render<K>> } = {
               '如果你有视频链接或下载文件名（文件名里有以 gen_ 开头的编号），请回复本邮件，我们会重新核查。',
             ],
     }),
+    de: (p) => ({
+      subject: `Aktualisierung zu deiner Meldung (${p.reportId})`,
+      heading: p.outcome === 'removed' ? 'Inhalt entfernt' : 'Keine Maßnahme',
+      paragraphs: p.outcome === 'removed'
+        ? ['Wir haben deine Meldung geprüft und den Inhalt entfernt. Das verwendete Foto kann nicht erneut hochgeladen werden.']
+        : ['Mit den vorliegenden Angaben konnten wir keinen zu entfernenden Inhalt finden.', 'Wenn du einen Link oder Dateinamen des Videos hast (er enthält eine ID mit dem Anfang gen_), antworte auf diese E-Mail. Wir prüfen den Fall erneut.'],
+    }),
   },
 
   content_removed: {
@@ -254,6 +286,10 @@ const USER_TEMPLATES: { [K in UserTemplate]: Record<Locale, Render<K>> } = {
         `收到举报（${p.reportId}）后，我们删除了用同一张照片生成的 ${p.videos} 个视频，并禁止这张照片再次上传。`,
         '只能上传你本人或已取得对方同意的照片。如果你认为处理有误，请回复本邮件说明。',
       ],
+    }),
+    de: (p) => ({
+      subject: `Ein Video in deinem ${brand}-Konto wurde entfernt`, heading: 'Video entfernt',
+      paragraphs: [`Nach einer Meldung (${p.reportId}) haben wir ${p.videos} Video(s) entfernt, die mit demselben Foto erstellt wurden. Dieses Foto wurde für weitere Uploads gesperrt.`, 'Lade nur Fotos von dir selbst oder von Personen hoch, die zugestimmt haben. Wenn du die Entfernung für einen Fehler hältst, antworte auf diese E-Mail.'],
     }),
   },
 }
