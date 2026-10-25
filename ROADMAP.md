@@ -1,5 +1,7 @@
 # ROADMAP
 
+- 2026-10-25：站点地图改为游戏站同款 sitemap-index.xml → sitemap-0.xml 结构，保留旧地址兼容，同步 robots、SEO 巡检与 IndexNow 子地图读取。
+
 - 2026-10-25：模型提交前检查人像与参考视频像素数，自动等比调整并读回验证，保留原始哈希和原声音轨；初始化复用相同限制，减少 CreateAsset.PixelCountTooSmall 错误。
 
 - 2026-10-25：限制本地合成 FFmpeg 与浏览器并发，Runtime 线程名额由 128 调整为 512；记录只重跑合成、复用已生成视频的方法。

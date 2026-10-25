@@ -4,7 +4,7 @@
 // 用法：
 //   npm run seo:indexnow              # 只打印将要提交的 URL，不发请求
 //   npm run seo:indexnow -- --submit  # 真正提交
-// URL 列表取自正式站的 /sitemap.xml。
+// URL 列表取自正式站索引指向的 /sitemap-0.xml 子地图。
 import { site } from '../src/config/site.ts'
 
 const submit = process.argv.includes('--submit')
@@ -14,10 +14,10 @@ const origin = `https://${site.domain}`
 if (!site.domain || site.domain === 'example.com') throw new Error('site.domain 仍是占位域名，先改成正式域名')
 if (!/^[A-Za-z0-9-]{8,128}$/.test(key)) throw new Error('site.seo.indexNowKey 需为 8–128 位字母、数字或短横线')
 
-const sitemap = await fetch(`${origin}/sitemap.xml`)
-if (!sitemap.ok) throw new Error(`读取 ${origin}/sitemap.xml 失败：HTTP ${sitemap.status}`)
+const sitemap = await fetch(`${origin}/sitemap-0.xml`)
+if (!sitemap.ok) throw new Error(`读取 ${origin}/sitemap-0.xml 失败：HTTP ${sitemap.status}`)
 const urls = [...(await sitemap.text()).matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1].replace(/&amp;/g, '&'))
-console.log(`${urls.length} URLs from ${origin}/sitemap.xml`)
+console.log(`${urls.length} URLs from ${origin}/sitemap-0.xml`)
 for (const url of urls) console.log(`  ${url}`)
 
 if (!submit) {

@@ -1,5 +1,7 @@
 # Meme Video Template（梗视频站模板）
 
+搜索引擎提交 `/sitemap-index.xml`，由其引用 `/sitemap-0.xml`；旧 `/sitemap.xml` 继续兼容返回同一子地图。采用游戏站的命名空间、紧凑 XML、内容日期及响应头，多语言网址保持与页面 canonical 一致。
+
 Hypit Bridge 在模型提交前检查并归一化人像与参考视频尺寸，站点初始化沿用同一像素限制。见 [Bridge 运维说明](services/hypit-bridge/README.md)。
 
 指南自动提供 `/feed.xml` 和 `/zh/feed.xml` 两种语言的 RSS，页面 head 包含订阅发现链接。可在 `site.articles[].sources` 配置双语来源名称和网址，同步渲染到文章与结构化数据；不要把来源链接当作素材使用授权。

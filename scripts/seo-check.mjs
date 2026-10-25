@@ -3,7 +3,7 @@
 // 用法：
 //   npm run seo:check                                   # 检查 http://127.0.0.1:3000
 //   npm run seo:check -- --base https://your-domain.com --production   # 上线后检查正式站
-// 页面列表取自 /sitemap.xml，规则取自 src/config/site.ts。有 error 时退出码为 1。
+// 页面列表取自 /sitemap-0.xml，入口索引为 /sitemap-index.xml。有 error 时退出码为 1。
 // 报告写入 .tmp/seo-check/report.md 与 report.json（--out 可改目录）。
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -124,18 +124,19 @@ export async function runSeoCheck({ base = 'http://127.0.0.1:3000', production =
   if (production && !site.seo.googleVerification) cfg('warn', '未配置 site.seo.googleVerification', '也可以用 DNS 方式在 Search Console 验证')
 
   // 2. sitemap → 页面列表
-  const sm = add('/sitemap.xml')
-  const sitemap = await fetchText(`${base}/sitemap.xml`)
+  const sm = add('/sitemap-0.xml')
+  const sitemap = await fetchText(`${base}/sitemap-0.xml`)
   const origin = `https://${site.domain}`
+  const index = await fetchText(`${base}/sitemap-index.xml`)
+  if (index.response.status !== 200 || !index.text.includes('<sitemapindex ') || !index.text.includes(`<loc>${origin}/sitemap-0.xml</loc>`)) sm('error', 'sitemap-index.xml 缺少正确的子地图', `HTTP ${index.response.status}`)
   let paths = []
   if (sitemap.response.status !== 200) {
-    sm('error', 'sitemap.xml 不可访问', `HTTP ${sitemap.response.status}`)
+    sm('error', 'sitemap-0.xml 不可访问', `HTTP ${sitemap.response.status}`)
   } else {
     const urls = [...sitemap.text.matchAll(/<url>([\s\S]*?)<\/url>/g)].map((m) => m[1])
     for (const url of urls) {
       const loc = decode(url.match(/<loc>([^<]*)<\/loc>/)?.[1] ?? '')
       if (!loc.startsWith(origin)) sm('error', 'sitemap 的 loc 不在 site.domain 下', loc)
-      if (!/<lastmod>\d{4}-\d{2}-\d{2}/.test(url)) sm('warn', 'sitemap 条目缺少 lastmod', loc)
       paths.push(loc.slice(origin.length) || '/')
     }
     for (const locale of LOCALES) {
@@ -237,7 +238,7 @@ export async function runSeoCheck({ base = 'http://127.0.0.1:3000', production =
   const robotsTxt = await fetchText(`${base}/robots.txt`)
   if (robotsTxt.response.status !== 200) sitewide('error', 'robots.txt 不可访问', `HTTP ${robotsTxt.response.status}`)
   else if (/^Disallow:\s*\/\s*$/m.test(robotsTxt.text)) sitewide(production ? 'error' : 'info', 'robots.txt 禁止全部抓取', production ? '正式站必须设置 APP_ENV=production' : '非生产环境的预期行为')
-  else if (!robotsTxt.text.includes(`${origin}/sitemap.xml`)) sitewide('warn', 'robots.txt 未声明 sitemap')
+  else if (!robotsTxt.text.includes(`${origin}/sitemap-index.xml`)) sitewide('warn', 'robots.txt 未声明 sitemap 索引')
   if (production) {
     const hsts = (await fetch(`${base}/`, { redirect: 'manual' })).headers.get('strict-transport-security')
     if (!hsts) sitewide('warn', '正式站缺少 Strict-Transport-Security')

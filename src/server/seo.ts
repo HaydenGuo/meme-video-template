@@ -12,7 +12,7 @@ const FEED_PATHS = LOCALES.map((locale) => localePath(locale, '/feed.xml'))
 
 // server.ts 用它决定交给 Hono 还是 TanStack
 export function isSeoPath(pathname: string) {
-  return pathname === '/sitemap.xml' || pathname === '/robots.txt' || pathname === INDEXNOW_PATH || FEED_PATHS.includes(pathname)
+  return ['/sitemap.xml', '/sitemap-index.xml', '/sitemap-0.xml', '/robots.txt'].includes(pathname) || pathname === INDEXNOW_PATH || FEED_PATHS.includes(pathname)
 }
 
 const ARTICLE_PATHS = ARTICLES.map((article) => `/${article.slug}`)
@@ -49,22 +49,31 @@ for (const locale of LOCALES) {
   })
 }
 
-// URL 与页面 canonical 同源（site.domain），避免 sitemap 与 canonical 不一致
-seoRoutes.get('/sitemap.xml', (c) => {
+const SITEMAP_HEADERS = { 'Content-Type': 'application/xml', 'Cache-Control': 'public, must-revalidate, max-age=0' }
+const XML_DECLARATION = '<?xml version="1.0" encoding="UTF-8"?>'
+
+// 与游戏站一致：索引文件指向 urlset 子地图；日期来自内容，而非抓取时间。
+seoRoutes.get('/sitemap-index.xml', (c) => {
+  const updatedAt = new Date(`${lastModified('/guides')}T00:00:00Z`).toISOString()
+  return c.body(`${XML_DECLARATION}<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><sitemap><loc>${escapeXml(absoluteUrl('/sitemap-0.xml'))}</loc><lastmod>${updatedAt}</lastmod></sitemap></sitemapindex>`, 200, SITEMAP_HEADERS)
+})
+
+// 旧地址仍返回同一子地图，兼容已有订阅和搜索引擎记录。
+// 页面 URL 沿用实际 canonical，不额外引入会重定向的尾斜杠。
+seoRoutes.on('GET', ['/sitemap-0.xml', '/sitemap.xml'], (c) => {
   const urls = PUBLIC_PATHS.flatMap((path) =>
     LOCALES.map((locale) => {
       const alternates = [
         ...LOCALES.map((alt) => `<xhtml:link rel="alternate" hreflang="${alt}" href="${escapeXml(absoluteUrl(localePath(alt, path)))}"/>`),
         `<xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(absoluteUrl(localePath(DEFAULT_LOCALE, path)))}"/>`,
       ].join('')
-      return `<url><loc>${escapeXml(absoluteUrl(localePath(locale, path)))}</loc><lastmod>${lastModified(path)}</lastmod>${alternates}</url>`
+      const contentPage = path === '/guides' || ARTICLE_PATHS.includes(path)
+      const lastmod = contentPage ? `<lastmod>${new Date(`${lastModified(path)}T00:00:00Z`).toISOString()}</lastmod>` : ''
+      return `<url><loc>${escapeXml(absoluteUrl(localePath(locale, path)))}</loc>${lastmod}${alternates}</url>`
     }),
   )
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
-${urls.join('\n')}
-</urlset>`
-  return c.body(xml, 200, { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'public, max-age=3600' })
+  const xml = `${XML_DECLARATION}<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">${urls.join('')}</urlset>`
+  return c.body(xml, 200, SITEMAP_HEADERS)
 })
 
 if (INDEXNOW_PATH) {
@@ -81,7 +90,7 @@ seoRoutes.get('/robots.txt', (c) => {
         'Disallow: /admin',
         ...LOCALES.map((locale) => `Disallow: ${localePath(locale, '/checkout/')}`),
         '',
-        `Sitemap: ${absoluteUrl('/sitemap.xml')}`,
+        `Sitemap: ${absoluteUrl('/sitemap-index.xml')}`,
       ].join('\n')
     : ['User-agent: *', 'Disallow: /'].join('\n')
   return c.text(`${body}\n`, 200, { 'Cache-Control': 'public, max-age=3600' })
