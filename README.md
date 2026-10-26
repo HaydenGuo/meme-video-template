@@ -16,6 +16,8 @@ Set `SHOWCASE_AUTH_ENABLED=true` alongside `SHOWCASE_MODE=true` to enable real a
 
 GitHub → Cloudflare push deployment is available in [deployment setup](docs/cloudflare-auto-deploy.md). Automatic deployment uses the exact commit that passed CI on main. Enable the repository variable only after production resources and secrets are configured.
 
+To activate Waffo production payments safely, follow the [Waffo production guide](docs/waffo-production.md); it keeps product IDs and runtime keys aligned with Git and deploys through GitHub Actions.
+
 Referral rewards are 10% of the credits on a friend's first paid order, rounded down (25 credits → 2, 60 → 6). Configure `referralRewardPercent` from 0–100. Existing awarded amounts and refund clawbacks remain fixed. Legacy fixed-credit settings are ignored; no past rewards are recalculated.
 
 The root URL defaults to English and the initial theme is dark. A saved light/dark choice takes precedence; Chinese remains available under `/zh`. To enable another supported language, add it to `LOCALES` in `src/config/site.ts` and provide `src/content/<locale>.ts` with the matching export. German (`de`) is supported by the language metadata and transactional email templates.
