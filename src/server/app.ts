@@ -21,7 +21,7 @@ import { jobToken, serveR2Object, sniffImageType, verifyUploadSignature } from '
 import { getModerationProvider } from './moderation'
 import { checkGenerationPrompt } from './prompt-safety'
 import { processPaymentEvent } from './orders'
-import { reconcileOrder, reconcilePendingOrders } from './reconcile'
+import { processVerifiedPaymentWebhook, reconcileOrder, reconcilePendingOrders } from './reconcile'
 import { normalizeCode, redeemCode } from './redeem'
 import { REFERRAL_COOKIE, ensureReferralCode, normalizeReferralCode, referralSummary, requestReferral } from './referrals'
 import { assertOpen, dailyCapGuard, generationsToday, getSettings, publicNotice, referralActive } from './settings'
@@ -29,6 +29,7 @@ import { seoRoutes } from './seo'
 import { assertShareable, findSharedGeneration, loadShare, readSharePoster, startShare, stopShare } from './shares'
 import { notifyContactMessage, runTakedownReminders } from './notifications'
 import { normalizeDodoEvent, verifyDodoWebhook } from './payments/dodo'
+import { currencyExponent } from './payments/amount'
 import { getOrderProvider, getPaymentProvider, mockPaidKey } from './payments'
 import type { PaymentEvent } from './payments/types'
 import { WebhookVerificationError } from './payments/types'
@@ -602,6 +603,7 @@ app.post('/api/checkout', async (c) => {
   const user = requireUser(c)
   assertOpen(await getSettings(c.env), user)
   await rateLimit(c.env.AUTH_LIMITER, `checkout:${user.id}`)
+  await rateLimit(c.env.AUTH_LIMITER, `checkout-ip:${c.req.header('cf-connecting-ip') ?? 'local'}`)
   const body = await readJson<{ packageId: string; locale: string }>(c)
   // packageId 可以是积分包或在售的订阅套餐（订阅开关关掉时套餐不能再下单）
   const pack = findPackage(body.packageId ?? '') ?? sellingPlans.find((p) => p.id === body.packageId)
@@ -614,10 +616,15 @@ app.post('/api/checkout', async (c) => {
   const id = createId('ord')
   const now = nowIso()
   const attr = requestAttribution(c, 'last')
-  await c.env.DB.prepare(
+  const checkoutWindowStart = new Date(Date.now() - 24 * 60 * 60_000).toISOString()
+  const checkoutAmountLimit = 100 * 10 ** currencyExponent(pack.currency)
+  // 把额度校验和订单预留放在同一条 SQL 里，避免并发请求同时通过检查。
+  const inserted = await c.env.DB.prepare(
     `INSERT INTO orders (id, user_id, provider, package_id, credits, amount_cents, currency, status,
      source, medium, campaign, country, device, attribution, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?)`,
+     SELECT ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?
+     WHERE (SELECT COUNT(*) FROM orders WHERE user_id = ? AND currency = ? AND created_at >= ? AND status IN ('pending', 'paid', 'refunded')) < 5
+       AND (SELECT COALESCE(SUM(amount_cents), 0) FROM orders WHERE user_id = ? AND currency = ? AND created_at >= ? AND status IN ('pending', 'paid', 'refunded')) + ? <= ?`,
   )
     .bind(
       id,
@@ -635,8 +642,17 @@ app.post('/api/checkout', async (c) => {
       attr.json,
       now,
       now,
+      user.id,
+      pack.currency,
+      checkoutWindowStart,
+      user.id,
+      pack.currency,
+      checkoutWindowStart,
+      pack.priceCents,
+      checkoutAmountLimit,
     )
     .run()
+  if (inserted.meta.changes === 0) throw new ApiError(429, 'checkout_velocity_limited')
   const siteUrl = c.env.SITE_URL.replace(/\/$/, '')
   try {
     const result = await provider.createCheckout({
@@ -894,14 +910,14 @@ app.post('/api/t/visit', async (c) => {
 app.post('/api/webhooks/waffo', async (c) => {
   const raw = await c.req.text()
   const payload = await verifyWaffoWebhook(raw, c.req.header('x-waffo-signature'), waffoEnvironment(c.env))
-  const result = await processPaymentEvent(c.env, 'waffo', normalizeWaffoEvent(payload), raw)
+  const result = await processVerifiedPaymentWebhook(c.env, 'waffo', normalizeWaffoEvent(payload), raw)
   return c.json({ received: true, ...result })
 })
 
 app.post('/api/webhooks/dodo', async (c) => {
   const raw = await c.req.text()
   const payload = await verifyDodoWebhook(raw, c.req.raw.headers, c.env.DODO_WEBHOOK_SECRET)
-  const result = await processPaymentEvent(c.env, 'dodo', normalizeDodoEvent(payload), raw)
+  const result = await processVerifiedPaymentWebhook(c.env, 'dodo', normalizeDodoEvent(payload), raw)
   return c.json({ received: true, ...result })
 })
 

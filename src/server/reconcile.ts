@@ -1,9 +1,33 @@
 // 主动对账：webhook 丢失或延迟时，向支付商查单补救。查到的付款走与 webhook 相同的 processPaymentEvent
 // （同样的入账前核对和幂等键），所以和迟到的 webhook 撞在一起也只会入账一次。
 // 触发点：成功页轮询久等未到账时（POST /api/orders/:id/reconcile）、Cron 扫 pending 订单、后台订单详情手动查单
-import { processPaymentEvent } from './orders'
+import { processPaymentEvent, type FulfillmentResult } from './orders'
 import { getOrderProvider } from './payments'
+import type { PaymentEvent, PaymentProviderId } from './payments/types'
 import type { OrderRow } from './types'
+import { ApiError } from './util'
+
+// 已验签的 paid webhook 只用来定位本站订单；订单状态、实付金额与商品以支付商 API 查单结果为准。
+export async function processVerifiedPaymentWebhook(
+  env: Env,
+  providerId: PaymentProviderId,
+  event: PaymentEvent,
+  raw: string,
+): Promise<FulfillmentResult> {
+  if (event.kind !== 'paid' || !event.orderId) return processPaymentEvent(env, providerId, event, raw)
+  const order = await env.DB.prepare('SELECT * FROM orders WHERE id = ?').bind(event.orderId).first<OrderRow>()
+  if (!order || order.provider !== providerId) return processPaymentEvent(env, providerId, event, raw)
+
+  const provider = getOrderProvider(env, providerId)
+  if (!provider?.fetchPaidEvent) throw new ApiError(503, 'payment_provider_error', 'Payment provider does not support payment confirmation')
+  const lookup = await provider.fetchPaidEvent({ id: order.id, packageId: order.package_id, providerSessionId: order.provider_session_id })
+  if (!lookup) throw new ApiError(503, 'payment_provider_error', 'Payment provider has not confirmed payment')
+  if (lookup.event.kind !== 'paid' || lookup.event.orderId !== order.id) {
+    throw new ApiError(502, 'payment_provider_error', 'Payment provider returned a different order during webhook confirmation')
+  }
+  // 使用查单返回的付款 ID，避免回调提供的状态或金额参与积分入账。
+  return processPaymentEvent(env, provider.id, lookup.event, JSON.stringify({ source: 'webhook_lookup', payment: lookup.raw }))
+}
 
 export type ReconcileStatus =
   | 'processed' // 查到付款并入账
