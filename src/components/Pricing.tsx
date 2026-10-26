@@ -82,7 +82,7 @@ export function Pricing() {
           <h3 className="pt-6 text-center font-display text-2xl">{p.packsTitle}</h3>
         </>
       ) : null}
-      <div className={`mx-auto grid gap-5 ${site.packages.length === 2 ? 'max-w-3xl md:grid-cols-2' : 'md:grid-cols-3'}`}>
+      <div className={`mx-auto grid gap-5 ${Object.keys(site.packages).length === 2 ? 'max-w-3xl md:grid-cols-2' : 'md:grid-cols-3'}`}>
         {site.packages.map((pack) => {
           const highlight = 'highlight' in pack && pack.highlight
           const anchor = anchorPrice(pack)
