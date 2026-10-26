@@ -82,10 +82,12 @@ export function Pricing() {
           <h3 className="pt-6 text-center font-display text-2xl">{p.packsTitle}</h3>
         </>
       ) : null}
-      <div className={`mx-auto grid gap-5 ${Object.keys(site.packages).length === 2 ? 'max-w-3xl md:grid-cols-2' : 'md:grid-cols-3'}`}>
+      <div className={`mx-auto grid gap-5 ${site.packages.length === 2 ? 'max-w-3xl md:grid-cols-2' : 'md:grid-cols-3'}`}>
         {site.packages.map((pack) => {
           const highlight = 'highlight' in pack && pack.highlight
           const anchor = anchorPrice(pack)
+          const info = p.packages[pack.id] ?? { name: p.credits(pack.credits), tagline: '' }
+          const saving = packageSaving(pack)
           return (
             <div
               key={pack.id}
@@ -95,9 +97,12 @@ export function Pricing() {
               {highlight ? (
                 <span className="absolute -top-3 left-6 rounded-full bg-ink px-3 py-1 text-xs font-semibold text-ink-fg">{p.popular}</span>
               ) : null}
-              <h3 className="font-display text-2xl">{p.credits(pack.credits)}</h3>
+              <h3 className="font-display text-2xl">{info.name}</h3>
+              <p className="mt-1 min-h-5 text-sm text-muted">{info.tagline}</p>
+              <p className="mt-3 text-sm font-medium">{p.credits(pack.credits)}</p>
               <p className="mt-6 flex flex-wrap items-baseline gap-x-2 gap-y-1">
                 <span className="font-display text-4xl">{formatPrice(pack.priceCents, pack.currency)}</span>
+                {saving ? <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">{p.packageSaving(saving)}</span> : null}
                 {anchor ? (
                   <>
                     <s className="text-lg text-muted" data-testid={`anchor-${pack.id}`}>
@@ -108,18 +113,15 @@ export function Pricing() {
                   </>
                 ) : null}
               </p>
-              <div className="mt-6">{buyButton(pack.id, !!highlight, p.buy)}</div>
+              <ul className="my-6 flex-1 space-y-3 border-t border-border pt-5 text-sm text-muted">
+                {site.durations.filter((duration) => pack.credits >= duration.credits).map((duration) => <li key={duration.id} className="flex items-start gap-2"><Check className="mt-0.5 size-4 shrink-0 text-emerald-600" aria-hidden />{p.approx(Math.floor(pack.credits / duration.credits), duration.seconds)}</li>)}
+                {p.bullets.map((bullet) => <li key={bullet} className="flex items-start gap-2"><Check className="mt-0.5 size-4 shrink-0 text-emerald-600" aria-hidden />{bullet}</li>)}
+              </ul>
+              <div>{buyButton(pack.id, !!highlight, p.buy)}</div>
             </div>
           )
         })}
       </div>
-      <ul className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-muted">
-        {p.bullets.map((bullet) => (
-          <li key={bullet} className="flex items-center gap-2">
-            <Check className="size-4 shrink-0 text-emerald-600" aria-hidden /> {bullet}
-          </li>
-        ))}
-      </ul>
       <ErrorText code={error} />
       <p className="text-center text-xs text-muted">{p.note}</p>
       <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs text-muted">
@@ -137,6 +139,14 @@ function yearlySaving(plan: SubscriptionPlan) {
   const monthly = site.plans.find((m) => m.interval === 'month' && m.credits === plan.credits && m.currency === plan.currency)
   if (!monthly) return null
   const percent = Math.round((1 - plan.priceCents / (monthly.priceCents * 12)) * 100)
+  return percent > 0 ? percent : null
+}
+
+// 与入门包相比，计算每积分的单价优惠。
+function packageSaving(pack: (typeof site.packages)[number]) {
+  const baseline = site.packages[0]
+  if (!baseline || pack.id === baseline.id || pack.currency !== baseline.currency || pack.credits <= 0 || baseline.credits <= 0) return null
+  const percent = Math.round((1 - (pack.priceCents / pack.credits) / (baseline.priceCents / baseline.credits)) * 100)
   return percent > 0 ? percent : null
 }
 

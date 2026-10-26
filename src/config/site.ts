@@ -107,6 +107,7 @@ export const site = {
   packages: [
     { id: 'starter', credits: 25, priceCents: 990, currency: 'USD' },
     { id: 'party', credits: 60, priceCents: 1990, currency: 'USD', highlight: true },
+    { id: 'squad', credits: 100, priceCents: 2990, currency: 'USD' },
   ],
 
   // 订阅：按月或按年自动续费，每月发 credits 积分，当期结束时作废（不累积）；年付一次收一年的钱，积分按月发放。
