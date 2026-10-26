@@ -29,6 +29,7 @@ import { seoRoutes } from './seo'
 import { assertShareable, findSharedGeneration, loadShare, readSharePoster, startShare, stopShare } from './shares'
 import { notifyContactMessage, runTakedownReminders } from './notifications'
 import { normalizeDodoEvent, verifyDodoWebhook } from './payments/dodo'
+import { currencyExponent } from './payments/amount'
 import { getOrderProvider, getPaymentProvider, mockPaidKey } from './payments'
 import type { PaymentEvent } from './payments/types'
 import { WebhookVerificationError } from './payments/types'
@@ -616,13 +617,14 @@ app.post('/api/checkout', async (c) => {
   const now = nowIso()
   const attr = requestAttribution(c, 'last')
   const checkoutWindowStart = new Date(Date.now() - 24 * 60 * 60_000).toISOString()
+  const checkoutAmountLimit = 100 * 10 ** currencyExponent(pack.currency)
   // 把额度校验和订单预留放在同一条 SQL 里，避免并发请求同时通过检查。
   const inserted = await c.env.DB.prepare(
     `INSERT INTO orders (id, user_id, provider, package_id, credits, amount_cents, currency, status,
      source, medium, campaign, country, device, attribution, created_at, updated_at)
      SELECT ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?
      WHERE (SELECT COUNT(*) FROM orders WHERE user_id = ? AND currency = ? AND created_at >= ? AND status IN ('pending', 'paid', 'refunded')) < 5
-       AND (SELECT COALESCE(SUM(amount_cents), 0) FROM orders WHERE user_id = ? AND currency = ? AND created_at >= ? AND status IN ('pending', 'paid', 'refunded')) + ? <= 10000`,
+       AND (SELECT COALESCE(SUM(amount_cents), 0) FROM orders WHERE user_id = ? AND currency = ? AND created_at >= ? AND status IN ('pending', 'paid', 'refunded')) + ? <= ?`,
   )
     .bind(
       id,
@@ -647,6 +649,7 @@ app.post('/api/checkout', async (c) => {
       pack.currency,
       checkoutWindowStart,
       pack.priceCents,
+      checkoutAmountLimit,
     )
     .run()
   if (inserted.meta.changes === 0) throw new ApiError(429, 'checkout_velocity_limited')
