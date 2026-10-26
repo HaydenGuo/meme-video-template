@@ -1,6 +1,7 @@
 # 环境变量与站点配置
 
 Google 通用配置、回调地址和 Infisical 本地启动方式见 [Google 配置](google-auth.md)。
+Waffo 正式商品、正式凭据、安全启用和 GitHub → Cloudflare 发布步骤见 [Waffo 正式收款启用](waffo-production.md)。
 
 配置分三处，生效方式不同：
 
