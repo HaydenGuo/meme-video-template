@@ -178,6 +178,7 @@ export function en(s: S) {
       // 锚定价（site.packages[].anchorPriceCents）的划线原价和折扣
       was: 'Regular price',
       save: (percent: number) => `Save ${percent}%`,
+      packageSaving: (percent: number) => `Save ${percent}% per credit vs. Starter`,
       buy: 'Buy credits',
       newPurchasesClosed: 'Purchases are not open yet',
       buying: 'Opening checkout…',

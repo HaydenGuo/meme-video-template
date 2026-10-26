@@ -161,6 +161,7 @@ export function zh(s: S): Content {
       popular: '最受欢迎',
       was: '原价',
       save: (percent: number) => `省 ${percent}%`,
+      packageSaving: (percent: number) => `每积分比入门包省 ${percent}%`,
       buy: '购买积分',
       newPurchasesClosed: '充值暂未开放',
       buying: '正在打开支付页…',

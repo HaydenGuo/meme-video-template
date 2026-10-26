@@ -60,7 +60,7 @@ Google login is reusable across template sites. Configure each site's credential
 
 The creation area places upload and generation settings on the left and the pending video, job status and output on the right, stacking vertically on mobile.
 
-The homepage introduces `site.keyword` using localized copy in `site.keywordOverview`. Video lengths are 5, 12 and 15 seconds at 1 credit per second. Only one-time credit packs are sold: $9.90 for 25 credits and $19.90 for 60 credits. New subscriptions are disabled. When launching a keyword site, update the keyword, overview and reference videos, seed local R2 with `npm run seed:local`, and synchronize the payment provider's product prices and credit descriptions before release.
+The homepage introduces `site.keyword` using localized copy in `site.keywordOverview`. Video lengths are 5, 12 and 15 seconds at 1 credit per second. Only one-time credit packs are sold: $9.90 for 25 credits, $19.90 for 60 credits, and $29.90 for 100 credits. New subscriptions are disabled. When launching a keyword site, update the keyword, overview and reference videos, seed local R2 with `npm run seed:local`, and synchronize the payment provider's product prices and credit descriptions before release.
 
 Self-hosted Hypit is available through `VIDEO_PROVIDER=hypit`. Your Bridge shares one Runtime across sites, integrated with queues, credit refunds and R2 delivery. See [setup](docs/hypit.md). Paid generation and VPS deployment require separate validation.
 

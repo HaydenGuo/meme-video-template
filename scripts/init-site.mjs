@@ -139,7 +139,7 @@ if (existsSync(statePath)) {
 const pending = [
   `Google OAuth Web 客户端 Authorized JavaScript origins 登记 ${origin}、https://${domain} 和 https://www.${domain}（按实际访问域名取用）；Authorized redirect URI 登记 https://${domain}/api/auth/google/callback`,
   '创建并绑定各站独立 D1、KV、R2 和 Queue；配置正式域名及生产服务商',
-  '创建 25/$9.90 与 60/$19.90 的一次性支付商品并登记 webhook',
+  '创建 25/$9.90、60/$19.90 与 100/$29.90 的一次性支付商品并登记 webhook',
   '配置真实邮件域名、图片审核及 Turnstile；生产前运行 doctor 并完成登录/充值/生成验证',
   '人工审阅梗资料、翻译、指南和展示素材；脚本不代表 SEO 或真实生成验收通过',
 ]
@@ -148,7 +148,7 @@ if (!credentials.googleClientId) pending.push('尚未配置 Google；开启登�
 pending.push('将生成的 Bridge 站点片段合并进 VPS Bridge 配置并重启；复核模型预算后才运行真实生成')
 if (domain.endsWith('.example.com')) pending.push('当前域名为占位值，上线前替换正式域名及相关回调/发件地址')
 console.log(JSON.stringify({ mode: apply ? 'apply' : 'preview', keyword, slug, domain, launch, features, localUrl: origin,
-  assets: Object.keys(media), durations, packages: ['25 / $9.90', '60 / $19.90'],
+  assets: Object.keys(media), durations, packages: ['25 / $9.90', '60 / $19.90', '100 / $29.90'],
   googleConfigured: Boolean(credentials.googleClientId), bridgeConfigured: Boolean(credentials.hypitBridgeToken), pending }, null, 2))
 if (!apply) { console.log('\n仅预览，未写文件。确认资料后加 --apply；加 --local 导入本地数据库与素材。'); process.exit(0) }
 
@@ -292,7 +292,7 @@ editObject('src/config/site.ts', 'site', {
     aiVersions: [{ video: sample.video, poster: sample.poster, credit }], madeWith: sample, additional: [], gallery: [], ideas: [sample, sample, sample] },
   durations: durations.map((seconds, i) => ({ id: ['short', 'medium', 'full'][i], seconds, credits: seconds,
     source: `${templateId}-${seconds}s.mp4`, ...(seconds === fullSeconds ? { isFull: true } : {}) })),
-  packages: [{ id: 'starter', credits: 25, priceCents: 990, currency: 'USD' }, { id: 'party', credits: 60, priceCents: 1990, currency: 'USD', highlight: true }],
+  packages: [{ id: 'starter', credits: 25, priceCents: 990, currency: 'USD' }, { id: 'party', credits: 60, priceCents: 1990, currency: 'USD', highlight: true }, { id: 'squad', credits: 100, priceCents: 2990, currency: 'USD' }],
   subscriptionsEnabled: false, 'video.hypit.templateId': templateId,
 })
 for (const locale of ['en', 'zh']) {
