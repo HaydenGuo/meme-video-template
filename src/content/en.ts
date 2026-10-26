@@ -520,6 +520,7 @@ export function en(s: S) {
       maintenance: 'We’re doing some maintenance. Please try again in a little while.',
       daily_limit: 'We’ve hit today’s rendering capacity. Please try again tomorrow; your credits were not used.',
       rate_limited: 'Too many requests. Please wait a minute and try again.',
+      checkout_velocity_limited: 'You’ve reached the purchase limit for the last 24 hours. Please try again later.',
       file_too_large: 'That file is larger than 10 MB.',
       length_required: 'Your browser sent the file in a way we can’t accept. Please try again in another browser.',
       unsupported_file_type: 'Please upload a JPG, PNG or WebP image.',

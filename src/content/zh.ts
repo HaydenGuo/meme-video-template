@@ -495,6 +495,7 @@ export function zh(s: S): Content {
       maintenance: '系统维护中，请稍后再试。',
       daily_limit: '今天的生成名额已满，请明天再试，本次没有扣积分。',
       rate_limited: '请求过于频繁，请稍后再试。',
+      checkout_velocity_limited: '你已达到过去 24 小时的购买上限，请稍后再试。',
       file_too_large: '文件超过 10 MB。',
       length_required: '浏览器上传文件的方式不受支持，请换个浏览器重试。',
       unsupported_file_type: '请上传 JPG、PNG 或 WebP 图片。',

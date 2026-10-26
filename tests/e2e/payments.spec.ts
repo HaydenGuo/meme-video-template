@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { site } from '../../src/config/site'
 import { buyPackage, credits, devLogin, json, ledger, post, uniqueEmail, uploadPhoto } from './helpers'
 
 type Result = { status: 'processed' | 'duplicate' | 'ignored' | 'orphan' | 'mismatch'; note?: string }
@@ -34,6 +35,30 @@ test('并发、重放、退款后迟到的支付事件：积分只入账一次�
     ['order_refund', -60],
     ['purchase', 60],
   ])
+})
+
+test('并发下单遵守 24 小时订单数和金额上限', async ({ request }) => {
+  await devLogin(request, uniqueEmail('checkout-limit'))
+  const responses = await Promise.all(
+    Array.from({ length: 6 }, () => post(request, '/api/checkout', { packageId: 'party', locale: 'en' })),
+  )
+  const statuses = responses.map((response) => response.status()).sort((a, b) => a - b)
+  expect(statuses).toEqual([200, 200, 200, 200, 200, 429])
+  const rejected = responses.find((response) => response.status() === 429)!
+  expect(await rejected.json()).toMatchObject({ error: 'checkout_velocity_limited' })
+  const { orders } = await json<{ orders: unknown[] }>(request.get('/api/orders'))
+  expect(orders).toHaveLength(5)
+
+  const higherPricedPack = site.packages.find((pack) => pack.priceCents > 2000)
+  if (higherPricedPack) {
+    await devLogin(request, uniqueEmail('checkout-amount-limit'))
+    for (let i = 0; i < 3; i++) {
+      await json(post(request, '/api/checkout', { packageId: higherPricedPack.id, locale: 'en' }))
+    }
+    expect((await post(request, '/api/checkout', { packageId: higherPricedPack.id, locale: 'en' })).status()).toBe(429)
+    const { orders: amountLimitedOrders } = await json<{ orders: unknown[] }>(request.get('/api/orders'))
+    expect(amountLimitedOrders).toHaveLength(3)
+  }
 })
 
 test('退款事件先于付款事件到达：先拒收等支付商重试，付款入账后重试的退款照常回收积分', async ({ request }) => {
