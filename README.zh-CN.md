@@ -16,6 +16,8 @@ Hypit Bridge 在模型提交前检查并归一化人像与参考视频尺寸，�
 
 支持 GitHub → Cloudflare 推送发布，见[自动部署配置](docs/cloudflare-auto-deploy.md)。自动部署仅发布 main 上通过 CI 的确切提交。生产资源和密钥配置完成后再启用仓库变量。
 
+开通 Waffo 正式收款时，按 [Waffo 正式收款指南](docs/waffo-production.md) 核对商品、密钥和回调，并通过 GitHub Actions 发布。
+
 邀请奖励改为好友首单所购积分的 10%，向下取整（25 积分奖励 2、60 积分奖励 6）。配置项 `referralRewardPercent` 范围 0–100，0 为暂停。已发奖励和退款回收仍使用原记录金额，不追溯重算；旧固定积分运营设置不再读取。
 
 根路径默认英文，首次访问默认暗色；已保存的明暗选择优先，中文版保留在 `/zh`。启用其它支持语言时，在 `src/config/site.ts` 的 `LOCALES` 中添加语言，并提供对应的 `src/content/<locale>.ts` 文案工厂。德语 `de` 已有语言元数据和交易邮件模板支持。
