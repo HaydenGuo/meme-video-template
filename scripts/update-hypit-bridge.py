@@ -205,16 +205,21 @@ try:
         stat = config_path.stat()
         os.chown(candidate, stat.st_uid, stat.st_gid)
         candidate.replace(config_path)
-    if args.engine is not None and args.engine != previous_engine:
+    if args.engine is not None:
+        lines = []
+        for line in previous_bridge_unit.splitlines():
+            if line.startswith('After=') or line.startswith('Wants='):
+                key, _, value = line.partition('=')
+                services = value.split()
+                if args.engine == 'notoken':
+                    services = [name for name in services if name != 'hypit-runtime.service']
+                elif 'hypit-runtime.service' not in services:
+                    services.append('hypit-runtime.service')
+                line = key + '=' + ' '.join(services)
+            lines.append(line)
+        bridge_unit_path.write_text('\n'.join(lines) + '\n')
+        run('systemctl', 'daemon-reload')
         if args.engine == 'notoken':
-            lines = []
-            for line in previous_bridge_unit.splitlines():
-                if line.startswith('After=') or line.startswith('Wants='):
-                    services = [name for name in line.split('=', 1)[1].split() if name != 'hypit-runtime.service']
-                    line = line.split('=', 1)[0] + '=' + ' '.join(services)
-                lines.append(line)
-            bridge_unit_path.write_text('\n'.join(lines) + '\n')
-            run('systemctl', 'daemon-reload')
             run('systemctl', 'disable', '--now', 'hypit-runtime.service')
             if subprocess.run(['systemctl', 'is-enabled', '--quiet', 'hypit-runtime.service'],
                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:
@@ -250,7 +255,7 @@ except Exception:
     # 备份刻意收紧为 0600，恢复后还原服务所需的属组与权限。
     os.chown(config_path, config_stat.st_uid, config_stat.st_gid)
     config_path.chmod(config_stat.st_mode & 0o777)
-    if args.engine is not None and args.engine != previous_engine:
+    if args.engine is not None:
         bridge_unit_path.write_text(previous_bridge_unit)
         if previous_runtime_unit is not None:
             runtime_unit_path.write_text(previous_runtime_unit)
