@@ -33,6 +33,12 @@ function Home() {
   const heroYoutube = ex.original.youtube
   const heroYoutubeSrc = heroYoutube?.videoId ? youtubeEmbedUrl(heroYoutube) : null
   const originalAspectRatio = 'aspectRatio' in ex.original && typeof ex.original.aspectRatio === 'string' ? ex.original.aspectRatio : '9 / 16'
+  const [exampleWidth, exampleHeight] = site.template.aspectRatio.split(':').map(Number)
+  const exampleAspectRatio = Number.isFinite(exampleWidth) && Number.isFinite(exampleHeight) && exampleWidth > 0 && exampleHeight > 0
+    ? `${exampleWidth} / ${exampleHeight}`
+    : '16 / 9'
+  const portraitExamples = Number.isFinite(exampleWidth) && Number.isFinite(exampleHeight) && exampleHeight > exampleWidth
+  const exampleVideos = [ex.madeWith, ...ex.additional, ...ex.gallery]
   return (
     <>
       {/* 首屏先介绍目标关键词，再引导用户制作视频。 */}
@@ -166,13 +172,13 @@ function Home() {
           <div className="space-y-4">
             <h2 className="font-display text-4xl leading-tight sm:text-5xl">{c.madeWith.title}</h2>
           </div>
-          <div className="mt-12 grid gap-6 sm:grid-cols-2">
-            {[ex.madeWith, ...ex.additional, ...ex.gallery].map((example) => (
+          <div className={`mt-12 grid gap-6 ${portraitExamples ? exampleVideos.length === 1 ? 'mx-auto w-full max-w-sm' : 'mx-auto w-full max-w-3xl sm:grid-cols-2' : 'sm:grid-cols-2'}`}>
+            {exampleVideos.map((example) => (
               <VideoCard
                 key={example.video}
                 video={example.video}
                 poster={example.poster}
-                aspectRatio="16 / 9"
+                aspectRatio={exampleAspectRatio}
                 fit="contain"
               />
             ))}
