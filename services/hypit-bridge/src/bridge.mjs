@@ -21,8 +21,8 @@ export function assertWorkflowRequirement(template, requiredWorkflowType) {
 export async function createBridge(config, { token, outputSecret, runner } = {}) {
   if (!token || token.length < 32 || !outputSecret || outputSecret.length < 32) throw new Error('Bridge secrets must contain at least 32 characters')
   if (!['mock', 'passthrough', 'hypit'].includes(config.mode)) throw new Error('Invalid Bridge mode')
-  const engine = config.engine ?? 'hypit'
-  if (!['hypit', 'notoken'].includes(engine)) throw new Error('Invalid Bridge engine')
+  const engine = config.mode === 'mock' ? 'mock' : (config.engine ?? 'hypit')
+  if (!['mock', 'hypit', 'notoken'].includes(engine) || (config.mode !== 'mock' && engine === 'mock')) throw new Error('Invalid Bridge engine')
   const publicUrl = new URL(config.publicUrl)
   if (publicUrl.pathname !== '/' || publicUrl.search || publicUrl.hash || publicUrl.username || publicUrl.password) throw new Error('publicUrl must be an origin')
   const local = ['localhost', '127.0.0.1', '[::1]'].includes(publicUrl.hostname)
