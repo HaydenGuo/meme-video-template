@@ -26,7 +26,7 @@ The root URL defaults to English and the initial theme is dark. A saved light/da
 
 Keep the UI concise: section headings replace decorative labels, the hero uses one introduction, and example cards need no playback explanation. Credit packs show their amount and price, with shared benefits listed once. Preserve form labels, constraints, consent, errors and billing terms.
 
-The generator has an optional background description (up to 500 characters). Blank keeps the meme's original prompt; Hypit and yir append the custom background to the prompt. The description is stored with the task for retries. fal rejects custom backgrounds before charging credits.
+The generator has an optional background description (up to 500 characters). In the fixed reference-video workflow, leaving it blank keeps the source video's setting; a custom description replaces only that background, while the reference image supplies the person's appearance. The description is stored with the task for retries. fal rejects custom backgrounds before charging credits.
 
 Example cards follow `site.template.aspectRatio` by default; individual videos in `site.examples.gallery` may set `aspectRatio`. Portrait videos occupy their own centered narrow row, while landscape videos are grouped into two columns on wide screens. Videos fit inside without cropping.
 
