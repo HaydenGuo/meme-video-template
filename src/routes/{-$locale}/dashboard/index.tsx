@@ -149,6 +149,7 @@ function VideosPage() {
               <p className="text-xs text-muted">{formatDate(g.createdAt, locale)}</p>
               {g.expiresAt ? <p className="text-xs text-muted">{d.expiresOn(formatDate(g.expiresAt, locale))}</p> : null}
               {g.status === 'failed' && g.refunded ? <p className="text-xs text-emerald-700 dark:text-emerald-400">{d.refundedNote}</p> : null}
+              {g.status === 'processing' && g.errorCode === 'submission_unknown' ? <p className="text-xs text-amber-700 dark:text-amber-400">{d.submissionAttention}</p> : null}
               {!isActiveGeneration(g) ? (
                 <div className="flex flex-wrap gap-2 pt-1">
                   {g.videoUrl ? (

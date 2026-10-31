@@ -303,6 +303,7 @@ export function en(s: S) {
       empty: 'No videos yet. Upload a photo on the home page to make your first one.',
       status: { queued: 'Queued', processing: 'Rendering', succeeded: 'Ready', failed: 'Failed', expired: 'Expired', removed: 'Removed' } as Record<string, string>,
       refundedNote: 'Credits refunded',
+      submissionAttention: 'The provider has not confirmed whether generation started. Do not submit a duplicate while this is checked; your credits remain reserved until the outcome is clear.',
       delete: 'Delete',
       confirmDelete: 'Delete this video permanently?',
       download: 'Download',

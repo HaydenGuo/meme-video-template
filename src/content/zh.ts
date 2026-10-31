@@ -283,6 +283,7 @@ export function zh(s: S): Content {
       empty: '还没有视频。到首页上传照片，制作你的第一条吧。',
       status: { queued: '排队中', processing: '生成中', succeeded: '已完成', failed: '失败', expired: '已过期', removed: '已下架' } as Record<string, string>,
       refundedNote: '积分已退回',
+      submissionAttention: '服务商尚未确认是否已开始生成。核实结果前请勿重复提交；确认结果前积分会继续预留。',
       delete: '删除',
       confirmDelete: '确定永久删除这条视频吗？',
       download: '下载',

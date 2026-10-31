@@ -111,15 +111,19 @@ export function createNoTokenRunner(config, { fetcher = globalThis.fetch, run = 
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('NoToken returned an invalid response')
     return value
   }
-  async function upload(path, mediaType, filename) {
-    const form = new FormData()
-    form.set('file', await openAsBlob(path, { type: mediaType }), filename)
-    const uploaded = await json('/api/v3/files/uploads', { method: 'POST', body: form })
-    const id = firstString(uploaded.file_id, uploaded.id, object(uploaded.data).file_id, object(uploaded.data).id)
-    if (!id || id.length > 200) throw new Error('NoToken upload returned no file id')
-    const file = await json(`/api/v3/files/${encodeURIComponent(id)}`)
-    const url = isTrustedUrl(firstString(file.url, object(file.data).url), hosts)
-    return url
+  async function upload(path, mediaType, filename, phaseCode) {
+    try {
+      const form = new FormData()
+      form.set('file', await openAsBlob(path, { type: mediaType }), filename)
+      const uploaded = await json('/api/v3/files/uploads', { method: 'POST', body: form })
+      const id = firstString(uploaded.file_id, uploaded.id, object(uploaded.data).file_id, object(uploaded.data).id)
+      if (!id || id.length > 200) throw new Error('NoToken upload returned no file id')
+      const file = await json(`/api/v3/files/${encodeURIComponent(id)}`)
+      return isTrustedUrl(firstString(file.url, object(file.data).url), hosts)
+    } catch (error) {
+      error.code = phaseCode
+      throw error
+    }
   }
   async function readTask(id) {
     return json(`/api/v3/contents/generations/tasks/${encodeURIComponent(id)}`)
@@ -187,16 +191,17 @@ export function createNoTokenRunner(config, { fetcher = globalThis.fetch, run = 
       if (!request.prompt || !request.imageFile || !request.videoFile || !Number.isInteger(request.durationSeconds)) return { ok: false }
       return { ok: true }
     },
-    async submit(path) {
+    async submit(path, { onSubmissionStart = async () => {} } = {}) {
       const request = JSON.parse(await readFile(path, 'utf8'))
       const dir = dirname(path)
-      const imageUrl = await upload(resolve(dir, request.imageFile), 'image/png', 'reference.png')
-      const videoUrl = await upload(resolve(dir, request.videoFile), 'video/mp4', 'reference.mp4')
+      const imageUrl = await upload(resolve(dir, request.imageFile), 'image/png', 'reference.png', 'notoken_image_upload_failed')
+      const videoUrl = await upload(resolve(dir, request.videoFile), 'video/mp4', 'reference.mp4', 'notoken_video_upload_failed')
       const content = [{ type: 'text', text: request.prompt }]
       content.push({ type: 'text', text: `Reference image; contains a person: ${request.imagePersonReference ? 'yes' : 'no'}.` })
       content.push({ type: 'image_url', image_url: { url: imageUrl }, role: 'reference_image' })
       content.push({ type: 'text', text: `Reference video; contains a person: ${request.videoPersonReference ? 'yes' : 'no'}.` })
       content.push({ type: 'video_url', video_url: { url: videoUrl }, role: 'reference_video' })
+      await onSubmissionStart()
       try {
         const task = await json('/api/v3/contents/generations/tasks', {
           method: 'POST',
@@ -210,10 +215,15 @@ export function createNoTokenRunner(config, { fetcher = globalThis.fetch, run = 
           }),
         })
         const id = taskId(task)
-        if (!id) throw new Error('NoToken accepted request without a task id')
+        if (!id) {
+          const error = new Error('NoToken accepted request without a task id')
+          error.code = 'notoken_task_receipt_missing'
+          throw error
+        }
         return id
       } catch (error) {
         if (error?.status >= 400 && error.status < 500) error.code = 'notoken_submission_rejected'
+        else if (error?.code !== 'notoken_task_receipt_missing') error.code = 'notoken_submission_unknown'
         throw error
       }
     },

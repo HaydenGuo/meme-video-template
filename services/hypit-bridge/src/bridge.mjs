@@ -127,9 +127,10 @@ export async function createBridge(config, { token, outputSecret, runner } = {})
       const prepared = await hypit.prepare({ ...input, imageMediaType }, JSON.parse(row.template), dir)
       const checked = await hypit.check(prepared.run)
       if (!checked.ok) return update(row.id, 'failed', 'hypit_check_failed')
-      // 必须在任何外部提交之前持久写入 submitting。
-      db.prepare("UPDATE jobs SET state='submitting',output_name=?,updated=? WHERE id=?").run(prepared.output, Date.now(), row.id)
-      const buildId = await hypit.submit(prepared.run, row.id)
+      const buildId = await hypit.submit(prepared.run, row.id, {
+        // 上传完成后、真正提交模型任务前，才持久记录提交边界。
+        onSubmissionStart: () => db.prepare("UPDATE jobs SET state='submitting',output_name=?,updated=? WHERE id=?").run(prepared.output, Date.now(), row.id),
+      })
       db.prepare("UPDATE jobs SET state='running',build_id=?,updated=? WHERE id=?").run(buildId, Date.now(), row.id)
       return
     }
@@ -152,11 +153,13 @@ export async function createBridge(config, { token, outputSecret, runner } = {})
 
   function markAdvanceError(row, error) {
     const current = job(row.id)
+    const safeCode = typeof error?.code === 'string' && /^[a-z][a-z0-9_]{1,63}$/.test(error.code) ? error.code : null
+    console.error('Bridge job phase failed', { jobId: row.id, state: current?.state ?? 'unknown', code: safeCode ?? 'phase_failed' })
     if (current?.state === 'submitting') {
-      const rejectedBeforeSubmit = ['hypit_submission_rejected', 'notoken_submission_rejected'].includes(error?.code)
-      return update(row.id, rejectedBeforeSubmit ? 'failed' : 'attention', rejectedBeforeSubmit ? 'submission_rejected' : 'submission_unknown')
+      const rejected = ['hypit_submission_rejected', 'notoken_submission_rejected'].includes(error?.code)
+      return update(row.id, rejected ? 'failed' : 'attention', rejected ? 'submission_rejected' : safeCode ?? 'submission_unknown')
     }
-    if (current?.state === 'preparing') return update(row.id, 'failed', 'preparation_failed')
+    if (current?.state === 'preparing') return update(row.id, 'failed', safeCode ?? 'preparation_failed')
   }
 
   async function tick() {
@@ -222,7 +225,12 @@ export async function createBridge(config, { token, outputSecret, runner } = {})
         if (!row) throw fault(404, 'job_not_found')
         const state = row.state === 'completed' ? 'completed' : ['failed', 'expired'].includes(row.state) ? 'failed' : 'pending'
         const expires = String(Date.now() + 15 * 60_000)
-        return json(200, { id: row.id, state, mode: row.mode, ...(state === 'completed' ? { outputUrl: `${publicUrl.origin}/v1/jobs/${row.id}/output?expires=${expires}&sig=${sign(row.id, expires)}` } : {}) })
+        return json(200, {
+          id: row.id, state, mode: row.mode,
+          ...(row.state === 'attention' ? { attention: true, attentionCode: row.error ?? 'submission_unknown' } : {}),
+          ...(row.state === 'running' && row.build_id ? { providerTaskId: row.build_id } : {}),
+          ...(state === 'completed' ? { outputUrl: `${publicUrl.origin}/v1/jobs/${row.id}/output?expires=${expires}&sig=${sign(row.id, expires)}` } : {}),
+        })
       }
       throw fault(404, 'not_found')
     } catch (error) { if (!res.headersSent) json(error.status ?? 500, { error: error.code ?? 'internal_error' }); else res.destroy() }

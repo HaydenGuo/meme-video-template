@@ -177,11 +177,19 @@ async function pollGeneration(env: Env, generation: GenerationRow) {
   }
 
   if (status.state === 'pending') {
-    if (minutesSince(generation.created_at) > JOB_TIMEOUT_MINUTES) {
+    const attention = status.attentionCode === 'submission_unknown'
+    // 回执不确定时不能超时退款：服务商可能已接单，需先核对以免退款后仍产生服务商费用。
+    if (!attention && minutesSince(generation.created_at) > JOB_TIMEOUT_MINUTES) {
       await failGeneration(env, generation.id, 'timeout', 'Generation timed out')
       return
     }
-    await env.DB.prepare('UPDATE generations SET updated_at = ? WHERE id = ?').bind(nowIso(), generation.id).run()
+    const meta = parseMeta(generation.provider_meta)
+    if (status.providerTaskId) meta.noTokenTaskId = status.providerTaskId
+    if (attention) meta.bridgeAttentionCode = status.attentionCode
+    else delete meta.bridgeAttentionCode
+    await env.DB.prepare('UPDATE generations SET error_code = ?, provider_meta = ?, updated_at = ? WHERE id = ?')
+      .bind(attention ? 'submission_unknown' : null, JSON.stringify(meta), nowIso(), generation.id)
+      .run()
     await enqueueJob(env, { kind: 'poll', generationId: generation.id }, POLL_DELAY_SECONDS[provider.id])
     return
   }
@@ -270,7 +278,7 @@ export async function runScheduledMaintenance(env: Env) {
     .all<GenerationRow>()
 
   for (const generation of stuck.results) {
-    if (generation.created_at < timeoutBefore) {
+    if (generation.created_at < timeoutBefore && generation.error_code !== 'submission_unknown') {
       await failGeneration(env, generation.id, 'timeout', 'Generation timed out')
     } else if (generation.status === 'queued') {
       await enqueueJob(env, { kind: 'submit', generationId: generation.id })

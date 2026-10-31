@@ -98,7 +98,8 @@ export function createHypitRunner(config) {
       return { run: resolve(dir, 'run.svrun'), output }
     },
     async check(run) { return command(['check', run]) },
-    async submit(run, id) {
+    async submit(run, id, { onSubmissionStart = async () => {} } = {}) {
+      await onSubmissionStart()
       const result = await command(['build', run, '--title', `bridge:${id}`])
       if (!result.build?.id) {
         if (isKnownUnsubmittedCliError(result)) {

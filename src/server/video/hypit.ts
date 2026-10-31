@@ -57,7 +57,8 @@ export function createHypitProvider(env: Env, config: typeof site = site): Video
     async status(id): Promise<VideoStatus> {
       const job = await request(`/v1/jobs/${encodeURIComponent(id)}`)
       if (job.mode !== 'hypit' && isProduction(env)) throw new VideoProviderError('hypit_mock_forbidden', 'Non-generating Hypit Bridge cannot serve production', false)
-      if (job.state === 'pending') return { state: 'pending' }
+      if (job.attention === true) return { state: 'pending', attentionCode: typeof job.attentionCode === 'string' ? job.attentionCode : 'submission_unknown' }
+      if (job.state === 'pending') return { state: 'pending', ...(typeof job.providerTaskId === 'string' ? { providerTaskId: job.providerTaskId } : {}) }
       if (job.state === 'failed') return { state: 'failed', code: 'hypit_failed', message: 'Hypit generation failed' }
       if (job.state !== 'completed' || typeof job.outputUrl !== 'string') throw new VideoProviderError('hypit_protocol', 'Invalid Hypit job status', true)
       const output = new URL(job.outputUrl)

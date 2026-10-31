@@ -16,7 +16,7 @@ export interface VideoSubmitResult {
 }
 
 export type VideoStatus =
-  | { state: 'pending' }
+  | { state: 'pending'; attentionCode?: string; providerTaskId?: string }
   // costCents：服务商返回了已结算的实际费用时带上，否则用 costCents() 估算
   | { state: 'completed'; output: { url: string } | { r2Key: string }; costCents?: number }
   | { state: 'failed'; code: string; message: string; retryable?: boolean }
