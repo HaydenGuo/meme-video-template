@@ -19,6 +19,7 @@ description: 从 meme-video-template 初始化或更新梗视频站，核实素�
 - 用户提供的 YouTube MV/目标片段可在 `heroVideo` 配视频 ID、歌单 ID、起始秒数，作为首屏观看参考；它只负责展示。
 - `media.sourceVideo` 是 Hypit/Bridge 实际使用的生成参考，仍需按最长时长制作裁片；不要把 `heroVideo` 与生成源片混为一谈。
 - `media.exampleVideo` 和对应 `media.photo` 是实际生成结果与输入照片，配对后放入案例区。没有真实成片时如实标为缺失，不把目标 MV 或源片称为本站 AI 成果。
+- `bridge-site.json` 是本站 Bridge 配置的唯一片段来源，保留生成器写入的工作流与参考片哈希。部署时用模板更新脚本应用该片段并读回配置；不要把内部模型或音视频处理流程写进用户页面文案。
 - 只在需要且有明确含义时加视频徽标；不要在每个案例上重复“AI version”“user-supplied”这类标签。素材署名与授权信息放在合适的 caption/credit，不用误导性叠层代替。
 - 修改英文、中文时同步更新标题、描述、正文和 article `updatedAt`；首屏可简短，趋势指南承担完整解释。
 

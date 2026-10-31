@@ -19,6 +19,13 @@ it('提交保留生成 ID，查询成品只接受当前 Bridge 的签名端点',
   expect(await provider.status(id, {})).toMatchObject({ state: 'completed' })
   await expect(provider.status(id, {})).rejects.toMatchObject({ code: 'hypit_protocol', retryable: false })
 })
+it('站点声明必需复刻工作流时将要求传给 Bridge', async () => {
+  const config = { ...site, video: { ...site.video, hypit: { ...site.video.hypit, requiredWorkflowType: 'reference-remix-v1' } } } as typeof site
+  const fetch = vi.fn().mockResolvedValueOnce(Response.json({ id, mode: 'hypit' }))
+  vi.stubGlobal('fetch', fetch)
+  await createHypitProvider(env, config).submit(input)
+  expect(JSON.parse(fetch.mock.calls[0][1].body)).toMatchObject({ requiredWorkflowType: 'reference-remix-v1' })
+})
 it('重试网络错误与限流，不把远端敏感报错传入日志', async () => {
   vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(Response.json({ secret: 'sensitive' }, { status: 429 })).mockRejectedValueOnce(new Error('sensitive')))
   const provider = createHypitProvider(env)

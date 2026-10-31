@@ -10,6 +10,13 @@ const same = (a, b) => typeof a === 'string' && typeof b === 'string' && Buffer.
 const hash = (value) => createHash('sha256').update(value).digest('hex')
 const fault = (status, code) => Object.assign(new Error(code), { status, code })
 
+export function assertWorkflowRequirement(template, requiredWorkflowType) {
+  if (!template || typeof template !== 'object') throw fault(400, 'template_not_allowed')
+  if (requiredWorkflowType === undefined) return
+  if (typeof requiredWorkflowType !== 'string' || !/^[a-z0-9-]{1,80}$/.test(requiredWorkflowType)) throw fault(400, 'invalid_workflow_requirement')
+  if (template.workflow?.type !== requiredWorkflowType) throw fault(409, 'template_workflow_mismatch')
+}
+
 export async function createBridge(config, { token, outputSecret, runner } = {}) {
   if (!token || token.length < 32 || !outputSecret || outputSecret.length < 32) throw new Error('Bridge secrets must contain at least 32 characters')
   if (!['mock', 'passthrough', 'hypit'].includes(config.mode)) throw new Error('Invalid Bridge mode')
@@ -57,6 +64,7 @@ export async function createBridge(config, { token, outputSecret, runner } = {})
     const site = config.sites[body.siteId]
     const template = site?.templates[body.templateId]
     if (!template || !template.durations.includes(body.durationSeconds)) throw fault(400, 'template_not_allowed')
+    assertWorkflowRequirement(template, body.requiredWorkflowType)
     if (body.aspectRatio !== undefined && !['9:16', '16:9'].includes(body.aspectRatio)) throw fault(400, 'invalid_aspect_ratio')
     if (body.backgroundDescription !== undefined && (typeof body.backgroundDescription !== 'string' || body.backgroundDescription.length > 500 || /[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(body.backgroundDescription))) throw fault(400, 'invalid_background_description')
     for (const key of ['imageUrl', 'sourceVideoUrl']) {

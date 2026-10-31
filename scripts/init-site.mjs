@@ -294,6 +294,7 @@ editObject('src/config/site.ts', 'site', {
     source: `${templateId}-${seconds}s.mp4`, ...(seconds === fullSeconds ? { isFull: true } : {}) })),
   packages: [{ id: 'starter', credits: 25, priceCents: 990, currency: 'USD' }, { id: 'party', credits: 60, priceCents: 1990, currency: 'USD', highlight: true }, { id: 'squad', credits: 100, priceCents: 2990, currency: 'USD' }],
   subscriptionsEnabled: false, 'video.hypit.templateId': templateId,
+  'video.hypit.requiredWorkflowType': workflow?.type ?? null,
 })
 for (const locale of ['en', 'zh']) {
   const zh = locale === 'zh'

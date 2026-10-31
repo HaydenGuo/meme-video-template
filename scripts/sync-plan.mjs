@@ -9,7 +9,7 @@ import { pathToFileURL } from 'node:url'
 import ts from 'typescript'
 
 // 站点层：每个站自己的值（与 AGENTS.md“改动前”一致）。public/_headers 是共用的安全响应头，不算站点层
-const SITE_FILES = ['src/config/site.ts', 'wrangler.jsonc', 'package.json']
+const SITE_FILES = ['src/config/site.ts', 'wrangler.jsonc', 'package.json', 'bridge-site.json']
 const SITE_DIRS = ['src/content/', 'public/', 'seed/']
 const SHARED_IN_SITE_DIRS = ['public/_headers']
 // new-site 在站点里删掉的模板自用文件
