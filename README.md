@@ -68,6 +68,8 @@ The homepage introduces `site.keyword` using localized copy in `site.keywordOver
 
 Self-hosted Hypit is available through `VIDEO_PROVIDER=hypit`. Your Bridge shares one Runtime across sites, integrated with queues, credit refunds and R2 delivery. See [setup](docs/hypit.md). Paid generation and VPS deployment require separate validation.
 
+For reference remakes that retain the source soundtrack, the Bridge extracts a separate audio-only WAV and creates a silent model-reference video before any model Build. The model receives only the silent video; the final composition combines the generated picture with the extracted original audio and verifies that the delivered file has both streams.
+
 English | [简体中文](README.zh-CN.md)
 
 Built by [浅水虾 (qianshuixia)](https://x.com/qianshuixia2026).
