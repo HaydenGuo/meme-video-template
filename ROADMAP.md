@@ -143,7 +143,7 @@
   - 说明见 README 的“合规与内容安全”。
 - P1-9 交易邮件已在本地完成（Cloudflare Email Service，D1 发件箱去重、退避重试、后台邮件页），工件在 `.tmp/transactional-email/`。说明见 README 的“交易邮件”。
 - 监控告警已在本地完成：Cron 健康检查（生成失败率、死信、积压、支付回调、付款待核对、邮件），按 6 小时时间桶去重发给 `ADMIN_EMAILS`；死信队列由同一 Worker 消费，判失败并退积分。说明见 README 的“监控告警”。
-- GA4 同意横幅已在本地完成：Consent Mode v2 basic 模式，接受前不加载 gtag.js，撤回时删除 `_ga` 系列 Cookie；页脚可重新打开；隐私政策按统计配置自动调整。默认配置不启用 GA4（推荐 Cloudflare Web Analytics），浏览器流程用临时 `ga4Id` 验证过一次。说明见 README 的“合规与内容安全”。
+- GA4 同意横幅已完成：Consent Mode v2 basic 模式，接受前不加载 gtag.js 或排队 `config`；首次接受先更新同意再发送首个 `page_view`，撤回时删除 `_ga` 系列 Cookie；页脚可重新打开；隐私政策按统计配置自动调整。默认配置不启用 GA4（推荐 Cloudflare Web Analytics），浏览器流程用临时 `ga4Id` 验证过一次。说明见 README 的“合规与内容安全”。
 - CSP 与 Permissions-Policy 已在本地完成：页面下发 `Content-Security-Policy-Report-Only`，内联脚本用每次请求的 nonce，违规写 `[csp]` 日志。dev 与生产构建下公开页、生成流程、后台、GA4 同意后加载均为零违规。**仍是 Report-Only**，上线观察无误报后再改为强制执行。说明见 README 的“关键设计”。
 - 开源前安全排查（2026-10-20）已在本地完成，报告在 `.tmp/security-audit/report.md`（只在作者本机，不入库）：
   - 已修复：

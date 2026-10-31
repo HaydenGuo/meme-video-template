@@ -377,7 +377,7 @@ SMOKE_BASE_URL=https://video-template-staging.<子域名>.workers.dev SMOKE_EXPE
   - 配了站点密钥但没配 secret 时，两个表单返回 503，不会静默放行。
 - **统计与 Cookie**：在 `site.analytics` 配置，隐私政策的“Cookie 与统计”一节会按配置自动调整。
   - 推荐只填 `cfBeaconToken`（Cloudflare Web Analytics）：不写 Cookie，不需要同意横幅。
-  - 填了 `ga4Id` 才启用 GA4，同时出现同意横幅和页脚 “Cookie settings”。采用 Consent Mode v2 basic 模式：访客接受前不加载 gtag.js，事件只进 `dataLayer`；广告类同意项始终为 denied。拒绝或撤回时删除 `_ga`、`_ga_*`、`_gid`（当前主机和各级父域）。选择存在 `localStorage` 的 `consent.analytics`，逻辑见 `src/lib/consent.ts`。
+  - 填了 `ga4Id` 才启用 GA4，同时出现同意横幅和页脚 “Cookie settings”。采用 Consent Mode v2 basic 模式：访客接受前不加载 gtag.js，也不排队 GA4 `config`；首次接受时先更新同意，再配置并发送首个 `page_view`。广告类同意项始终为 denied。拒绝或撤回时删除 `_ga`、`_ga_*`、`_gid`（当前主机和各级父域）。选择存在 `localStorage` 的 `consent.analytics`，逻辑见 `src/lib/consent.ts`。
   - 来源归因写第一方 Cookie `vt_attr`（90 天）。填了 `ga4Id` 时它和 GA4 一样等访客接受后才写入：接受时补记本次访问的来源，拒绝或撤回时删除；没写 Cookie 的访客，注册和订单记为 direct，访问统计照常计数。没填 `ga4Id` 时没有横幅，`vt_attr` 直接写入；按欧盟 ePrivacy 的严格解释这也需要事先同意，主要面向欧盟用户时应启用横幅。逻辑见 `src/lib/attribution.ts`。
 - **导出我的数据**（GDPR 第 15、20 条）：个人中心设置页可下载 JSON（`GET /api/account/export`），包含账号、会话、订单、积分流水与批次、上传与生成记录、留言、本人提交的举报和发信记录；按用户限流。不含 R2 路径、服务商请求 ID、内部错误信息和成本，也不含他人针对本人视频的举报。媒体文件不打包，仍在保留期内的可从个人中心下载。字段清单见 `src/server/account-export.ts`。
 - **数据库备份**：每 5 分钟的 Cron 发现当天（UTC）还没有备份时，把 D1 导出成 SQL（建表语句加全部数据，`sessions` 只导结构），gzip 后存到 MEDIA 的 `backups/d1/<日期>.sql.gz`，保留 30 天（`src/server/backup.ts`）。当天最多尝试 3 次，第 3 次仍失败时给 `ADMIN_EMAILS` 发 `backup_failed` 告警。`backups/` 没有公开路由，R2 生命周期规则也不要覆盖它。

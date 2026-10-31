@@ -46,16 +46,17 @@ function browser(stored: string | null | 'throws', href = 'https://example.test/
 const calls = (dataLayer: IArguments[]) => dataLayer.map((args) => Array.from(args))
 
 describe('ga4BootstrapScript', () => {
-  it('没有选择过：分析和广告都默认 denied，不加载 gtag.js；page_location 去掉 email', () => {
+  it('未接受：默认拒绝且不排队 GA4 config 或 page_view', () => {
     const env = browser(null)
     const global = env.run(ga4BootstrapScript(GA4_ID))
-    const [consent, , config] = calls(global.dataLayer)
+    const queued = calls(global.dataLayer)
+    const [consent] = queued
     expect(consent).toEqual([
       'consent',
       'default',
       { ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied', analytics_storage: 'denied' },
     ])
-    expect(config).toEqual(['config', GA4_ID, { page_location: 'https://example.test/checkout/result?status=paid' }])
+    expect(queued.find(([command]) => command === 'config')).toBeUndefined()
     expect(env.appended).toEqual([])
   })
 
@@ -87,18 +88,27 @@ describe('saveConsent', () => {
   }
 
   it('接受：记住选择、更新同意状态并只加载一次 gtag.js', () => {
-    const env = stub('https://www.example.test/')
+    const env = stub('https://www.example.test/checkout/result?email=buyer%40example.test&analytics=on&preview=1&status=paid')
     saveConsent(GA4_ID, 'granted')
     saveConsent(GA4_ID, 'granted')
+    expect((env.context.window as { [key: string]: unknown })['ga-disable-' + GA4_ID]).toBe(false)
     expect(env.context.localStorage.setItem).toHaveBeenCalledWith(CONSENT_KEY, 'granted')
-    expect(calls(env.context.window.dataLayer as IArguments[]).at(-1)).toEqual(['consent', 'update', { analytics_storage: 'granted' }])
+    const queued = calls(env.context.window.dataLayer as IArguments[])
+    const consentIndex = queued.findIndex(([command, action]) => command === 'consent' && action === 'update')
+    const configIndex = queued.findIndex(([command]) => command === 'config')
+    expect(consentIndex).toBeGreaterThan(-1)
+    expect(configIndex).toBeGreaterThan(consentIndex)
+    expect(queued[configIndex]).toEqual(['config', GA4_ID, { page_location: 'https://www.example.test/checkout/result?status=paid' }])
     expect(env.appended).toHaveLength(1)
   })
 
   it('撤回：更新为 denied，并在当前主机和各级父域上删除 _ga 系列 Cookie，不动其他 Cookie', () => {
     const env = stub('https://www.example.test/')
     env.setCookie('_ga=GA1.1.1; _ga_TEST123=GS1.1; vt_attr=abc; session=xyz')
+    saveConsent(GA4_ID, 'granted')
+    expect(env.appended).toHaveLength(1)
     saveConsent(GA4_ID, 'denied')
+    expect((env.context.window as { [key: string]: unknown })['ga-disable-' + GA4_ID]).toBe(true)
     expect(calls(env.context.window.dataLayer as IArguments[]).at(-1)).toEqual(['consent', 'update', { analytics_storage: 'denied' }])
     expect(env.cookieWrites.sort()).toEqual(
       [
@@ -110,6 +120,8 @@ describe('saveConsent', () => {
         '_ga_TEST123=; Max-Age=0; Path=/; Domain=.example.test',
       ].sort(),
     )
-    expect(env.appended).toEqual([])
+    saveConsent(GA4_ID, 'granted')
+    expect((env.context.window as { [key: string]: unknown })['ga-disable-' + GA4_ID]).toBe(false)
+    expect(env.appended).toHaveLength(1)
   })
 })
