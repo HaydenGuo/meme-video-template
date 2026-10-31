@@ -47,9 +47,27 @@ function Home() {
     ? `${exampleWidth} / ${exampleHeight}`
     : '16 / 9'
   const exampleVideos = [ex.madeWith, ...ex.additional, ...ex.gallery]
-  const exampleGridClass = exampleVideos.length === 1
-    ? 'mx-auto w-full max-w-5xl'
-    : 'mx-auto grid w-full max-w-5xl gap-6 sm:grid-cols-2'
+  const portraitExamples = exampleVideos.filter((example) => {
+    const customAspectRatio = configuredAspectRatio(example)
+    return isPortraitAspectRatio(customAspectRatio ?? exampleAspectRatio)
+  })
+  const landscapeExamples = exampleVideos.filter((example) => {
+    const customAspectRatio = configuredAspectRatio(example)
+    return !isPortraitAspectRatio(customAspectRatio ?? exampleAspectRatio)
+  })
+
+  const renderExample = (example: (typeof exampleVideos)[number]) => {
+    const customAspectRatio = configuredAspectRatio(example)
+    return (
+      <VideoCard
+        key={example.video}
+        video={example.video}
+        poster={example.poster}
+        aspectRatio={customAspectRatio?.replace(':', ' / ') ?? exampleAspectRatio}
+        fit="contain"
+      />
+    )
+  }
   return (
     <>
       {/* 首屏先介绍目标关键词，再引导用户制作视频。 */}
@@ -177,26 +195,23 @@ function Home() {
         </div>
       </section>
 
-      {/* 示例统一展示为视频网格。 */}
+      {/* 示例按画幅分组：竖版单独居中，横版在宽屏下成组双列。 */}
       <section id="examples" className="scroll-mt-20 border-t border-line bg-bg-soft/60 py-20">
         <div className="container-page">
           <div className="space-y-4">
             <h2 className="font-display text-4xl leading-tight sm:text-5xl">{c.madeWith.title}</h2>
           </div>
-          <div className={`mt-12 ${exampleGridClass}`}>
-            {exampleVideos.map((example) => {
-              const customAspectRatio = configuredAspectRatio(example)
-              return (
-                <VideoCard
-                  key={example.video}
-                  video={example.video}
-                  poster={example.poster}
-                  aspectRatio={customAspectRatio?.replace(':', ' / ') ?? exampleAspectRatio}
-                  className={customAspectRatio && isPortraitAspectRatio(customAspectRatio) ? 'mx-auto w-full max-w-sm' : ''}
-                  fit="contain"
-                />
-              )
-            })}
+          <div className="mt-12 space-y-10">
+            {portraitExamples.length > 0 ? (
+              <div className="mx-auto w-full max-w-sm">
+                {portraitExamples.map(renderExample)}
+              </div>
+            ) : null}
+            {landscapeExamples.length > 0 ? (
+              <div className={`mx-auto grid w-full gap-6 ${landscapeExamples.length === 1 ? 'max-w-3xl' : 'max-w-5xl sm:grid-cols-2'}`}>
+                {landscapeExamples.map(renderExample)}
+              </div>
+            ) : null}
           </div>
         </div>
       </section>
