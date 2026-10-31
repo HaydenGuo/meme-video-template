@@ -58,6 +58,8 @@ The hero and generator omit the repeated per-second credit explanation; duration
 
 Authentication supports Google and email/password. Registration does not verify email ownership; password recovery still requires an email code. Both methods share the same user ID and credit balance for the same normalized email. See [email authentication](docs/email-auth.md) for setup and local use.
 
+The designated site-owner account receives a one-time 100-credit grant after email verification.
+
 Google login is reusable across template sites. Configure each site's credentials and callback URL; `dev:infisical` supports local secret injection. See [Google setup](docs/google-auth.md).
 
 The creation area places upload and generation settings on the left and the pending video, job status and output on the right, stacking vertically on mobile.
