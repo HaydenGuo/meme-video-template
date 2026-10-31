@@ -64,7 +64,7 @@ Google login is reusable across template sites. Configure each site's credential
 
 The creation area places upload and generation settings on the left and the pending video, job status and output on the right, stacking vertically on mobile.
 
-The homepage introduces `site.keyword` using localized copy in `site.keywordOverview`. Video lengths are 5, 12 and 15 seconds at 1 credit per second. Only one-time credit packs are sold: $9.90 for 25 credits, $19.90 for 60 credits, and $29.90 for 100 credits. New subscriptions are disabled. When launching a keyword site, update the keyword, overview and reference videos, seed local R2 with `npm run seed:local`, and synchronize the payment provider's product prices and credit descriptions before release.
+The homepage introduces `site.keyword` using localized copy in `site.keywordOverview`. Video lengths are 5, 12 and 15 seconds at 1 credit per second. Only one-time credit packs are sold: $9.90 for 25 credits, $19.90 for 60 credits, and $29.90 for 100 credits. New subscriptions are disabled. When launching a keyword site, update the keyword, overview and reference videos, seed local R2 with `npm run seed:local`, and synchronize the payment provider's product prices and credit descriptions before release. Production deployment uploads the configured reference videos to the remote `MEDIA` bucket and checks that the public Worker route serves each file with HTTP 206 Range support.
 
 Self-hosted Hypit is available through `VIDEO_PROVIDER=hypit`. Your Bridge shares one Runtime across sites, integrated with queues, credit refunds and R2 delivery. See [setup](docs/hypit.md). Paid generation and VPS deployment require separate validation.
 
@@ -108,6 +108,8 @@ npm run seed:local                   # apply D1 migrations and upload seed/templ
 npm run dev -- --host 127.0.0.1      # http://127.0.0.1:3000
 ```
 
+`npm run media:publish:remote` uploads the configured `site.durations[].source` files to the production R2 bucket. `npm run media:verify:remote` checks the production Worker route with a one-byte Range request. The production deploy workflow runs both around the Worker deploy; `seed:local` only seeds the local R2 bucket.
+
 - Use npm 11.19 or newer; `devEngines` in `package.json` warns on older versions. Running `npm install` with an older npm rewrites `package-lock.json` into a form that `npm ci` on CI rejects (`Missing: @emnapi/core@… from lock file`).
 - `PAYMENT_PROVIDER=mock` and `VIDEO_PROVIDER=mock` by default: buying opens a mock checkout and generating copies the template video. Nothing is charged.
 - Outside production the sign-in page has a "dev login" (`POST /api/auth/dev-login`); in production it returns 404. Dev login, mock payments and `/api/dev/*` only accept direct requests from localhost: anything that came through a tunnel or proxy (with `cf-connecting-ip`, `X-Forwarded-For` or similar headers) gets 404. Someone on your LAN can fake those conditions, so don't start the dev server with `--host 0.0.0.0` or expose it to the internet directly; for webhooks use `scripts/webhook-proxy.mjs` (see below).
@@ -148,7 +150,7 @@ With Claude Code, once the site repo exists (step 1) you can just say "new hot s
    - Copy is code-split per locale, so the browser only downloads the current language (legal pages included). Components call `getContent(locale)` as usual; only code that needs copy outside the root route and before rendering has to `await loadContent(locale)` first.
    - Adding a locale: register it in `LOCALES` and `LOCALE_META` in `site.ts`, create `src/content/<locale>.ts` (same type as `en.ts`), and add a dynamic import to `loaders` in `src/lib/i18n.ts`. Email templates are typed per locale as well, so typecheck lists what else needs translating.
 4. **Replace the media**
-   - `seed/templates/<template.id>-<seconds>s.mp4`: source videos for generation; upload them to `templates/` in R2 after deploying.
+   - `seed/templates/<template.id>-<seconds>s.mp4`: source videos for generation; the production deploy workflow uploads the configured files to `templates/` in R2 before deploying and verifies their public Range response afterwards.
    - `public/demo/*`: home page demo videos and posters. They must be your own or licensed, with the source credited in `site.examples.*.credit`.
    - `public/og.png`, `public/favicon.svg`.
    - `node scripts/generate-placeholder-media.mjs` (requires ffmpeg) regenerates original placeholder media, named after `site.durations` and the brand. Delete the old `template.id` files from `seed/templates/` afterwards.

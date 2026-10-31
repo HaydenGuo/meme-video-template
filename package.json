@@ -23,6 +23,8 @@
     "cf:types": "wrangler types --strict-vars=false",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
     "seed:local": "node scripts/seed-local.mjs",
+    "media:publish:remote": "node scripts/publish-template-media.mjs publish",
+    "media:verify:remote": "node scripts/publish-template-media.mjs verify",
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
     "doctor": "node scripts/doctor.mjs",
     "deploy": "npm run doctor && npm run build && wrangler deploy"
