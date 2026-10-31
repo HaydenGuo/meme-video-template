@@ -41,7 +41,7 @@ Bridge 验证原视频哈希、时长、音视频轨道及人物图片，再从�
 
 每个梗站独立登记 `siteId`、模板、固定提示词、媒体 origin、参考视频哈希及工作流。通过 `scripts/update-hypit-bridge.py --site-fragment <bridge-site.json>` 合并站点片段，必须保留 VPS 上其他站点。不要仅凭 `/health` 推断站点模板已配置。
 
-现有 VPS 的更新脚本默认切换到直接 NoToken：先确认 `NOTOKEN_API_KEY` 已配置且 Bridge 队列为空，再执行。它会停用 Hypit Runtime、设置 `engine=notoken` 和 8/100/2 并核对健康接口；失败时回滚代码、配置和 systemd 依赖。只有需要兼容旧工程时才显式传 `--engine hypit`：
+现有 VPS 的更新脚本默认切换到直接 NoToken：先确认 `NOTOKEN_API_KEY` 已配置且 Bridge 队列为空，再执行。它会停用 Hypit Runtime、设置 `engine=notoken` 和 8/100/2 并核对健康接口；失败时回滚代码、配置和 systemd 依赖。更新结果会明确输出 `runtimeRequired` 与 `hypitRuntime.enabled/active`。当 `engine=notoken` 时 Runtime 停止是预期状态；不要因为它 inactive 而启动 Runtime，也不要依据兼容字段 `mode=hypit` 判断执行器。只有需要兼容旧工程时才显式传 `--engine hypit`：
 
 ```text
 python3 scripts/update-hypit-bridge.py --revision <完整提交 SHA> --max-active 8 --max-queued 100 --ffmpeg-concurrency 2
