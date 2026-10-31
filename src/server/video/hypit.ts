@@ -3,7 +3,7 @@ import { cleanSecret, isProduction } from '../util'
 import { VideoProviderError } from './types'
 import type { VideoProvider, VideoStatus } from './types'
 
-export function createHypitProvider(env: Env): VideoProvider {
+export function createHypitProvider(env: Env, config: typeof site = site): VideoProvider {
   const token = cleanSecret(env.HYPIT_BRIDGE_TOKEN) ?? ''
   let base: URL
   try {
@@ -42,7 +42,8 @@ export function createHypitProvider(env: Env): VideoProvider {
       const job = await request('/v1/jobs', {
         generationId: input.generationId,
         siteId: env.HYPIT_SITE_ID,
-        templateId: site.video.hypit.templateId,
+        templateId: config.video.hypit.templateId,
+        ...(config.video.hypit.requiredWorkflowType ? { requiredWorkflowType: config.video.hypit.requiredWorkflowType } : {}),
         durationSeconds: input.durationSeconds,
         aspectRatio: input.aspectRatio ?? '9:16',
         ...(input.backgroundDescription ? { backgroundDescription: input.backgroundDescription } : {}),

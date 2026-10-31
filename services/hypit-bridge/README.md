@@ -25,7 +25,7 @@ npm start
 
 站点初始化也使用相同像素规则，生成合格参考视频后再计算模板哈希。已有站点替换参考视频时必须同步本站哈希，保留其他站点配置；先确认 Bridge 没有活动任务，再切换已检查的新版本并检查健康接口。
 
-已有 Debian VPS 使用仓库的 `scripts/update-hypit-bridge.py --revision <完整提交>` 更新 Bridge。脚本在停止接收新任务后再次确认空闲、检查所有 Node 源码语法、备份配置、切换固定提交并读取鉴权健康接口；失败会恢复原代码和配置，不重装 Runtime、不调用模型。可用 `--reference-hashes <JSON>` 更新单个站点模板的批准哈希（字段 `siteId`、`templateId`、`hashes`）；每个时长可保留至多四个批准版本，供 Worker 与 VPS 滚动更新使用。
+已有 Debian VPS 使用仓库的 `scripts/update-hypit-bridge.py --revision <完整提交>` 更新 Bridge。脚本在停止接收新任务后再次确认空闲、检查所有 Node 源码语法、备份配置、切换固定提交并读取鉴权健康接口；失败会恢复原代码和配置，不重装 Runtime、不调用模型。`site:init` 生成的完整站点片段使用 `--site-fragment <bridge-site.json>` 一并更新媒体 origin、时长、工作流和参考片哈希；脚本验证片段与 VPS 已登记的站点、模板一致后才切换。保留原音轨的模板必须同时配置 `reference-remix-v1` 与每个时长的 SHA-256。生产站点会在每次提交时声明必需工作流，Bridge 在创建队列记录前核对，缺失或不匹配时拒绝任务，不会静默退回旧版输入。
 
 另行安装 Hypit 并配置其运行时和模型凭据；Hypit 不包含在这个模板中。将 `projectRoot` 和 `runtimeProfile` 指向已安装的 Hypit 项目，`dataDir` 必须位于该项目内。核验 Bridge 与所安装 Hypit CLI 的兼容性。
 

@@ -74,7 +74,7 @@ export const site = {
   // 视频模型，服务商由 VIDEO_PROVIDER 选择。换模型时同时检查 src/server/video/ 下对应文件的入参与出参。
   video: {
     // 对应 Bridge 的允许模板；估算单价由运营者按实际服务商账单配置。
-    hypit: { templateId: 'reference-video', costCentsPerSecond: 0 },
+    hypit: { templateId: 'reference-video', costCentsPerSecond: 0, requiredWorkflowType: null as string | null },
     // fal.ai queue API（默认）
     falModel: 'fal-ai/wan/v2.2-14b/animate/replace',
     resolution: '480p',

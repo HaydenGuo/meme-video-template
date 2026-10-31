@@ -58,7 +58,7 @@ npm run dev
 - 当 profile 提供 `heroVideo` 时，首屏用 YouTube 嵌入展示目标视频；本地裁切原片仍供生成流程使用，生成案例单独展示，不在每条案例视频上重复叠加“AI version”徽标。
 - 生成 5/12/15 秒参考视频；固定每秒 1 积分，积分包 $9.90/25、$19.90/60 和 $29.90/100，关闭新订阅。
 - 按 `launch` 设置功能开关、环境和 URL，同时写入管理员邮箱、Google 配置和 Bridge 站点 ID；私有密钥仅写入已被 Git 忽略的 `.dev.vars`。默认 `local` 使用 mock，不产生生成费用；线上阶段不使用 mock，尚缺的服务通过 doctor 检查。
-- 输出 `bridge-site.json`，作为 VPS Bridge 的 `sites` 属性下的站点片段。需与现有站点合并后重启；不会覆盖正在运行的 Bridge。
+- 输出 `bridge-site.json`，包含站点必需工作流和每档参考片 SHA-256。通过 Bridge 更新脚本 `--site-fragment bridge-site.json` 应用，脚本会在服务空闲时备份配置、合并单站点片段并健康检查；不再手工复制字段。上线验证需读回 VPS 中的工作流和哈希配置。
 - 输出 `.site-initialized.json`：模板 commit、输入指纹、生成素材哈希、本地导入状态及待办；状态固定为待审阅，不宣称生产可用。
 
 初始化后可用 `npm run site:mode -- generate` 在本地预览下一阶段，追加 `--apply` 修改本地功能开关，不会部署或覆盖凭据。该命令不替换环境和 URL；正式上线前另行设置 `APP_ENV` 与 HTTPS `SITE_URL`。详见 [环境配置](env.md)。

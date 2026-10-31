@@ -4,7 +4,7 @@
 
 ## 改动前
 
-- 本仓库是模板，热词站是以它为 `upstream` 的独立仓库。站点差异只放在 `src/config/site.ts`、`src/content/*`、`public/*`、`seed/`、`wrangler.jsonc` 和 `package.json` 的 `name`；其它文件的修复在模板里做，再合并到各站。
+- 本仓库是模板，热词站是以它为 `upstream` 的独立仓库。站点差异只放在 `src/config/site.ts`、`src/content/*`、`public/*`、`seed/`、`wrangler.jsonc`、`bridge-site.json` 和 `package.json` 的 `name`；其它文件的修复在模板里做，再合并到各站。
   - 这份清单还写在 `scripts/sync-plan.mjs` 的 `layerOf`（同步计划按它分层，`tests/unit/sync-plan.test.ts` 核对）和 new-hot-site skill 的白名单里，改动时三处一起改。
   - 站点只能用 `git merge` 同步模板（`sync-upstream` skill），同步基线取 `git merge-base`；合并提交带 `Template-sync: <sha>` trailer。
 - 代码注释、docs 用简体中文；commit message 用英文。

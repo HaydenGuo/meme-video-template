@@ -45,6 +45,6 @@ API Key 只有在兼容的 Hypit Provider 中才能使用，不能把任意服�
 
 ## 每个梗站的专属部分
 
-梗介绍、原视频、AI 示例及照片；独立 `siteId`、模板/提示词及允许的媒体 origin；网站自己的数据库、积分/支付商品、Google 回调、邮件及审核配置。`site:init` 会生成待合并的 `bridge-site.json`。
+梗介绍、原视频、AI 示例及照片；独立 `siteId`、模板/提示词及允许的媒体 origin；网站自己的数据库、积分/支付商品、Google 回调、邮件及审核配置。`site:init` 会生成 `bridge-site.json`，部署时用 `scripts/update-hypit-bridge.py --site-fragment` 原子合并并检查健康状态，不能仅凭 `/health` 推断模板已配置。
 
 HTTPS 域名可以稍后确定。在域名和 TLS 配好前，仅在 VPS 内部或 IAP 转发访问 Bridge，暂不开放公网 8788。不要把内网健康检查通过说成 Cloudflare 已接通。

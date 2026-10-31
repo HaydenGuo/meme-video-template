@@ -4,6 +4,7 @@ import { join, resolve } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { extractReferenceAudio, prepareModelMedia } from '../../services/hypit-bridge/src/media-preflight.mjs'
+import { assertWorkflowRequirement } from '../../services/hypit-bridge/src/bridge.mjs'
 import { buildSourceDocument, referenceMediaMarkup, remixComposition } from '../../services/hypit-bridge/src/workflow.mjs'
 
 const dirs: string[] = []
@@ -19,6 +20,12 @@ function tempDir() {
 }
 
 describe('Hypit reference video soundtrack workflow', () => {
+  it('rejects Bridge templates missing the workflow required by the site before queueing', () => {
+    expect(() => assertWorkflowRequirement({ durations: [5, 12, 15] }, 'reference-remix-v1'))
+      .toThrow(expect.objectContaining({ status: 409, code: 'template_workflow_mismatch' }))
+    expect(() => assertWorkflowRequirement({ workflow: { type: 'reference-remix-v1' } }, 'reference-remix-v1')).not.toThrow()
+  })
+
   it('extracts the original soundtrack as a separate audio-only WAV before submission', async () => {
     const dir = tempDir()
     const probe = vi.fn(async (path: string) => path.endsWith('.wav')
