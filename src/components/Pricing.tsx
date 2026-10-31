@@ -114,7 +114,7 @@ export function Pricing() {
                 ) : null}
               </p>
               <ul className="my-6 flex-1 space-y-3 border-t border-border pt-5 text-sm text-muted">
-                {site.durations.filter((duration) => pack.credits >= duration.credits).map((duration) => <li key={duration.id} className="flex items-start gap-2"><Check className="mt-0.5 size-4 shrink-0 text-emerald-600" aria-hidden />{p.approx(Math.floor(pack.credits / duration.credits), duration.seconds)}</li>)}
+                {site.durations.filter((duration) => pack.credits >= duration.credits).map((duration) => <li key={duration.id} className="flex items-start gap-2"><Check className="mt-0.5 size-4 shrink-0 text-emerald-600" aria-hidden />{p.approx(Math.floor(pack.credits / duration.credits), 'displaySeconds' in duration ? duration.displaySeconds : duration.seconds)}</li>)}
                 {p.bullets.map((bullet) => <li key={bullet} className="flex items-start gap-2"><Check className="mt-0.5 size-4 shrink-0 text-emerald-600" aria-hidden />{bullet}</li>)}
               </ul>
               <div>{buyButton(pack.id, !!highlight, p.buy)}</div>
