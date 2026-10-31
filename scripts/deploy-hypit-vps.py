@@ -15,6 +15,7 @@ import urllib.request
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--revision', required=True)
+parser.add_argument('--engine', choices=['notoken', 'hypit'], default='notoken')
 args = parser.parse_args()
 if os.geteuid() != 0 or not re.fullmatch(r'[a-f0-9]{40}', args.revision):
     raise SystemExit('需要 root 和完整的 Git commit SHA')
@@ -80,34 +81,61 @@ project = Path('/var/lib/hypit/project')
 project.mkdir(parents=True, exist_ok=True)
 config = Path('/etc/hypit-bridge')
 config.mkdir(mode=0o750, exist_ok=True)
-write_new(project / 'package.json', json.dumps({
-    'name': 'meme-video-hypit-runtime', 'private': True, 'type': 'module', 'hypit': {'project': True},
-    'dependencies': {'@hypit/hypit': '0.3.1', '@hypit/runtime-local': '0.1.1', '@hypit/generation': '0.1.0', '@hypit/seedance': '0.2.0'}
-}, indent=2) + '\n')
-run('chown', '-R', 'hypit:hypit', '/var/lib/hypit')
-if not (project / 'node_modules/@hypit/hypit/bin/hypit.mjs').exists():
-    print('Installing pinned Hypit packages', flush=True)
-    command = ['npm', 'ci' if (project / 'package-lock.json').exists() else 'install', '--no-audit', '--no-fund']
-    run('runuser', '-u', 'hypit', '--', *command, cwd=project)
+if args.engine == 'hypit':
+    write_new(project / 'package.json', json.dumps({
+        'name': 'meme-video-hypit-runtime', 'private': True, 'type': 'module', 'hypit': {'project': True},
+        'dependencies': {'@hypit/hypit': '0.3.1', '@hypit/runtime-local': '0.1.1', '@hypit/generation': '0.1.0', '@hypit/seedance': '0.2.0'}
+    }, indent=2) + '\n')
+    run('chown', '-R', 'hypit:hypit', '/var/lib/hypit')
+    if not (project / 'node_modules/@hypit/hypit/bin/hypit.mjs').exists():
+        print('Installing pinned Hypit packages', flush=True)
+        command = ['npm', 'ci' if (project / 'package-lock.json').exists() else 'install', '--no-audit', '--no-fund']
+        run('runuser', '-u', 'hypit', '--', *command, cwd=project)
 
-runtime = {
-    'format': 'hypit.runtime-local@1', 'dataRoot': '/var/lib/hypit/execution',
-    'credentials': {'env': {'use': '@hypit/credential-store-env'}},
-    'endpoints': {'media.local': {'use': '@hypit/media-local'}}, 'bindings': {},
-    'worker': {'executionMemoryMb': 1024},
-}
-write_new(config / 'hypit.runtime.json', json.dumps(runtime, indent=2) + '\n')
+    runtime = {
+        'format': 'hypit.runtime-local@1', 'dataRoot': '/var/lib/hypit/execution',
+        'credentials': {'env': {'use': '@hypit/credential-store-env'}},
+        'endpoints': {'media.local': {'use': '@hypit/media-local'}}, 'bindings': {},
+        'worker': {'executionMemoryMb': 1024},
+    }
+    write_new(config / 'hypit.runtime.json', json.dumps(runtime, indent=2) + '\n')
 write_new(config / 'bridge.env', 'BRIDGE_TOKEN=' + secrets.token_hex(32) + '\nBRIDGE_OUTPUT_SECRET=' + secrets.token_hex(32) +
           '\nBRIDGE_CONFIG=/etc/hypit-bridge/bridge.config.json\nHOME=/var/lib/hypit\n', 0o640)
-write_new(config / 'provider.env', '# 模型服务商凭据由管理员通过私有渠道填写；不写入 Git。\n', 0o640)
-write_new(config / 'bridge.config.json', json.dumps({
+write_new(config / 'provider.env', '# Keep provider credentials on this VPS; never store them in Git.\n', 0o640)
+bridge_config = {
     'host': '127.0.0.1', 'port': 8788, 'publicUrl': 'http://127.0.0.1:8788',
-    'mode': 'hypit', 'dataDir': str(project / '.hypit/bridge'), 'maxActive': 1, 'maxQueued': 20,
+    # mode stays hypit for existing Workers; engine selects the actual generation provider.
+    'mode': 'hypit', 'engine': args.engine,
+    'dataDir': str(project / '.hypit/bridge'),
+    'maxActive': 8 if args.engine == 'notoken' else 1,
+    'maxQueued': 100, 'ffmpegConcurrency': 2,
     'maxAgeMs': 2100000, 'retentionMs': 86400000, 'maxStorageBytes': 2147483648,
     'projectRoot': str(project), 'runtimeProfile': str(config / 'hypit.runtime.json'),
-    # 没有模型 API 和正式站点资料时，拒绝全部任务；健康可用不表示生成能力已接通。
+    # No API key and site/template registration means generation stays unavailable.
     'sites': {},
-}, indent=2) + '\n')
+}
+config_file = config / 'bridge.config.json'
+if config_file.exists():
+    existing_config = json.loads(config_file.read_text())
+    bridge_config['sites'] = existing_config.get('sites', {})
+    bridge_config['mode'] = existing_config.get('mode', 'hypit')
+    bridge_config['dataDir'] = existing_config.get('dataDir', bridge_config['dataDir'])
+    bridge_config['projectRoot'] = existing_config.get('projectRoot', bridge_config['projectRoot'])
+    bridge_config['publicUrl'] = existing_config.get('publicUrl', bridge_config['publicUrl'])
+    bridge_config['host'] = existing_config.get('host', bridge_config['host'])
+    bridge_config['port'] = existing_config.get('port', bridge_config['port'])
+    bridge_config['maxAgeMs'] = existing_config.get('maxAgeMs', bridge_config['maxAgeMs'])
+    bridge_config['retentionMs'] = existing_config.get('retentionMs', bridge_config['retentionMs'])
+    bridge_config['maxStorageBytes'] = existing_config.get('maxStorageBytes', bridge_config['maxStorageBytes'])
+    bridge_config['runtimeProfile'] = existing_config.get('runtimeProfile', bridge_config['runtimeProfile'])
+    # Preserve the site registry and deployment secrets while applying requested engine/capacity.
+    temp_config = config_file.with_suffix('.json.next')
+    temp_config.write_text(json.dumps(bridge_config, indent=2) + '\n')
+    temp_config.chmod(0o640)
+    temp_config.replace(config_file)
+else:
+    config_file.write_text(json.dumps(bridge_config, indent=2) + '\n')
+    config_file.chmod(0o640)
 run('chown', '-R', 'root:hypit', str(config))
 
 current = Path('/opt/meme-video/current')
@@ -138,7 +166,8 @@ TimeoutStopSec=60
 TasksMax=128
 CPUQuota=150%
 '''
-runtime_unit = '''[Unit]
+if args.engine == 'hypit':
+    runtime_unit = '''[Unit]
 Description=Hypit Runtime Worker supervisor
 After=network-online.target
 Wants=network-online.target
@@ -150,11 +179,11 @@ MemoryMax=2048M
 [Install]
 WantedBy=multi-user.target
 '''
+    Path('/etc/systemd/system/hypit-runtime.service').write_text(runtime_unit)
+bridge_dependency = 'After=network-online.target hypit-runtime.service\nWants=network-online.target hypit-runtime.service\n' if args.engine == 'hypit' else 'After=network-online.target\nWants=network-online.target\n'
 bridge_unit = '''[Unit]
 Description=Meme Video Hypit Bridge
-After=network-online.target hypit-runtime.service
-Wants=network-online.target hypit-runtime.service
-[Service]
+''' + bridge_dependency + '''[Service]
 Type=simple
 ''' + unit_common + '''EnvironmentFile=/etc/hypit-bridge/bridge.env
 ExecStart=/usr/local/bin/node /opt/meme-video/current/services/hypit-bridge/src/server.mjs
@@ -163,12 +192,17 @@ MemoryMax=1024M
 [Install]
 WantedBy=multi-user.target
 '''
-Path('/etc/systemd/system/hypit-runtime.service').write_text(runtime_unit)
 Path('/etc/systemd/system/hypit-bridge.service').write_text(bridge_unit)
 run('python3', str(release / 'services/hypit-bridge/configure-render-limits.py'))
 run('systemctl', 'daemon-reload')
-run('systemctl', 'enable', 'hypit-runtime.service', 'hypit-bridge.service')
-run('systemctl', 'restart', 'hypit-runtime.service', 'hypit-bridge.service')
+if args.engine == 'hypit':
+    run('systemctl', 'enable', 'hypit-runtime.service')
+else:
+    # A direct NoToken Bridge must not start the Hypit Runtime or depend on it.
+    subprocess.run(['systemctl', 'disable', '--now', 'hypit-runtime.service'], check=False,
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+run('systemctl', 'enable', 'hypit-bridge.service')
+run('systemctl', 'restart', 'hypit-bridge.service')
 
 # 留一份本机受限备份：用于误改配置后的恢复，不上传到 GitHub。
 backup = config / 'initial-backup'
@@ -191,10 +225,10 @@ if response is None:
     if previous:
         candidate.symlink_to(previous, target_is_directory=True)
         candidate.replace(current)
-        run('systemctl', 'restart', 'hypit-runtime.service', 'hypit-bridge.service')
+        run('systemctl', 'restart', 'hypit-bridge.service')
     raise SystemExit('Bridge health failed; inspect systemctl/journalctl. No secrets printed.')
 report = {'revision': actual, 'release': str(release), 'previous': previous,
-          'node': version, 'bridgeHealth': response, 'generationReady': False,
-          'pending': ['provider API and credentials', 'site and template registration', 'HTTPS domain before Cloudflare connection']}
+          'node': version, 'bridgeHealth': response, 'engine': args.engine, 'generationReady': False,
+          'pending': ['provider API credentials in /etc/hypit-bridge/provider.env', 'site and template registration', 'HTTPS domain before Cloudflare connection']}
 Path('/var/lib/hypit/deployment.json').write_text(json.dumps(report, indent=2) + '\n')
 print(json.dumps(report, indent=2))
