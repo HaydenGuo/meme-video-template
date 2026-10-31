@@ -1,4 +1,13 @@
 // 固定工程生成器：输入来自服务端模板配置，不调用语言模型，也不自动修改提示词。
+export function referenceMediaMarkup({ hasWorkflow, passthrough, modelVideoFile }) {
+  if (!passthrough && (typeof modelVideoFile !== 'string' || !/^[\w.-]+$/.test(modelVideoFile))) throw new Error('Invalid prepared model video')
+  const media = []
+  if (hasWorkflow) media.push('  <media:Audio id="soundtrack" src="./source-audio.wav"/>')
+  if (passthrough || !hasWorkflow) media.push('  <media:Video id="reference" src="./source.mp4"/>')
+  if (!passthrough) media.push(`  <media:Video id="model-reference" src="./${modelVideoFile}"/>`)
+  return media.join('\n')
+}
+
 export function remixComposition(job, template, pictureSource) {
   const workflow = template.workflow
   if (workflow?.type !== 'reference-remix-v1' || workflow.frameRate !== 30) throw new Error('Unsupported workflow')
@@ -19,7 +28,7 @@ export function remixComposition(job, template, pictureSource) {
   <import as="look" source="./look.svs"/>`, body: `
   <time:Clock id="clock" frame-rate="30"/>
   <mediaop:Normalize id="picture-media" source={${pictureSource}} clock={clock} video="primary-moving" audio="none" span-authority="video"/>
-  <mediaop:Normalize id="music-media" source={reference} clock={clock} video="none" audio="default" span-authority="audio"/>
+  <mediaop:Normalize id="music-media" source={soundtrack} clock={clock} video="none" audio="default" span-authority="audio"/>
   <space:Canvas id="canvas" width="${landscape ? 1280 : 720}" height="${landscape ? 720 : 1280}"/>
   <space:Frame id="full" within={canvas.bounds} left="0%" top="0%" right="100%" bottom="100%"/>
   <time:Timeline id="program" clock={clock} end="${end}f">

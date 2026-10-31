@@ -68,6 +68,8 @@ Google 登录作为模板通用模块，各站配置凭据和授权回调地址�
 
 支持自托管 `VIDEO_PROVIDER=hypit`：通过独立 VPS Bridge 共用 Hypit Runtime，沿用队列、积分退款和 R2。先在本地用模拟任务验证，步骤见 [Hypit 接入](docs/hypit.md)。
 
+保留参考原声的复刻任务会在创建模型 Build 前，由 Bridge 分离出纯音频 WAV 和无声参考视频。模型只接收无声视频；最终合成将生成画面与提取的原音轨合并，并验证成片同时包含视频和音频轨道。
+
 [English](README.md) | 简体中文
 
 作者：[浅水虾](https://x.com/qianshuixia2026)，一只朝着深海出发的浅水虾。
