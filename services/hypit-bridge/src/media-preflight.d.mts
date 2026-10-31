@@ -4,7 +4,7 @@ export function assetDimensions(width: number, height: number): { width: number;
 
 export function extractReferenceAudio(options: {
   dir: string
-  probe: (path: string) => Promise<{ format?: { duration?: string | number }; streams?: { codec_type: string }[] }>
+  probe: (path: string) => Promise<{ format?: { duration?: string | number }; streams?: { codec_type: string; codec_name?: string; sample_rate?: string | number; channels?: number }[] }>
   config: { ffmpegPath?: string }
   durationSeconds: number
   run?: (file: string, args: string[], options: Record<string, unknown>) => Promise<unknown>

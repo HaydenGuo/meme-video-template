@@ -32,7 +32,8 @@ export async function extractReferenceAudio({ dir, probe, config, durationSecond
   }
   const after = await probe(output)
   const length = Number(after.format?.duration)
-  if (!after.streams?.some(s => s.codec_type === 'audio') || after.streams.some(s => s.codec_type === 'video') || !Number.isFinite(length) || Math.abs(length - durationSeconds) > 0.1) {
+  const audio = after.streams?.find(s => s.codec_type === 'audio')
+  if (!audio || audio.codec_name !== 'pcm_s16le' || Number(audio.sample_rate) !== 48000 || audio.channels !== 2 || after.streams.some(s => s.codec_type === 'video') || !Number.isFinite(length) || Math.abs(length - durationSeconds) > 0.1) {
     throw new Error('Extracted soundtrack invalid')
   }
   return { file: 'source-audio.wav', durationSeconds: length, codec: 'pcm_s16le' }

@@ -3,7 +3,7 @@ import { promisify } from 'node:util'
 import { mkdir, writeFile, readFile } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import { resolve } from 'node:path'
-import { referenceMediaMarkup, remixComposition } from './workflow.mjs'
+import { buildSourceDocument, referenceMediaMarkup, remixComposition } from './workflow.mjs'
 import { composeVideoPrompt, scanLocalPrompt } from './prompt-safety.mjs'
 import { extractReferenceAudio, prepareModelMedia } from './media-preflight.mjs'
 
@@ -70,26 +70,27 @@ export function createHypitRunner(config) {
         video: await prepareModelMedia({ dir, kind: 'video', probe, config, durationSeconds: job.durationSeconds }),
       }
       if (prepared || soundtrack) await writeFile(resolve(dir, 'media-preflight.json'), JSON.stringify({ version: 2, image: prepared?.image ?? null, silentReferenceVideo: prepared?.video ?? null, soundtrack }), { mode: 0o600 })
+      const imports = [
+        '  <import as="media" from="@hypit/media@1"/>',
+        composition?.imports,
+        passthrough
+          ? composition ? '' : `  <import as="time" from="@hypit/timeline-author@1"/>
+  <import as="mediaop" from="@hypit/media-operations@1"/>`
+          : `  <import as="text" from="@hypit/text@1"/>
+  <import as="seedance" from="@hypit/seedance@1"/>`,
+      ].filter(Boolean).join('\n')
       const mediaMarkup = referenceMediaMarkup({ hasWorkflow: Boolean(template.workflow), passthrough, modelVideoFile: prepared?.video.file })
-      const source = `<?svml using="@hypit/markup@1"?>
-<svml>
-  <import as="media" from="@hypit/media@1"/>
-${composition?.imports ?? ''}
-${mediaMarkup}
-${passthrough ? composition ? '' : `  <import as="time" from="@hypit/timeline-author@1"/>
-  <import as="mediaop" from="@hypit/media-operations@1"/>
-  <time:Clock id="clock" frame-rate="24"/>
+      const graph = passthrough
+        ? composition ? '' : `  <time:Clock id="clock" frame-rate="24"/>
   <mediaop:Normalize id="normalized" source={reference} clock={clock} video="primary-moving" audio="none" span-authority="video"/>
-  <mediaop:Transform id="prepared" source={normalized.media}><mediaop:Retime rate="1"/></mediaop:Transform>` : `  <import as="text" from="@hypit/text@1"/>
-  <import as="seedance" from="@hypit/seedance@1"/>
-  <media:Image id="portrait" src="./${prepared?.image.file}" media-type="image/png"/>
+  <mediaop:Transform id="prepared" source={normalized.media}><mediaop:Retime rate="1"/></mediaop:Transform>`
+        : `  <media:Image id="portrait" src="./${prepared?.image.file}" media-type="image/png"/>
   <text:Value id="direction">${xml(prompt)}</text:Value>
   <seedance:ReferenceVideo id="generated" model="${xml(template.model)}" prompt={direction} duration="${job.durationSeconds}" resolution="${xml(template.resolution)}" aspect-ratio="${xml(job.aspectRatio ?? template.aspectRatio)}" generate-audio="false">
     <seedance:Reference image={portrait} person-reference="${template.imagePersonReference === true}"/>
     <seedance:Reference video={model-reference} person-reference="${template.videoPersonReference === true}"/>
-  </seedance:ReferenceVideo>`}
-${composition?.body ?? ''}
-</svml>`
+  </seedance:ReferenceVideo>`
+      const source = buildSourceDocument({ imports, media: mediaMarkup, graph, composition: composition?.body ?? '' })
       const output = template.workflow ? 'final.video' : passthrough ? 'prepared.video' : 'generated.video'
       if (template.workflow) await writeFile(resolve(dir, 'look.svs'), '<?svml using="@hypit/recipe@1"?>\n<sheet version="1">film.main { background: #090D14; }</sheet>')
       await writeFile(resolve(dir, 'source.svml'), source)

@@ -1,3 +1,10 @@
+export function buildSourceDocument(options: {
+  imports: string
+  media: string
+  graph: string
+  composition?: string
+}): string
+
 export function referenceMediaMarkup(options: {
   hasWorkflow: boolean
   passthrough: boolean

@@ -1,4 +1,14 @@
 // 固定工程生成器：输入来自服务端模板配置，不调用语言模型，也不自动修改提示词。
+export function buildSourceDocument({ imports, media, graph, composition = '' }) {
+  return `<?svml using="@hypit/markup@1"?>
+<svml>
+${imports}
+${media}
+${graph}
+${composition}
+</svml>`
+}
+
 export function referenceMediaMarkup({ hasWorkflow, passthrough, modelVideoFile }) {
   if (!passthrough && (typeof modelVideoFile !== 'string' || !/^[\w.-]+$/.test(modelVideoFile))) throw new Error('Invalid prepared model video')
   const media = []

@@ -4,7 +4,7 @@ import { join, resolve } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { extractReferenceAudio, prepareModelMedia } from '../../services/hypit-bridge/src/media-preflight.mjs'
-import { referenceMediaMarkup, remixComposition } from '../../services/hypit-bridge/src/workflow.mjs'
+import { buildSourceDocument, referenceMediaMarkup, remixComposition } from '../../services/hypit-bridge/src/workflow.mjs'
 
 const dirs: string[] = []
 afterEach(() => {
@@ -22,7 +22,7 @@ describe('Hypit reference video soundtrack workflow', () => {
   it('extracts the original soundtrack as a separate audio-only WAV before submission', async () => {
     const dir = tempDir()
     const probe = vi.fn(async (path: string) => path.endsWith('.wav')
-      ? { format: { duration: '5.0' }, streams: [{ codec_type: 'audio', codec_name: 'pcm_s16le' }] }
+      ? { format: { duration: '5.0' }, streams: [{ codec_type: 'audio', codec_name: 'pcm_s16le', sample_rate: '48000', channels: 2 }] }
       : { streams: [{ codec_type: 'video' }, { codec_type: 'audio' }] })
     const run = vi.fn(async (_binary: string, _args: string[]) => ({ stdout: '', stderr: '' }))
 
@@ -73,5 +73,12 @@ describe('Hypit reference video soundtrack workflow', () => {
     expect(markup).toContain('<media:Audio id="soundtrack" src="./source-audio.wav"/>')
     expect(markup).toContain('<media:Video id="model-reference" src="./model-source.mp4"/>')
     expect(markup).not.toContain('id="reference"')
+  })
+
+  it('keeps all Hypit imports ahead of media and graph declarations', () => {
+    const source = buildSourceDocument({ imports: '<import/>', media: '<media/>', graph: '<graph/>', composition: '<film/>' })
+    expect(source.indexOf('<import/>')).toBeLessThan(source.indexOf('<media/>'))
+    expect(source.indexOf('<media/>')).toBeLessThan(source.indexOf('<graph/>'))
+    expect(source.indexOf('<graph/>')).toBeLessThan(source.indexOf('<film/>'))
   })
 })
