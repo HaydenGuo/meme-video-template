@@ -5,6 +5,7 @@ import { createReadStream } from 'node:fs'
 import { mkdir, stat, rm, writeFile, readdir, statfs } from 'node:fs/promises'
 import { resolve, relative, isAbsolute } from 'node:path'
 import { createHypitRunner } from './hypit.mjs'
+import { createNoTokenRunner } from './notoken.mjs'
 
 const same = (a, b) => typeof a === 'string' && typeof b === 'string' && Buffer.byteLength(a) === Buffer.byteLength(b) && timingSafeEqual(Buffer.from(a), Buffer.from(b))
 const hash = (value) => createHash('sha256').update(value).digest('hex')
@@ -20,6 +21,8 @@ export function assertWorkflowRequirement(template, requiredWorkflowType) {
 export async function createBridge(config, { token, outputSecret, runner } = {}) {
   if (!token || token.length < 32 || !outputSecret || outputSecret.length < 32) throw new Error('Bridge secrets must contain at least 32 characters')
   if (!['mock', 'passthrough', 'hypit'].includes(config.mode)) throw new Error('Invalid Bridge mode')
+  const engine = config.engine ?? 'hypit'
+  if (!['hypit', 'notoken'].includes(engine)) throw new Error('Invalid Bridge engine')
   const publicUrl = new URL(config.publicUrl)
   if (publicUrl.pathname !== '/' || publicUrl.search || publicUrl.hash || publicUrl.username || publicUrl.password) throw new Error('publicUrl must be an origin')
   const local = ['localhost', '127.0.0.1', '[::1]'].includes(publicUrl.hostname)
@@ -47,7 +50,7 @@ export async function createBridge(config, { token, outputSecret, runner } = {})
   // 占有 SQLite 写锁，拒绝第二个服务进程；崩溃后 SQLite 自动释放锁。
   const lease = new DatabaseSync(resolve(root, 'instance.sqlite'))
   lease.exec('PRAGMA busy_timeout=0; CREATE TABLE IF NOT EXISTS singleton (id INTEGER); BEGIN EXCLUSIVE')
-  const hypit = runner ?? (config.mode === 'mock' ? null : createHypitRunner(config))
+  const hypit = runner ?? (config.mode === 'mock' ? null : engine === 'notoken' ? createNoTokenRunner(config) : createHypitRunner(config))
   const rows = (sql, ...params) => db.prepare(sql).all(...params)
   const job = (id) => db.prepare('SELECT * FROM jobs WHERE id=?').get(id)
   const update = (id, state, error = null) => db.prepare('UPDATE jobs SET state=?,error=?,updated=? WHERE id=?').run(state, error, Date.now(), id)
@@ -133,7 +136,7 @@ export async function createBridge(config, { token, outputSecret, runner } = {})
     if (row.state !== 'running') return
     const state = await hypit.status(row.build_id)
     if (state === 'complete') {
-      await hypit.export(row.build_id, row.output_name, resolve(dir, 'output.mp4'))
+      await hypit.export(row.build_id, row.output_name, resolve(dir, 'output.mp4'), input)
       const output = await stat(resolve(dir, 'output.mp4'))
       if (!output.size || output.size > 100 * 1024 * 1024) return update(row.id, 'failed', 'output_size')
       try { await hypit.verify?.(resolve(dir, 'output.mp4'), input, JSON.parse(row.template)) }
@@ -150,8 +153,8 @@ export async function createBridge(config, { token, outputSecret, runner } = {})
   function markAdvanceError(row, error) {
     const current = job(row.id)
     if (current?.state === 'submitting') {
-      const rejectedBeforeSubmit = error?.code === 'hypit_submission_rejected'
-      return update(row.id, rejectedBeforeSubmit ? 'failed' : 'attention', rejectedBeforeSubmit ? 'hypit_submit_rejected' : 'submission_unknown')
+      const rejectedBeforeSubmit = ['hypit_submission_rejected', 'notoken_submission_rejected'].includes(error?.code)
+      return update(row.id, rejectedBeforeSubmit ? 'failed' : 'attention', rejectedBeforeSubmit ? 'submission_rejected' : 'submission_unknown')
     }
     if (current?.state === 'preparing') return update(row.id, 'failed', 'preparation_failed')
   }
@@ -160,13 +163,17 @@ export async function createBridge(config, { token, outputSecret, runner } = {})
     if (pumping || stopped) return
     pumping = true
     try {
-      for (const row of rows("SELECT * FROM jobs WHERE state IN ('running','preparing')")) {
+      const active = rows("SELECT * FROM jobs WHERE state IN ('running','preparing')")
+      await Promise.allSettled(active.map(async (row) => {
         try { await advance(row) } catch (error) { markAdvanceError(row, error) }
-      }
-      while (!stopped && rows("SELECT id FROM jobs WHERE state IN ('running','preparing','submitting','attention')").length < config.maxActive) {
-        const row = rows("SELECT * FROM jobs WHERE state='queued' ORDER BY created LIMIT 1")[0]
-        if (!row) break
-        try { await advance(row) } catch (error) { markAdvanceError(row, error) }
+      }))
+      const occupied = rows("SELECT id FROM jobs WHERE state IN ('running','preparing','submitting','attention')").length
+      const slots = Math.max(0, config.maxActive - occupied)
+      if (slots > 0 && !stopped) {
+        const queued = rows("SELECT * FROM jobs WHERE state='queued' ORDER BY created LIMIT ?", slots)
+        await Promise.allSettled(queued.map(async (row) => {
+          try { await advance(row) } catch (error) { markAdvanceError(row, error) }
+        }))
       }
       for (const row of rows("SELECT * FROM jobs WHERE state IN ('completed','failed') AND updated < ?", Date.now() - config.retentionMs)) {
         await rm(directory(row.id), { recursive: true, force: true })
@@ -192,7 +199,7 @@ export async function createBridge(config, { token, outputSecret, runner } = {})
         return
       }
       if (!same(req.headers.authorization, `Bearer ${token}`)) throw fault(401, 'unauthorized')
-      if (req.method === 'GET' && url.pathname === '/health') return json(200, { ok: true, mode: config.mode, jobs: rows('SELECT state,COUNT(*) AS count FROM jobs GROUP BY state') })
+      if (req.method === 'GET' && url.pathname === '/health') return json(200, { ok: true, mode: config.mode, engine, jobs: rows('SELECT state,COUNT(*) AS count FROM jobs GROUP BY state') })
       if (req.method === 'POST' && url.pathname === '/v1/jobs') {
         const chunks = []
         let size = 0
