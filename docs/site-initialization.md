@@ -8,6 +8,7 @@
 
 - `keyword`：梗名称；`slug`：英文站点标识。
 - `overview.zh` / `overview.en`：梗的实际介绍。可把中文资料交给 AI 整理成这份文件；脚本不调用翻译或研究 API，不编造起源和热度。
+- `googleAuthRequired`：Google 登录是否属于上线必需项。用户要求 Google 登录时设为 `true`，doctor 会阻止缺少 Client ID 或 Secret 的生产/预发部署；邮箱密码登录不需要该开关。
 - `media.sourceVideo`：至少达到最长档位的原片，默认裁出开头 5/12/15 秒。可用 `durations: [5,12,14]` 等三个递增整数配置实际长度；需要不同起点时先提供剪好的原片。
 - `heroVideo`（可选）：首页首屏展示的 YouTube 目标/官方视频，例如 `{ "videoId": "OPf0YbXqDm0", "playlistId": "RDOPf0YbXqDm0", "startAt": 17 }`。只填视频 ID、可选歌单 ID 与起始秒数；页面使用 YouTube 隐私增强型嵌入。它只影响展示，生成仍使用 `media.sourceVideo`，两者不可混为一谈。
 - `trendArticle`（可选）：可同时提供 `en`/`zh` 的 `title`、`description`、`intro` 和 `sections`，每种语言 4–10 个不同主题的小节，每节 1–5 段。填写后初始化会使用这份文章；未填写时只生成待补充的四节草稿。上线前根据可信来源补全梗的来源/形式/传播和复刻方式，不要只改写 `overview` 或编造日期与热度。
@@ -28,7 +29,7 @@
 
 支持现有 `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` 或标准 `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`。可由终端或 Infisical 向进程注入环境变量。每个站自动生成独立 SESSION_SECRET，不跨站共用会话和积分。
 
-Google 凭据可复用，但需在 Google 控制台 OAuth Web 客户端登记新站的 **Authorized JavaScript origins** 和准确的 **Authorized redirect URI**。来源只填写 origin（如 `https://example.com`、`https://www.example.com`），回调必须与本站 `SITE_URL` 完全一致：`${SITE_URL}/api/auth/google/callback`。初始化不会修改 Google 控制台。凭据存在只表示已配置，不表示授权回调已通过。
+优先沿用用户批准的 OAuth Web 客户端，不创建新客户端。需登记新站实际使用的 **Authorized JavaScript origins** 和准确的 **Authorized redirect URI**。来源只填写 origin（如 `https://example.com`、`https://www.example.com`），回调必须与本站 `SITE_URL` 完全一致：`${SITE_URL}/api/auth/google/callback`。初始化会打印需登记的来源和回调，但不会修改 Google 控制台。项目级授权页品牌会影响共用该项目的所有站点，未确认前不要修改。凭据存在只表示已配置，不表示授权回调已通过。
 
 ## 安装后运行
 

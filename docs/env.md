@@ -33,6 +33,7 @@ Hypit 可选接入：`VIDEO_PROVIDER=hypit`，新增 `HYPIT_BRIDGE_URL`（Bridge
 | `VIDEO_PROVIDER` | `fal`、`yir`、`mock` | 是 | 模型和单价在 `site.video` 里配置，yir 的配置在 `site.video.yir` |
 | `MODERATION_PROVIDER` | `openai`、`none`、`mock` | 是 | 上传图片的审核方式。`none` 不审核，检查时给出警告 |
 | `GOOGLE_CLIENT_ID` | OAuth Client ID | 使用 Google 时 | 可留空，用户仍可通过邮箱密码注册/登录；忘记密码需要发件服务 |
+| `GOOGLE_AUTH_REQUIRED` | `true`、`false` | 按上线要求 | Google 登录属于上线必需项时设为 `true`；生产/预发 doctor 会要求 Client ID 和 Secret 同时存在，否则阻止发布。默认 `false` 表示 Google 登录为可选项 |
 | `TURNSTILE_SITE_KEY` | 站点密钥 | 否 | 留空则留言和举报表单不做人机校验，检查时给出警告 |
 | `ADMIN_EMAILS` | 逗号分隔的邮箱 | 是 | 这些邮箱登录时自动成为管理员，同时接收举报、留言提醒和系统告警。从列表里删掉不会撤销管理员角色 |
 | `EMAIL_FROM` | 发件地址 | 找回密码或交易邮件时 | 域名要先在 Cloudflare Email Service 完成 Onboard，并配置 `EMAIL` binding；留空时新邮箱密码注册仍可用，但找回密码不可用，交易邮件记为 skipped |

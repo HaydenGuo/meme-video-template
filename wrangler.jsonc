@@ -40,6 +40,8 @@
     "WAFFO_PRODUCTS": "{}",
     "DODO_PRODUCTS": "{}",
     "GOOGLE_CLIENT_ID": "",
+    // 设为 true 时，生产/预发 doctor 会阻止缺少 Google Client ID 或 Secret 的发布
+    "GOOGLE_AUTH_REQUIRED": "false",
     // Cloudflare Turnstile 站点密钥（公开）；留空 = 不启用。启用时必须同时 `wrangler secret put TURNSTILE_SECRET_KEY`
     "TURNSTILE_SITE_KEY": "",
     // 上传图片审核：openai（需 OPENAI_API_KEY）| none | mock（mock 只允许非 production）

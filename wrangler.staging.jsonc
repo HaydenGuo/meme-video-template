@@ -41,6 +41,7 @@
     "WAFFO_PRODUCTS": "{}",
     "DODO_PRODUCTS": "{}",
     "GOOGLE_CLIENT_ID": "",
+    "GOOGLE_AUTH_REQUIRED": "false",
     "TURNSTILE_SITE_KEY": "",
     // 有 OPENAI_API_KEY 后改为 openai
     "MODERATION_PROVIDER": "none",

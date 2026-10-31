@@ -49,6 +49,7 @@ const PLACEHOLDER_HOSTS = /(^|\.)(example\.(com|org|net)|localhost)$|^127\.|SUBD
 const text = (value: string | undefined) => value?.replace(/^\uFEFF+/, '').trim() ?? ''
 
 export const FEATURE_FLAGS = ['SHOWCASE_MODE', 'SHOWCASE_AUTH_ENABLED', 'AUTH_ENABLED', 'GENERATION_ENABLED', 'PAYMENTS_ENABLED'] as const
+const BOOLEAN_CONFIG_VARS = [...FEATURE_FLAGS, 'GOOGLE_AUTH_REQUIRED'] as const
 
 // 未设置的新开关沿用旧站行为；显式拼错的值按关闭处理，由 doctor 阻止发布。
 // 保持无 import，让运行时、doctor 和初始化脚本共用相同解释。
@@ -79,7 +80,7 @@ export function checkConfig(input: ConfigInput): ConfigIssue[] {
   const error = (key: string, message: string) => issues.push({ level: 'error', key, message })
   const warn = (key: string, message: string) => issues.push({ level: 'warn', key, message })
   const vars = (name: string) => text(input.vars[name])
-  for (const key of FEATURE_FLAGS) {
+  for (const key of BOOLEAN_CONFIG_VARS) {
     if (input.vars[key] !== undefined && !['true', 'false'].includes(vars(key))) error(key, `${key} 必须是 true 或 false`)
   }
   const features = resolveFeatures(input.vars)
@@ -122,12 +123,18 @@ export function checkConfig(input: ConfigInput): ConfigIssue[] {
   if (!showcase && !features.auth) warn('AUTH_ENABLED', '新登录与注册关闭，已有会话仍可使用')
   if (!showcase && !features.generation) warn('GENERATION_ENABLED', '新上传与生成关闭，已有任务继续处理，须保留原视频服务凭据')
   if (!showcase && !features.payments) warn('PAYMENTS_ENABLED', '新购买关闭，已有订单和订阅仍需原支付凭据、回调与对账')
+  const googleAuthRequired = vars('GOOGLE_AUTH_REQUIRED') === 'true'
+  const enforceGoogleAuth = googleAuthRequired && (production || appEnv === 'staging')
   if (features.auth) {
     // Google 可选；邮箱密码注册无需发件服务，但找回密码需要真实邮箱发信。
     if (!vars('GOOGLE_CLIENT_ID')) {
-      warn('GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_ID 为空：Google 登录按钮不可用')
+      const message = 'GOOGLE_CLIENT_ID 为空：Google 登录按钮不可用；使用现有 OAuth Web 客户端 ID 填入后再发布'
+      if (enforceGoogleAuth) error('GOOGLE_CLIENT_ID', `${message}（GOOGLE_AUTH_REQUIRED=true）`)
+      else warn('GOOGLE_CLIENT_ID', message)
     }
     else requireSecrets(['GOOGLE_CLIENT_SECRET'], 'Google 登录')
+  } else if (enforceGoogleAuth) {
+    error('GOOGLE_AUTH_REQUIRED', 'GOOGLE_AUTH_REQUIRED=true，但 AUTH_ENABLED 或展示站账户入口未开放')
   }
   const sessionSecret = input.secrets.SESSION_SECRET
   if (typeof sessionSecret === 'string' && text(sessionSecret) && isWeakSessionSecret(text(sessionSecret))) {

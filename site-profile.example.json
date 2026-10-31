@@ -5,6 +5,7 @@
   "domain": "moon-hop.example.com",
   "port": 3000,
   "launch": "local",
+  "googleAuthRequired": false,
   "platform": "TikTok",
   "overview": {
     "zh": "替换成这个梗的实际介绍：画面里发生了什么、标志动作是什么，以及你想让用户如何二创。不要编造起源或播放量。",

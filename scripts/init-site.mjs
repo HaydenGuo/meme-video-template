@@ -30,6 +30,8 @@ if (!option('--profile')) throw new Error(usage)
 const profilePath = resolve(option('--profile'))
 const profile = JSON.parse(readFileSync(profilePath, 'utf8'))
 const launch = profile.launch ?? 'local'
+const googleAuthRequired = profile.googleAuthRequired ?? false
+if (typeof googleAuthRequired !== 'boolean') throw new Error('googleAuthRequired 只能是 true 或 false')
 const features = launchVars(launch)
 const services = option('--services') ? JSON.parse(readFileSync(resolve(option('--services')), 'utf8')) : {}
 const digest = (value) => createHash('sha256').update(value).digest('hex')
@@ -136,19 +138,26 @@ if (existsSync(statePath)) {
   }
   throw new Error('该目录已经初始化，拒绝覆盖已有站点。请在新的模板副本中初始化。')
 }
+const googleOrigin = launch === 'local' ? origin : `https://${domain}`
+const googleAuthorizedOrigins = [googleOrigin]
+const googleRedirectUri = `${googleOrigin}/api/auth/google/callback`
 const pending = [
-  `Google OAuth Web 客户端 Authorized JavaScript origins 登记 ${origin}、https://${domain} 和 https://www.${domain}（按实际访问域名取用）；Authorized redirect URI 登记 https://${domain}/api/auth/google/callback`,
+  `Google 控制台使用已批准的 OAuth Web 客户端，登记 Authorized JavaScript origins：${googleAuthorizedOrigins.join('、')}；Authorized redirect URI：${googleRedirectUri}`,
   '创建并绑定各站独立 D1、KV、R2 和 Queue；配置正式域名及生产服务商',
   '创建 25/$9.90、60/$19.90 与 100/$29.90 的一次性支付商品并登记 webhook',
   '配置真实邮件域名、图片审核及 Turnstile；生产前运行 doctor 并完成登录/充值/生成验证',
   '人工审阅梗资料、翻译、指南和展示素材；脚本不代表 SEO 或真实生成验收通过',
 ]
 pending.push(`当前上线阶段：${launch}。仅核验已开放功能；关闭新购买时保留已有支付回调与凭据`)
-if (!credentials.googleClientId) pending.push('尚未配置 Google；开启登录前需接通 Google 或已验证发件域的邮箱注册。本地开发可使用调试登录')
+if (!credentials.googleClientId || !credentials.googleClientSecret) pending.push(googleAuthRequired
+  ? 'Google 登录是本站上线必需项：从已批准的现有客户端配置 Client ID，并从授权的私密配置源取得 Secret；Google Cloud 不会再次显示旧 Secret。若需新增 Secret，先取得用户明确授权；GOOGLE_AUTH_REQUIRED=true 会阻止缺项部署'
+  : 'Google 登录尚未配置，登录页的 Google 按钮会保持不可用；如本站需要 Google 登录，请设置 googleAuthRequired=true 并接通现有 OAuth 客户端')
 pending.push('将生成的 Bridge 站点片段合并进 VPS Bridge 配置并重启；复核模型预算后才运行真实生成')
 if (domain.endsWith('.example.com')) pending.push('当前域名为占位值，上线前替换正式域名及相关回调/发件地址')
 console.log(JSON.stringify({ mode: apply ? 'apply' : 'preview', keyword, slug, domain, launch, features, localUrl: origin,
   assets: Object.keys(media), durations, packages: ['25 / $9.90', '60 / $19.90', '100 / $29.90'],
+  googleAuth: { required: googleAuthRequired, clientIdPresent: Boolean(credentials.googleClientId), secretPresent: Boolean(credentials.googleClientSecret),
+    authorizedJavaScriptOrigins: googleAuthorizedOrigins, authorizedRedirectUri: googleRedirectUri },
   googleConfigured: Boolean(credentials.googleClientId), bridgeConfigured: Boolean(credentials.hypitBridgeToken), pending }, null, 2))
 if (!apply) { console.log('\n仅预览，未写文件。确认资料后加 --apply；加 --local 导入本地数据库与素材。'); process.exit(0) }
 
@@ -348,7 +357,7 @@ for (const locale of ['en', 'zh']) {
 setTrendSources(validatedTrendSources)
 let wrangler = readFileSync(join(stage, 'wrangler.jsonc'), 'utf8')
 const vars = { ...features, SITE_URL: launch === 'local' ? origin : `https://${domain}`, HYPIT_SITE_ID: slug, HYPIT_BRIDGE_URL: bridge.origin,
-  ADMIN_EMAILS: adminEmail, GOOGLE_CLIENT_ID: credentials.googleClientId,
+  ADMIN_EMAILS: adminEmail, GOOGLE_CLIENT_ID: credentials.googleClientId, GOOGLE_AUTH_REQUIRED: googleAuthRequired ? 'true' : 'false',
   // 本地默认 mock；线上阶段指定真实服务商名称，但还须接通凭据、模型与预算并通过 doctor。
   VIDEO_PROVIDER: launch === 'local' ? 'mock' : 'hypit', PAYMENT_PROVIDER: launch === 'local' ? 'mock' : 'waffo',
   MODERATION_PROVIDER: launch === 'local' ? 'mock' : 'openai', PROMPT_SCAN_PROVIDER: launch === 'local' ? 'mock' : 'waffo', EMAIL_FROM: launch === 'local' ? `noreply@${domain}` : '',
@@ -367,6 +376,8 @@ const secrets = { SESSION_SECRET: randomBytes(48).toString('hex'),
   ...(credentials.hypitBridgeToken ? { HYPIT_BRIDGE_TOKEN: credentials.hypitBridgeToken } : {}) }
 const envText = Object.entries(secrets).map(([key, value]) => `${key}=${JSON.stringify(value)}`).join('\n') + '\n'
 const report = { version: 1, fingerprint, templateCommit: commit, initializedAt: new Date().toISOString(), keyword, domain, launch, features,
+  googleAuth: { required: googleAuthRequired, clientIdPresent: Boolean(credentials.googleClientId), secretPresent: Boolean(credentials.googleClientSecret),
+    authorizedJavaScriptOrigins: googleAuthorizedOrigins, authorizedRedirectUri: googleRedirectUri },
   status: launch === 'local' ? 'LOCAL_CONFIGURED_REVIEW_REQUIRED' : 'PRODUCTION_CONFIGURED_REVIEW_REQUIRED', localSeeded: false, pending,
   assets: Object.fromEntries([...files].filter((f) => /\.(mp4|jpg|png|svg)$/.test(f)).map((f) => [f, digest(readFileSync(join(stage, f)))])) }
 const bridgeFragment = { [slug]: { mediaOrigins: [origin, `https://${domain}`], templates: { [templateId]: {
