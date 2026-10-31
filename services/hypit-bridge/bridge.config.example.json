@@ -4,8 +4,8 @@
   "publicUrl": "http://127.0.0.1:8788",
   "mode": "mock",
   "dataDir": "./hypit/.hypit/bridge",
-  "maxActive": 1,
-  "maxQueued": 20,
+  "maxActive": 8,
+  "maxQueued": 100,
   "maxAgeMs": 2100000,
   "retentionMs": 86400000,
   "maxStorageBytes": 2147483648,
@@ -13,10 +13,17 @@
   "runtimeProfile": "./hypit/hypit.runtime.json",
   "sites": {
     "shrimpreel": {
-      "mediaOrigins": ["http://127.0.0.1:3000", "http://localhost:3000"],
+      "mediaOrigins": [
+        "http://127.0.0.1:3000",
+        "http://localhost:3000"
+      ],
       "templates": {
         "reference-video": {
-          "durations": [5, 12, 15],
+          "durations": [
+            5,
+            12,
+            15
+          ],
           "model": "mini",
           "resolution": "720p",
           "aspectRatio": "9:16",
@@ -26,5 +33,6 @@
         }
       }
     }
-  }
+  },
+  "ffmpegConcurrency": 2
 }
