@@ -276,4 +276,6 @@ except Exception:
         switch(previous)
     run('systemctl', 'restart', 'hypit-bridge.service')
     raise RuntimeError('更新未完成，已恢复之前的 Bridge 代码、配置和服务依赖') from None
-print(json.dumps({'revision': actual, 'previous': str(previous), 'health': health, 'siteConfig': site_summary, 'modelInvoked': False}))
+runtime_enabled = subprocess.run(['systemctl', 'is-enabled', 'hypit-runtime.service'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
+runtime_active = subprocess.run(['systemctl', 'is-active', '--quiet', 'hypit-runtime.service'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
+print(json.dumps({'revision': actual, 'previous': str(previous), 'health': health, 'engine': health['engine'], 'runtimeRequired': health['engine'] == 'hypit', 'hypitRuntime': {'enabled': runtime_enabled, 'active': runtime_active}, 'siteConfig': site_summary, 'modelInvoked': False}))
