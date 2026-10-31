@@ -52,6 +52,7 @@ export function saveConsent(ga4Id: string, value: Consent) {
     // 禁用存储时本次页面内仍然生效，下次访问再问
   }
   const gaWindow = window as GaWindow
+  ;(gaWindow as unknown as Record<string, unknown>)['ga-disable-' + ga4Id] = value !== 'granted'
   const gtag = gaWindow.gtag
   gtag?.('consent', 'update', { analytics_storage: value })
   if (value === 'granted' && !analyticsExcluded()) {

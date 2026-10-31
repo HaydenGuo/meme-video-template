@@ -91,6 +91,7 @@ describe('saveConsent', () => {
     const env = stub('https://www.example.test/checkout/result?email=buyer%40example.test&analytics=on&preview=1&status=paid')
     saveConsent(GA4_ID, 'granted')
     saveConsent(GA4_ID, 'granted')
+    expect((env.context.window as { [key: string]: unknown })['ga-disable-' + GA4_ID]).toBe(false)
     expect(env.context.localStorage.setItem).toHaveBeenCalledWith(CONSENT_KEY, 'granted')
     const queued = calls(env.context.window.dataLayer as IArguments[])
     const consentIndex = queued.findIndex(([command, action]) => command === 'consent' && action === 'update')
@@ -105,6 +106,7 @@ describe('saveConsent', () => {
     const env = stub('https://www.example.test/')
     env.setCookie('_ga=GA1.1.1; _ga_TEST123=GS1.1; vt_attr=abc; session=xyz')
     saveConsent(GA4_ID, 'denied')
+    expect((env.context.window as { [key: string]: unknown })['ga-disable-' + GA4_ID]).toBe(true)
     expect(calls(env.context.window.dataLayer as IArguments[]).at(-1)).toEqual(['consent', 'update', { analytics_storage: 'denied' }])
     expect(env.cookieWrites.sort()).toEqual(
       [
