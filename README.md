@@ -28,7 +28,7 @@ Keep the UI concise: section headings replace decorative labels, the hero uses o
 
 The generator has an optional background description (up to 500 characters). Blank keeps the meme's original prompt; Hypit and yir append the custom background to the prompt. The description is stored with the task for retries. fal rejects custom backgrounds before charging credits.
 
-Example cards follow `site.template.aspectRatio`; portrait videos are centered in a narrow card, while landscape videos use two columns on wide screens. Videos fit inside without cropping.
+Example cards follow `site.template.aspectRatio` by default; individual videos in `site.examples.gallery` may set `aspectRatio`. Portrait videos are centered in a narrow card, while landscape videos use two columns on wide screens. Videos fit inside without cropping.
 
 Add video-only cases in `site.examples.gallery`; each entry sets its original aspect ratio and uses manual playback controls.
 
