@@ -134,6 +134,13 @@ def ensure_idle():
         raise RuntimeError('Bridge 存在活动或提交状态不明的任务，停止更新')
 
 ensure_idle()
+if args.engine == 'notoken':
+    provider_env = config_path.parent / 'provider.env'
+    key = next((line.split('=', 1)[1].strip() for line in provider_env.read_text().splitlines()
+                if line.startswith('NOTOKEN_API_KEY=')), '')
+    if len(key) < 16:
+        raise SystemExit('provider.env 缺少有效的 NOTOKEN_API_KEY（值不会显示）')
+    del key
 if not release.exists():
     run('git', 'clone', '--no-checkout', 'https://github.com/HaydenGuo/meme-video-template.git', str(release))
 run('git', '-C', str(release), 'fetch', 'origin', args.revision)
@@ -208,8 +215,13 @@ try:
                 lines.append(line)
             bridge_unit_path.write_text('\n'.join(lines) + '\n')
             run('systemctl', 'daemon-reload')
-            subprocess.run(['systemctl', 'disable', '--now', 'hypit-runtime.service'], check=False,
-                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            run('systemctl', 'disable', '--now', 'hypit-runtime.service')
+            if subprocess.run(['systemctl', 'is-enabled', '--quiet', 'hypit-runtime.service'],
+                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:
+                raise RuntimeError('Hypit Runtime remains enabled')
+            if subprocess.run(['systemctl', 'is-active', '--quiet', 'hypit-runtime.service'],
+                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:
+                raise RuntimeError('Hypit Runtime remains active')
         else:
             if previous_runtime_unit is None:
                 raise RuntimeError('Hypit Runtime systemd unit is missing')
