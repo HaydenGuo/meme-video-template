@@ -38,7 +38,7 @@ export function contentSecurityPolicy(nonce: string) {
       'https://cloudflareinsights.com',
       'https://accounts.google.com/gsi/',
     ],
-    'frame-src': ['https://challenges.cloudflare.com', 'https://accounts.google.com/gsi/'],
+    'frame-src': ['https://challenges.cloudflare.com', 'https://accounts.google.com/gsi/', 'https://www.youtube-nocookie.com'],
     'frame-ancestors': ["'self'"],
     'form-action': ["'self'"],
     'base-uri': ["'self'"],
