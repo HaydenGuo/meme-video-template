@@ -1,42 +1,40 @@
-# 自托管 Hypit Bridge
+# 自托管视频生成 Bridge
 
-模板附带独立 Bridge 源码，用于站点 Worker 调用 VPS 上的 Hypit。需要 Node.js 24.14 或以上；Bridge 本身只使用 Node 内置模块，无需安装 npm 依赖。
+Bridge 为网站 Worker 提供统一的异步任务协议。生产默认使用 `engine=notoken`，在 VPS 直接调用 NoToken 视频 API，不启动 Hypit Runtime；仍保留旧版 Worker 需要的 `mode=hypit` 协议字段。健康接口分别返回 `mode` 与实际 `engine`，不能把这两个值混为一谈。
 
 ## 本地启动
 
-在本目录运行：
+要求 Node.js 24.14 或以上；Bridge 本身只使用 Node 内置模块，无需安装 npm 依赖。
 
 ```powershell
 Copy-Item bridge.config.example.json bridge.config.json
 Copy-Item .env.example .env
 ```
 
-在私有 `.env` 中分别填写随机的 `BRIDGE_TOKEN` 和 `BRIDGE_OUTPUT_SECRET`（均至少 32 字符，建议各用独立的 32 字节随机值）。前者与站点的 `HYPIT_BRIDGE_TOKEN` 相同，后者仅供 Bridge 签名成品下载 URL。
+在私有 `.env` 中分别填写随机的 `BRIDGE_TOKEN` 和 `BRIDGE_OUTPUT_SECRET`（均至少 32 字符，且使用不同值）。前者与站点的 `HYPIT_BRIDGE_TOKEN` 相同，后者仅供 Bridge 签名成品下载 URL。
 
-```powershell
-npm start
-```
+示例 `mode=mock` 只允许 loopback 访问，不调用模型；输出沿用源视频，不能用于判断真实生成效果或画幅。生产站点的媒体 origin、`siteId` 和 `templateId` 必须一致，详见 [站点接入说明](../../docs/hypit.md)。
 
-示例为 `mode=mock`，只允许 loopback 访问，不调用模型；输出沿用源视频，不能用于判断真实生成效果或横竖比例。站点和 Bridge 的媒体 origin、`siteId`、`templateId` 必须一致，详见 [站点接入说明](../../docs/hypit.md)。
+## NoToken 直接生成
 
-## VPS 真实生成
+在 VPS 私有的 `provider.env` 配置 `NOTOKEN_API_KEY`，可选配置 `NOTOKEN_BASE_URL`、`NOTOKEN_VIDEO_MODEL`。模板固定提示词、人物参考图、动作参考视频、时长、比例和分辨率构成 API 请求；服务不调用 Hypit，也不自行做提示词分析。
 
-真实模式先用 FFprobe 检查人像与参考视频，并验证原视频时长、音视频轨道及模板 SHA-256。对于保留原声的复刻流程，Bridge 随后将参考片拆成独立的 48 kHz PCM WAV 音轨和 H.264 无声视频；只有无声视频会作为动作参考交给模型，原 WAV 则在最终时间线中与生成画面合成。两份派生素材都必须通过轨道和时长检查，最终文件必须包含视频与音频轨道，未通过时不创建 Build 或不发布结果。Ark 模型素材像素数必须在 407,696–8,295,044 之间；画面等比缩放后再次检查。原始文件始终保留，每个任务的 `media-preflight.json` 记录图片、静音参考视频与独立音轨的处理结果。处理超时或格式不支持时在本地终止，沿用任务失败退款流程，禁止盲目重新提交模型。FFmpeg 使用两个编码线程和一个滤镜线程。
+Bridge 下载白名单媒体，验证参考片 SHA-256、时长及音视频轨道后，抽取原片 48 kHz PCM WAV 音轨并生成 H.264 无声动作参考视频。只有无声视频交给模型，原 WAV 在生成完成后与新画面合成。成品检查包含尺寸、时长及音视频轨道；失败时不交付，也不会自动重新提交模型任务。
 
-站点初始化也使用相同像素规则，生成合格参考视频后再计算模板哈希。已有站点替换参考视频时必须同步本站哈希，保留其他站点配置；先确认 Bridge 没有活动任务，再切换已检查的新版本并检查健康接口。
+VPS 默认最多同时维护 8 个异步模型任务，队列最多 100 项；本地 FFmpeg/FFprobe 同时最多 2 项。模型并发可在 `bridge.config.json` 的 `maxActive` 调整，媒体处理由 `ffmpegConcurrency` 限制。服务商账户限流仍可能拒绝请求，VPS 队列容量不等于服务商接受额度。
 
-已有 Debian VPS 使用仓库的 `scripts/update-hypit-bridge.py --revision <完整提交>` 更新 Bridge。脚本在停止接收新任务后再次确认空闲、检查所有 Node 源码语法、备份配置、切换固定提交并读取鉴权健康接口；失败会恢复原代码和配置，不重装 Runtime、不调用模型。`site:init` 生成的完整站点片段使用 `--site-fragment <bridge-site.json>` 一并更新媒体 origin、时长、工作流和参考片哈希；脚本验证片段与 VPS 已登记的站点、模板一致后才切换。保留原音轨的模板必须同时配置 `reference-remix-v1` 与每个时长的 SHA-256。生产站点会在每次提交时声明必需工作流，Bridge 在创建队列记录前核对，缺失或不匹配时拒绝任务，不会静默退回旧版输入。
+## Hypit 兼容模式
 
-另行安装 Hypit 并配置其运行时和模型凭据；Hypit 不包含在这个模板中。将 `projectRoot` 和 `runtimeProfile` 指向已安装的 Hypit 项目，`dataDir` 必须位于该项目内。核验 Bridge 与所安装 Hypit CLI 的兼容性。
+如必须运行已有 Hypit 工程，可部署时显式选择 `--engine hypit`。该模式需要另行安装 Hypit Runtime、配置模型凭据和对应工程；任务并发默认为 1。不要因为 `mode=hypit` 字段而误判成 Hypit Runtime 正在执行。
 
-将初始化生成的 `bridge-site.json` 合并到 `bridge.config.json` 的 `sites` 属性，保留已有站点。生产媒体白名单只填写本站 HTTPS origin。设置公网 HTTPS `publicUrl`，反向代理至 loopback 服务；配置访问限流，确认模型能力和费用后才切换 `mode=hypit`。
+## 更新已有 VPS
 
-初始 `maxActive=1`、`maxQueued=20`，限制模型并发与排队；配置同时限制任务时间、媒体大小和磁盘用量。不要将数据目录或 Hypit 凭据提交到 Git。模式切换前处理已有任务；代码及配置更新后重启服务。
+使用 `scripts/update-hypit-bridge.py --revision <完整提交 SHA>` 更新 Bridge。脚本停止接收新任务、检查任务队列为空、验证 Node 源码语法、备份配置并检查鉴权健康接口；失败时恢复旧代码和配置，不发起模型调用。站点片段使用 `--site-fragment <bridge-site.json>` 原子合并并检查本站登记；不得覆盖其他站点。
 
-当前只声明源码已集成，不声明 VPS 部署、第三方模型或付费生成已验收。
+运行 `scripts/deploy-hypit-vps.py` 仅用于专用 VPS 安装或引擎迁移。它默认 NoToken，并在切换引擎前要求队列为空；引擎迁移不会改变已有网站 Worker 的 Bridge 协议。首次真实付费生成前应独立核实 API 凭据、账户额度和服务商并发策略。
 
-## 本地合成资源
+## 存储与本地媒体资源
 
-VPS 初始化运行 `configure-render-limits.py`：媒体 Endpoint 并发为 1，HTML 固定一个浏览器，通过 `ffmpeg-bounded.py` 将 FFmpeg 自动 CPU 探测限制为 2、滤镜线程限制为 1。Runtime 的 `TasksMax=512` 为 Chrome、Node 和 FFmpeg 的线程留出名额，CPU、内存及模型并发上限保持不变。既有 VPS 更新时，先确认没有活动 Build，再以 root 执行该脚本、`systemctl daemon-reload` 并重启 `hypit-runtime`。首次配置备份保存在私有配置目录中。
+Bridge 任务文件位于配置的 `dataDir`，代码和持久配置分离。Bridge 成品目录大小有限额，结果会过期清理；还需监控全盘磁盘空间与网络流量。FFmpeg 使用有限线程，本地媒体处理并发与远程模型任务并发分别配置。
 
-如果只在最终合成失败，不要重新提交原始生成 Run。新建 Run，用 `build-record` 和 `satisfy` 复用失败 Build 的 `generated.video`，目标仍为 `final.video`；先检查 `hypit plan` 的 `providerRequestCount=0`、`unresolvedRequestCount=0`，然后只重跑本地合成。已退款的站点记录不因此重新扣费。
+当前只声明仓库包含直接调用适配器和部署配置，不代表 VPS 已应用新版本、NoToken 账号可用或真实生成已验收。
