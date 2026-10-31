@@ -1,7 +1,7 @@
 import { DatabaseSync } from 'node:sqlite'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { deletedEmailHash, upsertUser, type SignInProfile } from '#/server/auth'
-import { ApiError } from '#/server/util'
+import { ApiError, sha256Hex } from '#/server/util'
 import { d1Shim, kvShim, migrate } from './d1-sqlite'
 
 const SECRET = 'unit-test-session-secret-0123456789abcdef'
@@ -64,6 +64,27 @@ describe('upsertUser：账号以 Google sub 为准', () => {
     const user = await upsertUser(env, profile('a@example.com', 'sub-1'))
     sqlite.prepare(`UPDATE users SET status = 'banned' WHERE id = ?`).run(user.id)
     expect(await rejection(upsertUser(env, profile('a@example.com', 'sub-1')))).toEqual([403, 'account_disabled'])
+  })
+
+  it('给指定的已验证所有者账号发放一次 100 初始积分', async () => {
+    const email = 'owner@example.test'
+    env.OWNER_INITIAL_CREDIT_EMAIL_HASH = await sha256Hex(email)
+    const owner = await upsertUser(env, profile(email, 'sub-owner'))
+    expect(owner.credits).toBe(105)
+    expect(sqlite.prepare('SELECT delta, idempotency_key FROM credit_ledger WHERE user_id = ? AND idempotency_key LIKE \'owner_initial:%\'').get(owner.id)).toEqual({
+      delta: 100,
+      idempotency_key: `owner_initial:${await sha256Hex(email)}`,
+    })
+    expect((await upsertUser(env, profile(email, 'sub-owner'))).credits).toBe(105)
+  })
+
+  it('未验证邮箱不发所有者初始积分，验证后首次登录补发', async () => {
+    const email = 'owner@example.test'
+    env.OWNER_INITIAL_CREDIT_EMAIL_HASH = await sha256Hex(email)
+    const unverified = await upsertUser(env, profile(email, null, { emailVerified: false, passwordHash: 'hash' }))
+    expect(unverified.credits).toBe(0)
+    const verified = await upsertUser(env, profile(email, 'sub-owner'))
+    expect(verified.credits).toBe(100)
   })
 
   it('注销过的邮箱重新注册：不发注册赠送、不绑定邀请人；别的邮箱照常发', async () => {

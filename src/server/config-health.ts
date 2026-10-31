@@ -83,6 +83,9 @@ export function checkConfig(input: ConfigInput): ConfigIssue[] {
     if (input.vars[key] !== undefined && !['true', 'false'].includes(vars(key))) error(key, `${key} 必须是 true 或 false`)
   }
   const features = resolveFeatures(input.vars)
+  if (!/^[a-f0-9]{64}$/.test(vars('OWNER_INITIAL_CREDIT_EMAIL_HASH'))) {
+    error('OWNER_INITIAL_CREDIT_EMAIL_HASH', '必须是 64 位十六进制 SHA-256 值')
+  }
   const requireSecrets = (names: string[], reason: string) => {
     for (const name of names) {
       const value = input.secrets[name]

@@ -6,6 +6,7 @@ interface Env {
   GENERATION_ENABLED?: string
   PAYMENTS_ENABLED?: string
   SHOWCASE_AUTH_ENABLED?: string
+  OWNER_INITIAL_CREDIT_EMAIL_HASH?: string
   SESSION_SECRET?: string
   GOOGLE_CLIENT_SECRET?: string
   WAFFO_MERCHANT_ID?: string

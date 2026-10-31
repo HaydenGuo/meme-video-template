@@ -8,6 +8,35 @@ import type { AppContext, UserRow } from './types'
 import { ApiError, createId, isProduction, isUniqueConstraintError, nowIso, randomToken, sha256Hex } from './util'
 
 const SESSION_DAYS = 30
+const DEFAULT_OWNER_INITIAL_CREDIT_EMAIL_HASH = '4ca86ba9504ce8f2158ce97259c71eb51a6a9c10102bfe824a269dd54af665f5'
+const OWNER_INITIAL_CREDIT_AMOUNT = 100
+
+async function ownerInitialCreditKey(email: string, env: Env) {
+  const emailHash = await sha256Hex(email.trim().toLowerCase())
+  const configuredHash = env.OWNER_INITIAL_CREDIT_EMAIL_HASH?.trim().toLowerCase() || DEFAULT_OWNER_INITIAL_CREDIT_EMAIL_HASH
+  return emailHash === configuredHash ? `owner_initial:${emailHash}` : null
+}
+
+async function grantOwnerInitialCredits(db: D1Database, userId: string, email: string, env: Env) {
+  const idempotencyKey = await ownerInitialCreditKey(email, env)
+  if (!idempotencyKey) return
+  const alreadyGranted = await db.prepare('SELECT 1 AS granted FROM credit_ledger WHERE idempotency_key = ?').bind(idempotencyKey).first()
+  if (alreadyGranted) return
+  try {
+    await db.batch(ledgerStatements(db, {
+      userId,
+      delta: OWNER_INITIAL_CREDIT_AMOUNT,
+      reason: 'signup_bonus',
+      refId: 'owner_initial',
+      idempotencyKey,
+      note: 'Initial owner credits',
+    }))
+  } catch (error) {
+    if (!isUniqueConstraintError(error)) throw error
+    const completed = await db.prepare('SELECT 1 AS granted FROM credit_ledger WHERE idempotency_key = ?').bind(idempotencyKey).first()
+    if (!completed) throw error
+  }
+}
 
 export function sessionCookieName(env: Env) {
   // __Host- 前缀要求 Secure + Path=/ + 无 Domain，只在 HTTPS 生产环境使用
@@ -142,6 +171,7 @@ export async function upsertUser(env: Env, profile: SignInProfile, retried = fal
     } else {
       await update.run()
     }
+    if (profile.emailVerified !== false) await grantOwnerInitialCredits(db, existing.id, existing.email, env)
     return (await db.prepare('SELECT * FROM users WHERE id = ?').bind(existing.id).first<UserRow>())!
   }
 
@@ -195,6 +225,17 @@ export async function upsertUser(env: Env, profile: SignInProfile, retried = fal
         expiresAt: signupBonusValidDays > 0 ? new Date(Date.now() + signupBonusValidDays * 86400_000).toISOString() : null,
       }),
     )
+  }
+  const ownerCreditKey = await ownerInitialCreditKey(email, env)
+  if (!returning && emailVerified && ownerCreditKey) {
+    statements.push(...ledgerStatements(db, {
+      userId: id,
+      delta: OWNER_INITIAL_CREDIT_AMOUNT,
+      reason: 'signup_bonus',
+      refId: 'owner_initial',
+      idempotencyKey: ownerCreditKey,
+      note: 'Initial owner credits',
+    }))
   }
   try {
     await db.batch(statements)

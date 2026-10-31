@@ -11,6 +11,7 @@ const SECRET = 'a'.repeat(64)
 function ready(overrides: { vars?: Record<string, string>; secrets?: ConfigInput['secrets'] } = {}): ConfigInput {
   return {
     vars: {
+      OWNER_INITIAL_CREDIT_EMAIL_HASH: '4ca86ba9504ce8f2158ce97259c71eb51a6a9c10102bfe824a269dd54af665f5',
       APP_ENV: 'production',
       SITE_URL: 'https://moonhop.ai',
       PAYMENT_PROVIDER: 'waffo',
@@ -43,6 +44,10 @@ function ready(overrides: { vars?: Record<string, string>; secrets?: ConfigInput
 const keys = (input: ConfigInput) => checkConfig(input).map((i) => `${i.level}:${i.key}`)
 
 describe('checkConfig', () => {
+  it('requires a valid owner email hash for the initial credit grant', () => {
+    expect(keys(ready({ vars: { OWNER_INITIAL_CREDIT_EMAIL_HASH: 'not-a-hash' } }))).toEqual(['error:OWNER_INITIAL_CREDIT_EMAIL_HASH'])
+  })
+
   it('Hypit 上线配置检查 HTTPS origin、站点标识与令牌强度', () => {
     const vars = { VIDEO_PROVIDER: 'hypit', HYPIT_BRIDGE_URL: 'https://bridge.moonhop.ai', HYPIT_SITE_ID: 'moonhop' }
     expect(keys(ready({ vars, secrets: { HYPIT_BRIDGE_TOKEN: SECRET } }))).toEqual([])

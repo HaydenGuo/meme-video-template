@@ -18,6 +18,8 @@
     "GENERATION_ENABLED": "true",
     "PAYMENTS_ENABLED": "true",
     "SHOWCASE_AUTH_ENABLED": "false",
+    // 经验证的模板所有者邮箱 SHA-256；用户本身不写入前端或源码。
+    "OWNER_INITIAL_CREDIT_EMAIL_HASH": "4ca86ba9504ce8f2158ce97259c71eb51a6a9c10102bfe824a269dd54af665f5",
     "APP_ENV": "development",
     "SITE_URL": "http://localhost:3000",
     // waffo | dodo | mock（mock 只允许非 production）
