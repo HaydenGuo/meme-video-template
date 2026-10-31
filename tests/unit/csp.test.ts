@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { summarizeCspReports } from '#/server/csp'
+import { contentSecurityPolicy, summarizeCspReports } from '#/server/csp'
+
+it('allows the privacy-enhanced YouTube embed used by site hero videos', () => {
+  expect(contentSecurityPolicy('test-nonce')).toContain('frame-src https://challenges.cloudflare.com https://accounts.google.com/gsi/ https://www.youtube-nocookie.com')
+})
 
 describe('summarizeCspReports', () => {
   it('report-uri 格式：URL 去掉 query 和 hash（不把买家邮箱写进日志），inline 等关键字原样保留', () => {
