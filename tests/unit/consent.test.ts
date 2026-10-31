@@ -105,6 +105,8 @@ describe('saveConsent', () => {
   it('撤回：更新为 denied，并在当前主机和各级父域上删除 _ga 系列 Cookie，不动其他 Cookie', () => {
     const env = stub('https://www.example.test/')
     env.setCookie('_ga=GA1.1.1; _ga_TEST123=GS1.1; vt_attr=abc; session=xyz')
+    saveConsent(GA4_ID, 'granted')
+    expect(env.appended).toHaveLength(1)
     saveConsent(GA4_ID, 'denied')
     expect((env.context.window as { [key: string]: unknown })['ga-disable-' + GA4_ID]).toBe(true)
     expect(calls(env.context.window.dataLayer as IArguments[]).at(-1)).toEqual(['consent', 'update', { analytics_storage: 'denied' }])
@@ -118,6 +120,8 @@ describe('saveConsent', () => {
         '_ga_TEST123=; Max-Age=0; Path=/; Domain=.example.test',
       ].sort(),
     )
-    expect(env.appended).toEqual([])
+    saveConsent(GA4_ID, 'granted')
+    expect((env.context.window as { [key: string]: unknown })['ga-disable-' + GA4_ID]).toBe(false)
+    expect(env.appended).toHaveLength(1)
   })
 })
