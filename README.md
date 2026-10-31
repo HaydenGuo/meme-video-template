@@ -40,13 +40,13 @@ Example videos use manual playback with native pause, seeking, sound and fullscr
 
 Use one AI-generated source mark for all header, browser/search, Apple and manifest icons through the [brand asset workflow](docs/brand-assets.md). New site profiles accept `media.brandIcon`.
 
-The [fixed Hypit workflow](docs/fixed-hypit-workflow.md) locks each meme's prompt, reference hashes and shot windows, then generates and composes the soundtrack without an interactive language model. Initialization supports custom duration tiers such as 5/12/14 seconds.
+The [fixed reference-video workflow](docs/fixed-hypit-workflow.md) locks each meme's prompt, reference hashes and shot windows, then generates and composes the soundtrack without an interactive language model. Initialization supports custom duration tiers such as 5/12/14 seconds.
 
-See [shared Hypit VPS deployment](docs/hypit-vps.md) for provisioning the runtime services, reusable defaults and the provider API information still required.
+See [shared Bridge VPS operations](docs/hypit-vps.md) for the direct NoToken default, concurrency limits, deployment steps and required provider setup.
 
 [Use this template](https://github.com/new?template_owner=HaydenGuo&template_name=meme-video-template) · [Repository](https://github.com/HaydenGuo/meme-video-template)
 
-Hypit Bridge source and blank configuration examples are included in [services/hypit-bridge](services/hypit-bridge/README.md). Install Hypit separately; no credentials or local runtime data are included.
+Bridge source and blank configuration examples are included in [services/hypit-bridge](services/hypit-bridge/README.md). No provider credentials or local runtime data are included. Direct NoToken is the default; Hypit Runtime is an explicit compatibility option.
 
 **Initialize a new meme site:** after `npm ci`, run `npm run site:init -- --profile <site.json>` to preview, then add `--apply --local`. One profile supplies the meme details and local media; an optional shared services profile refers to credentials by environment variable name. See [automatic initialization](docs/site-initialization.md). Use a fresh template copy; this command does not publish or create cloud resources.
 
@@ -66,7 +66,7 @@ The creation area places upload and generation settings on the left and the pend
 
 The homepage introduces `site.keyword` using localized copy in `site.keywordOverview`. Video lengths are 5, 12 and 15 seconds at 1 credit per second. Only one-time credit packs are sold: $9.90 for 25 credits, $19.90 for 60 credits, and $29.90 for 100 credits. New subscriptions are disabled. When launching a keyword site, update the keyword, overview and reference videos, seed local R2 with `npm run seed:local`, and synchronize the payment provider's product prices and credit descriptions before release. Production deployment uploads the configured reference videos to the remote `MEDIA` bucket and checks that the public Worker route serves each file with HTTP 206 Range support.
 
-Self-hosted Hypit is available through `VIDEO_PROVIDER=hypit`. Your Bridge shares one Runtime across sites, integrated with queues, credit refunds and R2 delivery. See [setup](docs/hypit.md). Paid generation and VPS deployment require separate validation.
+`VIDEO_PROVIDER=hypit` connects the site to the backward-compatible Bridge protocol. The Bridge calls NoToken directly by default, while preserving the site's queue, credit refund and R2 delivery paths. Hypit Runtime is an explicit compatibility option. See [Bridge setup](docs/hypit.md). Paid generation and VPS deployment require separate validation.
 
 Reference-remix sites declare their required Bridge workflow. The Bridge rejects requests before queue creation when its site fragment lacks the required workflow or approved reference hashes. Apply the generated `bridge-site.json` with the Bridge updater; a healthy service alone does not prove a site's template is ready.
 
