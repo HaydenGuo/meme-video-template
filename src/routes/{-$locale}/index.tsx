@@ -248,7 +248,7 @@ function Home() {
               return (
                 <div key={idea.title} className="grid items-center gap-10 md:grid-cols-2">
                   <div className={`grid grid-cols-[0.8fr_1fr] items-end gap-4 ${flip ? 'md:order-2' : ''}`}>
-                    <img src={media.photo} alt={c.alt.inputPhoto} loading="lazy" className="aspect-[3/4] w-full rounded-2xl object-cover ring-1 ring-line" />
+                    <img src={media.photo} alt={c.alt.inputPhoto} loading="lazy" className="h-auto w-full rounded-2xl object-contain ring-1 ring-line" />
                     <VideoCard video={media.video} poster={media.poster} />
                   </div>
                   <div className="space-y-4">
