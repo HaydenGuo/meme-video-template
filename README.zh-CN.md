@@ -28,7 +28,7 @@ Hypit Bridge 在模型提交前检查并归一化人像与参考视频尺寸，�
 
 制作区第 4 步为可选背景描述（最多 500 字）。留空沿用模因原提示词；填写后 Hypit、yir 会追加背景要求，随任务保存以确保重试一致。fal 暂不支持，提交时在扣积分前提示。
 
-示例区默认根据 `site.template.aspectRatio` 展示视频画幅，也可为 `site.examples.gallery` 中的单条视频设置 `aspectRatio`。竖版视频居中显示并限制卡片宽度，横版视频在宽屏下双列展示，视频完整显示不裁切。
+示例区默认根据 `site.template.aspectRatio` 展示视频画幅，也可为 `site.examples.gallery` 中的单条视频设置 `aspectRatio`。竖版视频单独占行并居中限制卡片宽度，横版视频按组在宽屏下双列展示，视频完整显示不裁切。
 
 案例照片按原始比例显示，不裁切人物。
 
