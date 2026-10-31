@@ -210,7 +210,7 @@ export function Generator() {
                   className={`rounded-lg px-2 py-2 text-center transition ${active ? 'bg-card shadow-sm ring-1 ring-line' : 'text-muted hover:text-fg'}`}
                 >
                   <span className="block text-sm font-semibold">
-                    {g.seconds(d.seconds)}
+                    {g.seconds('displaySeconds' in d ? d.displaySeconds : d.seconds)}
                     {'isFull' in d && d.isFull ? ` · ${g.full}` : ''}
                   </span>
                   <span className="block text-xs text-muted">{g.creditsLabel(d.credits)}</span>
