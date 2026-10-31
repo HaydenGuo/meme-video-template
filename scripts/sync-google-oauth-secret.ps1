@@ -43,11 +43,24 @@ $nodeCommand = Get-Command node.exe -ErrorAction SilentlyContinue
 if (-not $nodeCommand) {
   throw '找不到 Node.js。'
 }
+$infisicalPath = $null
 $infisicalCommand = Get-Command infisical.cmd -ErrorAction SilentlyContinue
-if (-not $infisicalCommand) {
-  $infisicalCommand = Get-Command infisical.exe -ErrorAction SilentlyContinue
+if ($infisicalCommand) {
+  $infisicalPath = $infisicalCommand.Source
 }
-if (-not $infisicalCommand) {
+if (-not $infisicalPath -and $env:APPDATA) {
+  $infisicalCandidate = Join-Path $env:APPDATA 'npm/infisical.cmd'
+  if (Test-Path -LiteralPath $infisicalCandidate -PathType Leaf) {
+    $infisicalPath = $infisicalCandidate
+  }
+}
+if (-not $infisicalPath) {
+  $infisicalCommand = Get-Command infisical.exe -ErrorAction SilentlyContinue
+  if ($infisicalCommand) {
+    $infisicalPath = $infisicalCommand.Source
+  }
+}
+if (-not $infisicalPath) {
   throw '找不到 Infisical CLI；请先安装并登录本机 Infisical。'
 }
 
@@ -63,7 +76,7 @@ try {
     '--path', '/projects/gamewebs/shared-core',
     '--plain', '--silent', '--log-level', 'error'
   )
-  $secretLines = @(& $infisicalCommand.Source @infisicalArguments 2>$null)
+  $secretLines = @(& $infisicalPath @infisicalArguments 2>$null)
   $infisicalExitCode = $LASTEXITCODE
   if ($infisicalExitCode -ne 0 -or $secretLines.Count -ne 1) {
     throw 'Infisical 未能返回唯一的共享客户端密钥。请检查登录、项目和变量名。'
