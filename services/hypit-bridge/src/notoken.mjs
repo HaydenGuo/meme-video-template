@@ -114,14 +114,29 @@ export function createNoTokenRunner(config, { fetcher = globalThis.fetch, run = 
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('NoToken returned an invalid response')
     return value
   }
+  async function withUploadRetry(operation) {
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        return await operation()
+      } catch (error) {
+        const status = Number.isInteger(error?.status) ? error.status : 0
+        const retryable = status === 408 || status === 429 || status >= 500 ||
+          (typeof error?.code === 'string' && error.code.startsWith('notoken_transport_'))
+        if (!retryable || attempt >= 2) throw error
+        await new Promise((resolve) => setTimeout(resolve, 1_000 * (attempt + 1)))
+      }
+    }
+  }
   async function upload(path, mediaType, filename, phaseCode) {
     try {
-      const form = new FormData()
-      form.set('file', await openAsBlob(path, { type: mediaType }), filename)
-      const uploaded = await json('/api/v3/files/uploads', { method: 'POST', body: form })
+      const uploaded = await withUploadRetry(async () => {
+        const form = new FormData()
+        form.set('file', await openAsBlob(path, { type: mediaType }), filename)
+        return json('/api/v3/files/uploads', { method: 'POST', body: form })
+      })
       const id = firstString(uploaded.file_id, uploaded.id, object(uploaded.data).file_id, object(uploaded.data).id)
       if (!id || id.length > 200) throw new Error('NoToken upload returned no file id')
-      const file = await json(`/api/v3/files/${encodeURIComponent(id)}`)
+      const file = await withUploadRetry(() => json(`/api/v3/files/${encodeURIComponent(id)}`))
       return isTrustedUrl(firstString(file.url, object(file.data).url), hosts)
     } catch (error) {
       const status = Number.isInteger(error?.status) && error.status >= 100 && error.status <= 599
