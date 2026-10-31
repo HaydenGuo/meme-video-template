@@ -16,16 +16,31 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--revision', required=True)
 parser.add_argument('--reference-hashes', help='仅含 siteId、templateId、hashes 的 JSON 文件')
 parser.add_argument('--site-fragment', help='site:init 生成的单站点 bridge-site.json')
+parser.add_argument('--engine', choices=['notoken', 'hypit'], help='切换实际执行引擎；协议 mode 保持不变')
+parser.add_argument('--max-active', type=int, help='同时运行的异步模型任务上限')
+parser.add_argument('--max-queued', type=int, help='Bridge 等待队列上限')
+parser.add_argument('--ffmpeg-concurrency', type=int, help='VPS 本地媒体任务并发上限')
 args = parser.parse_args()
 if args.reference_hashes and args.site_fragment:
     raise SystemExit('不能同时使用 --reference-hashes 和 --site-fragment')
+if any(value is not None and value < 1 for value in (args.max_active, args.max_queued, args.ffmpeg_concurrency)):
+    raise SystemExit('并发和队列值必须大于 0')
 if os.geteuid() != 0 or not re.fullmatch(r'[a-f0-9]{40}', args.revision):
     raise SystemExit('需要 root 和完整提交 SHA')
 os.umask(0o027)
 config_path = Path('/etc/hypit-bridge/bridge.config.json')
 config_stat = config_path.stat()
 config = json.loads(config_path.read_text())
+previous_engine = config.get('engine', 'hypit')
 current = Path('/opt/meme-video/current')
+bridge_unit_path = Path('/etc/systemd/system/hypit-bridge.service')
+runtime_unit_path = Path('/etc/systemd/system/hypit-runtime.service')
+previous_bridge_unit = bridge_unit_path.read_text()
+previous_runtime_unit = runtime_unit_path.read_text() if runtime_unit_path.exists() else None
+previous_runtime_enabled = subprocess.run(['systemctl', 'is-enabled', 'hypit-runtime.service'],
+                                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
+previous_runtime_active = subprocess.run(['systemctl', 'is-active', '--quiet', 'hypit-runtime.service'],
+                                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
 previous = current.resolve(strict=True)
 release = Path('/opt/meme-video/releases') / args.revision
 
@@ -146,6 +161,19 @@ elif args.site_fragment:
     except (KeyError, TypeError, ValueError) as error:
         raise SystemExit(str(error)) from None
 
+if args.engine is not None:
+    config['engine'] = args.engine
+    config['maxActive'] = args.max_active if args.max_active is not None else (8 if args.engine == 'notoken' else 1)
+    config['maxQueued'] = args.max_queued if args.max_queued is not None else (100 if args.engine == 'notoken' else 20)
+    config['ffmpegConcurrency'] = args.ffmpeg_concurrency if args.ffmpeg_concurrency is not None else 2
+else:
+    if args.max_active is not None:
+        config['maxActive'] = args.max_active
+    if args.max_queued is not None:
+        config['maxQueued'] = args.max_queued
+    if args.ffmpeg_concurrency is not None:
+        config['ffmpegConcurrency'] = args.ffmpeg_concurrency
+
 backup = config_path.parent / f'bridge-update-{args.revision}-{time.time_ns()}'
 backup.mkdir(mode=0o700, exist_ok=False)
 shutil.copy2(config_path, backup / config_path.name)
@@ -163,26 +191,44 @@ run('systemctl', 'stop', 'hypit-bridge.service')
 try:
     # 停止接收新任务后再次检查，防止检查与停止之间有任务进入。
     ensure_idle()
-    if args.reference_hashes or args.site_fragment:
+    if args.reference_hashes or args.site_fragment or args.engine is not None or args.max_active is not None or args.max_queued is not None or args.ffmpeg_concurrency is not None:
         candidate = config_path.with_suffix('.update.json')
         candidate.write_text(json.dumps(config, indent=2) + '\n')
         shutil.copystat(config_path, candidate)
         stat = config_path.stat()
         os.chown(candidate, stat.st_uid, stat.st_gid)
         candidate.replace(config_path)
+    if args.engine is not None and args.engine != previous_engine:
+        if args.engine == 'notoken':
+            lines = []
+            for line in previous_bridge_unit.splitlines():
+                if line.startswith('After=') or line.startswith('Wants='):
+                    services = [name for name in line.split('=', 1)[1].split() if name != 'hypit-runtime.service']
+                    line = line.split('=', 1)[0] + '=' + ' '.join(services)
+                lines.append(line)
+            bridge_unit_path.write_text('\n'.join(lines) + '\n')
+            run('systemctl', 'daemon-reload')
+            subprocess.run(['systemctl', 'disable', '--now', 'hypit-runtime.service'], check=False,
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        else:
+            if previous_runtime_unit is None:
+                raise RuntimeError('Hypit Runtime systemd unit is missing')
+            run('systemctl', 'enable', 'hypit-runtime.service')
+            run('systemctl', 'start', 'hypit-runtime.service')
     switch(release)
     run('systemctl', 'start', 'hypit-bridge.service')
     for attempt in range(10):
         try:
             req = urllib.request.Request('http://127.0.0.1:8788/health', headers={'Authorization': 'Bearer ' + token})
             health = json.load(urllib.request.urlopen(req, timeout=3))
-            if health.get('ok') and health.get('mode') == config['mode']:
+            expected_engine = args.engine if args.engine is not None else previous_engine
+            if health.get('ok') and health.get('mode') == config['mode'] and health.get('engine') == expected_engine:
                 break
         except OSError:
             pass
         time.sleep(1)
     else:
-        raise RuntimeError('新版健康检查失败')
+        raise RuntimeError('新版健康检查或执行引擎核对失败')
     site_summary = None
     if args.site_fragment:
         installed = json.loads(config_path.read_text())
@@ -192,8 +238,25 @@ except Exception:
     # 备份刻意收紧为 0600，恢复后还原服务所需的属组与权限。
     os.chown(config_path, config_stat.st_uid, config_stat.st_gid)
     config_path.chmod(config_stat.st_mode & 0o777)
+    if args.engine is not None and args.engine != previous_engine:
+        bridge_unit_path.write_text(previous_bridge_unit)
+        if previous_runtime_unit is not None:
+            runtime_unit_path.write_text(previous_runtime_unit)
+        run('systemctl', 'daemon-reload')
+        if previous_runtime_enabled:
+            subprocess.run(['systemctl', 'enable', 'hypit-runtime.service'], check=False,
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        else:
+            subprocess.run(['systemctl', 'disable', 'hypit-runtime.service'], check=False,
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if previous_runtime_active:
+            subprocess.run(['systemctl', 'start', 'hypit-runtime.service'], check=False,
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        else:
+            subprocess.run(['systemctl', 'stop', 'hypit-runtime.service'], check=False,
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     if current.resolve() != previous:
         switch(previous)
     run('systemctl', 'restart', 'hypit-bridge.service')
-    raise RuntimeError('更新未完成，已恢复之前的 Bridge 代码和配置') from None
+    raise RuntimeError('更新未完成，已恢复之前的 Bridge 代码、配置和服务依赖') from None
 print(json.dumps({'revision': actual, 'previous': str(previous), 'health': health, 'siteConfig': site_summary, 'modelInvoked': False}))
