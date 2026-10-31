@@ -47,6 +47,6 @@ Bridge 验证原视频哈希、时长、音视频轨道及人物图片，再从�
 python3 scripts/update-hypit-bridge.py --revision <完整提交 SHA> --max-active 8 --max-queued 100 --ffmpeg-concurrency 2
 ```
 
-若只更新代码而不切换执行器，省略 `--engine`。源码更新和执行器切换均先要求任务队列为空，不会发起模型生成。新建 VPS 使用 `deploy-hypit-vps.py`；它拒绝覆盖已有 Bridge 安装。
+省略 `--engine` 会应用默认的 NoToken 执行器。若只更新代码并保留现有 Hypit 执行器，必须显式传 `--engine hypit`；Bridge 更新前仍要求队列为空，不会发起模型生成。新建 VPS 使用 `deploy-hypit-vps.py`；它拒绝覆盖已有 Bridge 安装。
 
 使用公网服务前配置 HTTPS 域名并将反向代理指向 loopback Bridge；不要直接开放公网 8788。
