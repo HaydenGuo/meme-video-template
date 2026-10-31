@@ -160,7 +160,7 @@ async function probeVideo(env: Env): Promise<Outcome> {
 }
 
 async function probeModeration(env: Env): Promise<Outcome> {
-  if (env.MODERATION_PROVIDER === 'none') return { status: 'skipped', message: 'MODERATION_PROVIDER=none，上传的照片不审核' }
+  if (env.MODERATION_PROVIDER === 'none') return { status: 'skipped', message: '未启用分享封面图片审核' }
   if (env.MODERATION_PROVIDER !== 'openai') {
     getModerationProvider(env)
     return ok('mock 审核，不调用外部接口')

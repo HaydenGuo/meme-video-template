@@ -18,7 +18,6 @@ import { exchangeGoogleCode, googleAuthRedirect, googleClientId, googleOAuthConf
 import { publicGeneration, publicOrder, rateLimit, readJson, requireUser, pageParams } from './http'
 import { enqueueJob, failGeneration, handleDeadLetter, handleVideoJob } from './jobs'
 import { jobToken, serveR2Object, sniffImageType, verifyUploadSignature } from './media'
-import { getModerationProvider } from './moderation'
 import { checkGenerationPrompt } from './prompt-safety'
 import { processPaymentEvent } from './orders'
 import { processVerifiedPaymentWebhook, reconcileOrder, reconcilePendingOrders } from './reconcile'
@@ -369,19 +368,10 @@ app.post('/api/uploads', async (c) => {
   if (!contentType || !(site.upload.contentTypes as readonly string[]).includes(contentType)) {
     throw new ApiError(415, 'unsupported_file_type')
   }
-  // 已下架内容的原图不允许再次上传；审核不通过的不落盘、不扣积分
+  // 已下架内容的原图不允许再次上传
   const hash = await sha256Hex(bytes)
   if (await isBlockedMedia(c.env, hash)) throw new ApiError(422, 'content_rejected')
-  const mockOutcome = form?.get('mockOutcome')
-  const verdict = await getModerationProvider(c.env).checkImage({
-    bytes,
-    contentType,
-    mockOutcome: typeof mockOutcome === 'string' ? mockOutcome : null,
-  })
-  if (!verdict.allowed) {
-    console.warn('upload rejected by moderation', user.id, verdict.reason)
-    throw new ApiError(422, 'content_rejected')
-  }
+  // 生成照片不调用独立图片审核服务；内容审核由所选视频生成服务商在提交任务时执行。
   const id = createId('upl')
   const key = `uploads/${user.id}/${id}`
   await c.env.MEDIA.put(key, bytes, { httpMetadata: { contentType } })

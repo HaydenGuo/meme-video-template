@@ -138,7 +138,7 @@
   - AI 标识：播放器角标、分享提示，下载文件名带视频 ID。
   - 数据保留：Cron 清理，个人中心显示“已过期”。
   - 举报下架：`/report` 加 `/admin/takedowns`，48 小时队列，按原图哈希删除全部副本并拉黑。
-  - 上传审核：OpenAI omni-moderation 或 mock。
+  - 分享封面审核：OpenAI omni-moderation 或 mock。生成输入由视频服务商在提交任务时审核，服务商拒绝后走现有生成失败和退积分流程。
   - 联系和举报表单接入 Turnstile；支付结果页从地址栏去掉 `email`。
   - 说明见 README 的“合规与内容安全”。
 - P1-9 交易邮件已在本地完成（Cloudflare Email Service，D1 发件箱去重、退避重试、后台邮件页），工件在 `.tmp/transactional-email/`。说明见 README 的“交易邮件”。
@@ -214,7 +214,7 @@
 - fal.ai 真实生成：入参和出参按文档实现，没有用真实 `FAL_KEY` 跑过。
 - Google OAuth 和 One Tap 的线上回调。
 - 合规相关：
-  - OpenAI 图片审核没有用真实 `OPENAI_API_KEY` 调用过。请求格式按官方文档实现，单元测试只验证了响应解析。
+  - OpenAI 分享封面审核没有用真实 `OPENAI_API_KEY` 调用过。请求格式按官方文档实现，单元测试只验证了响应解析。
   - Turnstile 没有用真实站点密钥在浏览器里跑过。服务端校验只有单元测试。
   - R2 生命周期规则还没有在线上 bucket 配置。
 - 交易邮件：本地只模拟发送。还没有 Onboard 发信域名、真实发出过邮件，也没有验证垃圾箱投递率和 Gmail/Outlook 的显示效果；需要 Workers Paid。

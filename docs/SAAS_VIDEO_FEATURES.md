@@ -6,7 +6,7 @@
 
 已具备：Google 登录、积分包（一次性购买）、积分流水与幂等入账、订单与退款回收、Waffo/Dodo 两个 MoR 支付、生成队列与失败退积分、个人中心、交易邮件、管理后台（用户/订单/生成/举报下架/留言/支付事件/邮件/审计/经营报表）、来源归因（UTM 与广告点击 ID，首次和最近触达）与转化漏斗、上传类型校验、限流、CSRF、中英文、SEO 文章页、法律页、账号注销。
 
-P0 已完成（2026-10-20）：AI 可见标识、举报下架、上传图片审核、数据保留、匿名表单的 Turnstile。各项下面的“状态”写明了做到哪一步，用法见 README 的“合规与内容安全”。
+P0 已完成（2026-10-20）：AI 可见标识、举报下架、分享封面审核、数据保留、匿名表单的 Turnstile。生成输入由所选视频服务商在提交任务时审核；用法见 README 的“合规与内容安全”。
 
 主要缺口：C2PA 与成片内水印；未成年人和名人检测；D1 自动备份；订阅和分享页。
 
@@ -65,18 +65,13 @@ P0 已完成（2026-10-20）：AI 可见标识、举报下架、上传图片审�
   - [S.4591 NO FAKES Act of 2026](https://www.congress.gov/bill/119th-congress/senate-bill/4591)
   - [Holland & Knight：委员会推进 NO FAKES](https://www.hklaw.com/en/insights/publications/2026/06/senate-judiciary-committee-advances-legislation-to-protect-name)
 
-### 3. 上传与成片的内容审核
+### 3. 生成输入与成片的内容安全
 
-**状态**：部分完成。
-- 已做：上传时调用 OpenAI `omni-moderation-latest`（免费），审核不通过不落盘、不扣费。
-- 未做：未成年人和名人检测，OpenAI 的图片类别不覆盖这两类。Workers AI 视觉模型的方案未评估。
+**状态**：由视频服务商处理生成输入与成片检查；网站不再在生成照片上传时调用独立图片审核服务。分享封面仍可由 `MODERATION_PROVIDER` 单独审核。
+- 服务商拒绝生成时，任务进入现有失败处理和积分退回流程。
+- 不同服务商的检查范围不同；不得声称本站能识别全部未成年人、名人或版权风险。用户授权声明与举报下架仍然保留。
 
-- **为什么**：模板的核心风险是有人用别人（尤其是未成年人、名人）的照片生成视频。现在只有一个同意勾选框，没有任何检测。
-- **怎么做**：
-  - 上传后、扣积分前做图片审核，覆盖未成年人、裸露和名人，不通过就拒绝且不扣费。
-  - 视频模型自带的安全过滤触发失败时，走现有的失败退积分路径。
-  - Workers AI 上有视觉模型（Llama 3.2 Vision、Llama 4）可以用提示词做分类，Cloudflare 也有“serverless 图片内容管理”参考架构。
-  - 但 Workers AI 上的 Llama Guard 目前只有 8B 文本版，没有专用图片审核模型，准确率需要自己评估；高风险场景可以接第三方审核 API。
+- **维护要求**：为新视频服务商核对其输入/输出安全策略，并确保拒绝时走失败退积分路径；只有公开分享封面继续使用 `OPENAI_API_KEY` 图片审核。
 - **来源**：
   - [Cloudflare 参考架构：Serverless image content management](https://developers.cloudflare.com/reference-architecture/diagrams/serverless/serverless-image-content-management/)
   - [Workers AI 模型目录](https://developers.cloudflare.com/workers-ai/models/)
@@ -221,7 +216,7 @@ P0 已完成（2026-10-20）：AI 可见标识、举报下架、上传图片审�
 
 ## 建议顺序
 
-1. ~~P0-4 数据保留、P0-5 Turnstile~~、~~P0-1 可见 AI 标识~~、~~P0-2 举报下架~~、~~P0-3 图片审核~~（2026-10-20 已完成）。
+1. ~~P0-4 数据保留、P0-5 Turnstile~~、~~P0-1 可见 AI 标识~~、~~P0-2 举报下架~~、~~P0-3 分享封面审核~~（2026-10-20 已完成）。
 2. ~~C2PA 技术验证~~（2026-10-20 本地完成，Docker 和 Containers 实机未验证）；D1 导出 Workflow。
 3. 未成年人和名人检测方案评估。
 4. ~~P1-9 交易邮件~~（2026-10-20 本地完成）、P1-10 缩略图，然后是 P1-7 免费试用加水印。

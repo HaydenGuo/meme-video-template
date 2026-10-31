@@ -43,7 +43,7 @@
     "GOOGLE_CLIENT_ID": "",
     "GOOGLE_AUTH_REQUIRED": "false",
     "TURNSTILE_SITE_KEY": "",
-    // 有 OPENAI_API_KEY 后改为 openai
+    // 有 OPENAI_API_KEY 后启用公开分享封面审核
     "MODERATION_PROVIDER": "none",
     "PROMPT_SCAN_PROVIDER": "local"
   },

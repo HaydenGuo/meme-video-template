@@ -194,10 +194,10 @@ export function checkConfig(input: ConfigInput): ConfigIssue[] {
     }
 
     const moderation = vars('MODERATION_PROVIDER')
-    if (moderation === 'mock') error('MODERATION_PROVIDER', 'MODERATION_PROVIDER=mock：生产环境上传图片一律返回 503')
+    if (moderation === 'mock') error('MODERATION_PROVIDER', 'MODERATION_PROVIDER=mock：生产环境不允许使用 mock 分享封面审核')
     else if (!MODERATION_SECRETS[moderation]) error('MODERATION_PROVIDER', `未知的 MODERATION_PROVIDER=${moderation || '(空)'}，可选 openai、none`)
-    else if (moderation === 'none') warn('MODERATION_PROVIDER', 'MODERATION_PROVIDER=none：上传图片不做审核')
-    else requireSecrets(MODERATION_SECRETS[moderation], '图片审核')
+    else if (moderation === 'none') warn('MODERATION_PROVIDER', 'MODERATION_PROVIDER=none：公开分享封面不做图片审核')
+    else requireSecrets(MODERATION_SECRETS[moderation], '分享封面图片审核')
   }
   if (vars('TURNSTILE_SITE_KEY')) requireSecrets(['TURNSTILE_SECRET_KEY'], 'Turnstile')
   else warn('TURNSTILE_SITE_KEY', 'TURNSTILE_SITE_KEY 为空：留言和举报表单没有人机校验，只靠限流')

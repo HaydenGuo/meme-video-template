@@ -31,7 +31,7 @@ Hypit 可选接入：`VIDEO_PROVIDER=hypit`，新增 `HYPIT_BRIDGE_URL`（Bridge
 | `DODO_ENVIRONMENT` | `test`、`live` | 用 Dodo 时 | 决定 API 地址 |
 | `DODO_PRODUCTS` | 同上 | 用 Dodo 时 | `scripts/dodo-setup.mjs` 可以生成 |
 | `VIDEO_PROVIDER` | `fal`、`yir`、`mock` | 是 | 模型和单价在 `site.video` 里配置，yir 的配置在 `site.video.yir` |
-| `MODERATION_PROVIDER` | `openai`、`none`、`mock` | 是 | 上传图片的审核方式。`none` 不审核，检查时给出警告 |
+| `MODERATION_PROVIDER` | `openai`、`none`、`mock` | 是 | 公开分享封面的图片审核方式。生成输入由视频服务商在提交任务时审核。`none` 不审核分享封面，检查时给出警告 |
 | `GOOGLE_CLIENT_ID` | OAuth Client ID | 使用 Google 时 | 可留空，用户仍可通过邮箱密码注册/登录；忘记密码需要发件服务 |
 | `GOOGLE_AUTH_REQUIRED` | `true`、`false` | 按上线要求 | Google 登录属于上线必需项时设为 `true`；生产/预发 doctor 会要求 Client ID 和 Secret 同时存在，否则阻止发布。默认 `false` 表示 Google 登录为可选项 |
 | `TURNSTILE_SITE_KEY` | 站点密钥 | 否 | 留空则留言和举报表单不做人机校验，检查时给出警告 |

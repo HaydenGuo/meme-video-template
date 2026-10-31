@@ -97,7 +97,7 @@ A 72-second tour, no sound ([Chinese version](README.zh-CN.md); MP4 files in [do
     - Orders: search by order id, email or provider transaction id; the detail page merges payment webhooks, credit changes, admin actions and emails into one timeline, with refund, check-with-provider and mark-paid actions.
     - Generations: search by job id, email or provider request id.
   - Transactional email: credits added, video ready, generation failed and refunded, takedown receipts (signed-in users only) and outcomes; admins get new takedowns, deadline reminders and contact messages (Cloudflare Email Service, outbox with dedupe and retries).
-  - Compliance and safety: AI-generated label on videos; photos deleted after 7 days and videos after 30; takedown requests on a 48-hour queue (every video made from the same source photo is removed and the photo is blocked); upload moderation; Turnstile on the contact and report forms.
+  - Compliance and safety: AI-generated label on videos; photos deleted after 7 days and videos after 30; takedown requests on a 48-hour queue (every video made from the same source photo is removed and the photo is blocked); provider-side checks during generation and moderation for public share posters; Turnstile on the contact and report forms.
   - Ops and security: maintenance mode, a site-wide announcement and a daily generation cap switched from the admin without a deploy; health-check alert emails, instant payment notifications (Telegram, Feishu, Discord and more), daily D1 backups to R2, browser error reporting to Workers Logs, CSP (Report-Only, per-request nonce) and Permissions-Policy.
   - Content and SEO: one-page home (How it works / What is, plus optional problem and "doing it yourself vs. this site" blocks), an extensible article collection (`/guides` hub, related articles), legal pages, contact form; SSR canonical, hreflang, JSON-LD and sitemap; copy is code-split per locale; `npm run seo:check` lints the whole site.
 
@@ -117,7 +117,7 @@ npm run dev -- --host 127.0.0.1      # http://127.0.0.1:3000
 - Use npm 11.19 or newer; `devEngines` in `package.json` warns on older versions. Running `npm install` with an older npm rewrites `package-lock.json` into a form that `npm ci` on CI rejects (`Missing: @emnapi/core@… from lock file`).
 - `PAYMENT_PROVIDER=mock` and `VIDEO_PROVIDER=mock` by default: buying opens a mock checkout and generating copies the template video. Nothing is charged.
 - Outside production the sign-in page has a "dev login" (`POST /api/auth/dev-login`); in production it returns 404. Dev login, mock payments and `/api/dev/*` only accept direct requests from localhost: anything that came through a tunnel or proxy (with `cf-connecting-ip`, `X-Forwarded-For` or similar headers) gets 404. Someone on your LAN can fake those conditions, so don't start the dev server with `--host 0.0.0.0` or expose it to the internet directly; for webhooks use `scripts/webhook-proxy.mjs` (see below).
-- `MODERATION_PROVIDER=mock` by default: an upload form with `mockOutcome=reject` simulates a rejected image. Leave `TURNSTILE_SITE_KEY` empty to disable Turnstile.
+- `MODERATION_PROVIDER=mock` by default: a rejected public share poster is simulated with `x-mock-moderation: reject`. Generation photo uploads do not call this image-moderation service; the selected video provider checks the input when a job is submitted. Leave `TURNSTILE_SITE_KEY` empty to disable Turnstile.
 - `POST /api/dev/sweep {"days": 8}` (localhost only) runs retention cleanup as if N days had passed, for the signed-in user's media only.
 - Addresses in `ADMIN_EMAILS` can open `/admin`; locally that is `admin@example.com`. They are made admins when they sign in, and removing an address later doesn't take the role away: also click "取消管理员" (remove admin) on that user's page under `/admin/users`.
 - Email is only simulated locally; check the outbox instead: `GET /api/dev/emails?to=<email>&ref=<order or takedown id>` (localhost only). `POST /api/dev/takedown-reminders {"takedownId": "tdr_…", "hours": 37}` runs the takedown reminder check for one request as if N hours had passed.
@@ -204,7 +204,7 @@ npx wrangler r2 object put <name>-media/templates/<file>.mp4 --file seed/templat
 ```
 
 - `ratelimits[].namespace_id` must be unique within an account; don't share the same numbers across sites.
-- Secrets: `SESSION_SECRET`, `GOOGLE_CLIENT_SECRET`, `WAFFO_MERCHANT_ID`, `WAFFO_PRIVATE_KEY`, `DODO_API_KEY`, `DODO_WEBHOOK_SECRET`, `FAL_KEY`; optionally `YIR_API_KEY` (`VIDEO_PROVIDER=yir`), `OPENAI_API_KEY` (image moderation) and `TURNSTILE_SECRET_KEY`. Set them one by one with `npx wrangler secret put <NAME>`, or sync them in one go with `scripts/sync-secrets.mjs`:
+- Secrets: `SESSION_SECRET`, `GOOGLE_CLIENT_SECRET`, `WAFFO_MERCHANT_ID`, `WAFFO_PRIVATE_KEY`, `DODO_API_KEY`, `DODO_WEBHOOK_SECRET`, `FAL_KEY`; optionally `YIR_API_KEY` (`VIDEO_PROVIDER=yir`), `OPENAI_API_KEY` (public share-poster moderation) and `TURNSTILE_SECRET_KEY`. Set them one by one with `npx wrangler secret put <NAME>`, or sync them in one go with `scripts/sync-secrets.mjs`:
   ```bash
   cp .dev.vars.example .dev.vars.production     # fill in production values; .dev.vars.* is gitignored
   node scripts/sync-secrets.mjs                 # plan only: new, existing, remote-only, still missing; never prints values
@@ -240,7 +240,7 @@ Without a domain, [wrangler.staging.jsonc](wrangler.staging.jsonc) deploys the t
 
 - `APP_ENV=staging`: like production, mocks and dev login are disabled and cookies are Secure, but `robots.txt` blocks crawling. Canonical URLs still point at `site.domain`.
 - All resource names end in `-staging`, separate from the production site. `tests/unit/staging.test.ts` checks that its bindings and var keys match `wrangler.jsonc`. new-site deletes this file.
-- No transactional email (`EMAIL_FROM` is empty) and no image moderation by default (`MODERATION_PROVIDER=none`).
+- No transactional email (`EMAIL_FROM` is empty) and no public share-poster moderation by default (`MODERATION_PROVIDER=none`).
 
 ```bash
 npx wrangler d1 create video-template-staging                # put the database_id in wrangler.staging.jsonc
@@ -346,7 +346,7 @@ SMOKE_BASE_URL=https://video-template-staging.<subdomain>.workers.dev SMOKE_EXPE
   - To report a vulnerability, see [SECURITY.md](SECURITY.md).
 - **Sharing videos**: on the dashboard, users can share one of their own videos, which creates a public link `/v/<random id>` (16 characters, not enumerable; `/zh/v/…` works too). On by default; set `site.share.enabled` to `false` to hide the button and the page. Face-swap or real-person sites should consider turning it off.
   - The share page only has the video, the AI badge and disclosure, a "Make your own" button and a report link. It shows nothing about the creator, and neither the HTML nor the API exposes the video id. Both the response header and the meta tag say `noindex`, and share pages aren't in the sitemap.
-  - Link previews: when sharing, the browser grabs a frame from the video, draws a 1200×630 JPEG with an AI label in the top-left corner and uploads it as the `og:image`; the video URL goes into `og:video`. The poster goes through the same image moderation as uploads (422 `share_rejected` if it fails). If capturing fails (the browser can't decode the video, or it times out), the video is shared without a poster and the site's default OG image is used.
+  - Link previews: when sharing, the browser grabs a frame from the video, draws a 1200×630 JPEG with an AI label in the top-left corner and uploads it as the `og:image`; the video URL goes into `og:video`. Public share posters are checked separately (422 `share_rejected` if moderation rejects one); this check does not run on generation photo uploads. If capturing fails (the browser can't decode the video, or it times out), the video is shared without a poster and the site's default OG image is used.
   - Media is served from `/media/shares/<id>/video` and `/media/shares/<id>/poster.jpg` with Range support and `Cache-Control: public, max-age=300`, so a visitor who already opened it may keep playing from cache for up to 5 minutes after sharing stops.
   - Expiry: after sharing stops the old link returns 404, and sharing again creates a new link; once the video expires or is removed after a report it returns 410, the poster is deleted and the video can't be shared again; deleting the video also deletes the poster.
   - Migration `0015_shares.sql` adds `share_id`, `share_poster_key` and `shared_at` to `generations`. Data export includes the share link and when sharing started; while the feature is on, the privacy policy has a "Shared videos" section.
@@ -376,9 +376,10 @@ SMOKE_BASE_URL=https://video-template-staging.<subdomain>.workers.dev SMOKE_EXPE
     - adds the hash to `blocked_media`, so uploading the same image again returns 422 `content_rejected`.
   - Rejection requires a reason.
   - Both outcomes are written to `admin_audit`. `ADMIN_EMAILS` gets an email for new reports, 12 hours before the deadline and when overdue (see "Transactional email"), but someone still needs to check the queue daily.
-- **Upload moderation**: chosen with `MODERATION_PROVIDER`. Moderation runs before writing to R2; rejected images are never stored and no credits are spent.
-  - `openai`: OpenAI `omni-moderation-latest` (free), requires `OPENAI_API_KEY`. Blocks the sexual, violence/graphic and self-harm categories. Uploads are refused with 503 if the API fails.
-  - `none`: no moderation.
+- **Generation input safety**: the site checks file type, size and previously removed-photo hashes before storing a private upload. It does not call a separate image-moderation service; the selected video provider checks generation inputs when the task is submitted. A provider rejection follows the normal generation-failure and credit-refund path.
+- **Public share poster moderation**: chosen with `MODERATION_PROVIDER`.
+  - `openai`: OpenAI `omni-moderation-latest` (free), requires `OPENAI_API_KEY`. Blocks the sexual, violence/graphic and self-harm categories. Share-poster uploads are refused with 503 if the API fails.
+  - `none`: share posters are not moderated.
   - `mock`: non-production only.
   - Minors and public figures are not OpenAI image categories; those still rely on the consent statement and takedowns.
 - **Turnstile**: create a widget in the Cloudflare dashboard, put the site key in `vars.TURNSTILE_SITE_KEY`, then run `npx wrangler secret put TURNSTILE_SECRET_KEY`.
@@ -459,7 +460,7 @@ e2e coverage (64 tests):
 - Compliance:
   - Retention: photos used by in-progress jobs are kept; expired photos can't be reused; expired videos return 410 and show as expired in the dashboard; repeated cleanup is idempotent.
   - Takedowns: an anonymous report at `/report`, removed by an admin. Both videos from the same photo are deleted, unrelated videos are kept, and re-uploading the photo is blocked; a handled report can't be handled again, and the outcome is audited.
-  - Moderation: rejected uploads return 422.
+  - Moderation: provider-side generation checks reject unsafe inputs when a task is submitted; a rejected public share poster returns 422.
   - Data export: the JSON downloaded from settings contains all of the user's records and none of other users' data or internal fields; 401 when signed out or after account deletion.
   - Sharing: after sharing from the dashboard, an anonymous visitor sees a noindex share page with the AI badge and no video id; other users can't start or stop sharing; the old link returns 404 after sharing stops and 410 once the video expires or is removed after a report; non-JPEG or rejected posters are refused; a report that only has a share link with a language prefix still finds the video.
 - Credit grants: after an admin grants time-limited credits, a render spends them first and a failed render returns them; once they expire the billing notice disappears. With credits for only one render, two concurrent renders give one success and one 402. Unit tests run the accounting rules on SQLite with every migration applied.

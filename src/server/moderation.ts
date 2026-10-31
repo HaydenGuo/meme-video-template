@@ -5,7 +5,7 @@ export type ModerationVerdict = { allowed: true } | { allowed: false; reason: st
 export interface ModerationInput {
   bytes: Uint8Array
   contentType: string
-  // 仅 mock 使用：'reject' 模拟审核不通过（e2e）
+  // 仅 mock 使用：'reject' 模拟分享封面审核不通过（e2e）
   mockOutcome?: string | null
 }
 

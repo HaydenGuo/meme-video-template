@@ -64,7 +64,7 @@ describe('verifyTurnstile', () => {
   })
 })
 
-describe('OpenAI 图片审核', () => {
+describe('OpenAI 分享封面审核', () => {
   const image = { bytes: new Uint8Array([1, 2, 3]), contentType: 'image/png' }
 
   it('以 data URL 提交图片，命中图片类别时拒绝并给出原因', async () => {

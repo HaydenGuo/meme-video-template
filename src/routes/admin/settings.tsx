@@ -27,7 +27,7 @@ const PROBES = [
   { target: 'email', label: '发信', help: '给你的邮箱发一封测试邮件' },
   { target: 'payment', label: '支付', help: '只读查询：鉴权，Dodo 另核对每个套餐的商品和价格；不建收银台' },
   { target: 'video', label: '视频生成', help: '只读查询：鉴权和账户余额；不提交任务' },
-  { target: 'moderation', label: '图片审核', help: '只读查询：鉴权和审核模型是否可用' },
+  { target: 'moderation', label: '分享封面审核', help: '只读查询：分享封面审核服务的鉴权和模型是否可用' },
 ] as const
 
 const PROBE_TONE = { ok: 'ok', warn: 'warn', fail: 'bad', skipped: 'muted' } as const

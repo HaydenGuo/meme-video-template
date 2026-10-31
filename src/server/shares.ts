@@ -71,7 +71,7 @@ export function assertShareable(row: GenerationRow) {
 }
 
 // 读取并检查封面：没有请求体时返回 null（不带封面，分享页用站点默认 OG 图）。
-// 封面是公开图片，和上传原图一样过内容审核，否则这里能被当成任意图床
+// 封面是公开图片，单独过内容审核，避免这里被当成任意图床
 export async function readSharePoster(env: Env, request: Request) {
   const header = request.headers.get('content-length')
   if (header === '0' || (!header && !request.body)) return null

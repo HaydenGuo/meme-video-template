@@ -163,15 +163,14 @@ test('举报下架：匿名在 /report 举报 → 管理员下架 → 同一原�
   await shot('04-owner-dashboard')
 })
 
-test('上传审核不通过返回 422，不落盘；之后正常图片仍可上传', async ({ request }) => {
+test('生成照片上传不调用独立图片审核；检查留给生成阶段', async ({ request }) => {
   await devLogin(request, uniqueEmail('moderation'))
   const rejected = await request.post('/api/uploads', {
     headers: { origin: ORIGIN },
     multipart: { file: { name: 'photo.jpg', mimeType: 'image/jpeg', buffer: uniquePhoto() }, mockOutcome: 'reject' },
   })
-  expect(rejected.status()).toBe(422)
-  expect((await rejected.json()).error).toBe('content_rejected')
-  await upload(request)
+  expect(rejected.status()).toBe(201)
+  expect(await rejected.json()).toMatchObject({ upload: { contentType: 'image/jpeg' } })
 })
 
 test('导出我的数据：设置页下载 JSON，含本人全部记录；不含他人数据和内部字段；未登录与注销后 401', async ({ page, browser }, testInfo) => {

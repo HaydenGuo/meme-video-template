@@ -97,7 +97,7 @@ https://github.com/user-attachments/assets/895aab94-d0c9-474e-8d90-61a6c551e536
     - 订单：按订单号、邮箱、支付商流水号搜索；详情页把支付回调、积分变动、管理员操作和邮件合成一条时间线，可在详情页退款、查单或补单
     - 生成：按任务 ID、邮箱、服务商请求 ID 搜索
   - 交易邮件：积分到账、成片完成、生成失败退积分、举报回执（仅登录用户）与处理结果；管理员收新举报、超时提醒和新留言（Cloudflare Email Service，发件箱去重与重试）
-  - 合规与内容安全：成片 AI 标识；照片 7 天、成片 30 天自动清理；举报下架（48 小时队列，同一张原图的全部成片一并删除并拉黑）；上传图片审核；联系和举报表单的 Turnstile 人机验证
+  - 合规与内容安全：成片 AI 标识；照片 7 天、成片 30 天自动清理；举报下架（48 小时队列，同一张原图的全部成片一并删除并拉黑）；生成时由服务商检查输入，公开分享封面单独审核；联系和举报表单的 Turnstile 人机验证
   - 运维与安全：后台免部署切换维护模式、全站公告和每日生成上限；健康检查告警邮件、付款即时通知（Telegram、飞书、Discord 等）、D1 每日备份到 R2、前端错误上报到 Workers 日志、CSP（Report-Only，每次请求一个 nonce）与 Permissions-Policy
   - 内容与 SEO：one-page 首页（How it works / What is 区块，可选的痛点和“自己拍 vs 用本站”对比区块）、可扩展的文章集合（`/guides` 列表页、相关文章）、法律页、联系表单；SSR 输出完整的 canonical、hreflang、JSON-LD 和 sitemap；文案按语言拆包；`npm run seo:check` 检查全站
 
@@ -117,7 +117,7 @@ npm run dev -- --host 127.0.0.1      # http://127.0.0.1:3000
 - npm 用 11.19 及以上，版本更低时 `package.json` 里的 `devEngines` 会给出警告。用旧版 npm 跑 `npm install` 会把 `package-lock.json` 改写成 CI 上 `npm ci` 不认的结构（报 `Missing: @emnapi/core@… from lock file`）。
 - 本地默认 `PAYMENT_PROVIDER=mock`、`VIDEO_PROVIDER=mock`：点购买会进入模拟收银台，生成会复制模板视频作为结果，不花钱。
 - 登录页在非 production 环境有“开发登录”（`POST /api/auth/dev-login`），production 返回 404。开发登录、mock 支付和 `/api/dev/*` 只接受本机直连：经过隧道或代理的请求（带 `cf-connecting-ip`、`X-Forwarded-For` 等头）一律返回 404。局域网里的人能伪造这些条件，所以不要用 `--host 0.0.0.0` 启动，也不要把 dev server 直接暴露到公网；联调 webhook 用 `scripts/webhook-proxy.mjs`（见下文）。
-- 本地默认 `MODERATION_PROVIDER=mock`：上传表单带 `mockOutcome=reject` 时模拟审核不通过。`TURNSTILE_SITE_KEY` 留空表示不启用人机验证。
+- 本地默认 `MODERATION_PROVIDER=mock`：公开分享封面可用 `x-mock-moderation: reject` 模拟审核不通过。生成照片上传不调用此图片审核服务；提交生成任务时由所选视频服务商检查输入。`TURNSTILE_SITE_KEY` 留空表示不启用人机验证。
 - `POST /api/dev/sweep {"days": 8}`（仅本机）：模拟 N 天后的清理，只处理当前登录用户的媒体，用来验证保留期。
 - `ADMIN_EMAILS` 里的邮箱登录后可进 `/admin`，本地默认是 `admin@example.com`。这些邮箱是在登录时被设为管理员的，之后从列表里删掉不会撤销角色，要同时在 `/admin/users` 的用户详情页点“取消管理员”。
 - 本地发信只是模拟，不会真的发出，结果以发件箱为准：`GET /api/dev/emails?to=<邮箱>&ref=<订单号/举报编号>`（仅本机）。`POST /api/dev/takedown-reminders {"takedownId": "tdr_…", "hours": 37}` 模拟 N 小时后对某条举报跑一次超时提醒。
@@ -203,7 +203,7 @@ npx wrangler r2 object put <name>-media/templates/<file>.mp4 --file seed/templat
 ```
 
 - `ratelimits[].namespace_id` 在同一账号内要唯一，多个站点不要共用同一组数字。
-- 密钥：`SESSION_SECRET`、`GOOGLE_CLIENT_SECRET`、`WAFFO_MERCHANT_ID`、`WAFFO_PRIVATE_KEY`、`DODO_API_KEY`、`DODO_WEBHOOK_SECRET`、`FAL_KEY`；按需加 `YIR_API_KEY`（`VIDEO_PROVIDER=yir`）、`OPENAI_API_KEY`（图片审核）、`TURNSTILE_SECRET_KEY`。可以逐个 `npx wrangler secret put <NAME>`，也可以用 `scripts/sync-secrets.mjs` 一次同步：
+- 密钥：`SESSION_SECRET`、`GOOGLE_CLIENT_SECRET`、`WAFFO_MERCHANT_ID`、`WAFFO_PRIVATE_KEY`、`DODO_API_KEY`、`DODO_WEBHOOK_SECRET`、`FAL_KEY`；按需加 `YIR_API_KEY`（`VIDEO_PROVIDER=yir`）、`OPENAI_API_KEY`（公开分享封面审核）、`TURNSTILE_SECRET_KEY`。可以逐个 `npx wrangler secret put <NAME>`，也可以用 `scripts/sync-secrets.mjs` 一次同步：
   ```bash
   cp .dev.vars.example .dev.vars.production     # 填上线用的值；.dev.vars.* 已被 .gitignore 忽略
   node scripts/sync-secrets.mjs                 # 只出计划：新增、已存在、只在远端、同步后仍缺，不打印任何值
@@ -239,7 +239,7 @@ npx wrangler r2 object put <name>-media/templates/<file>.mp4 --file seed/templat
 
 - `APP_ENV=staging`：和 production 一样禁用 mock 与开发登录，Cookie 加 Secure；但 `robots.txt` 禁止抓取。canonical 仍指向 `site.domain`。
 - 资源名都带 `-staging`，与正式站隔离。`tests/unit/staging.test.ts` 会检查它和 `wrangler.jsonc` 的绑定、vars 键是否一致。new-site 会删除这个文件。
-- 不发交易邮件（`EMAIL_FROM` 为空），默认不做图片审核（`MODERATION_PROVIDER=none`）。
+- 不发交易邮件（`EMAIL_FROM` 为空），默认不审核公开分享封面（`MODERATION_PROVIDER=none`）。
 
 ```bash
 npx wrangler d1 create video-template-staging                # database_id 写进 wrangler.staging.jsonc
@@ -306,7 +306,7 @@ SMOKE_BASE_URL=https://video-template-staging.<子域名>.workers.dev SMOKE_EXPE
   - 维护模式：新的生成和下单返回 503 `maintenance`，前台每页顶部显示维护提示；登录、查看、下载和支付回调照常，管理员不受限制，便于维护期间验证。
   - 每日生成上限按 UTC 自然日统计创建的任务数（失败退款的也算），超出返回 429 `daily_limit`，不扣积分；并发提交由同一个 D1 batch 里的断言行兜底。0 = 不限。建议和服务商控制台的消费上限一起用。
   - 邀请奖励设为 0 即暂停邀请（隐藏卡片，链接不再绑定）。暂停期间付款的首单记为拒绝（`paused`），恢复后不会用之后的订单补发。`site.referralRewardPercent` 为 0 时这一项锁定，因为隐私政策按 `site.ts` 生成。
-  - “测试连接”逐项探测 R2、KV、发信（给你发一封测试邮件）、支付（Dodo：逐个套餐核对商品和价格与 `site.ts` 是否一致，售价更低时报失败，因为这样的付款会被判金额不符而不入账；Waffo：用不存在的订单号查单，验证签名和鉴权）、视频服务商（鉴权和余额，低于 5 美元提示）和图片审核（鉴权）。探测只读或自行清理，不建收银台、不提交任务，说明文字里的密钥值会被替换掉。
+  - “测试连接”逐项探测 R2、KV、发信（给你发一封测试邮件）、支付（Dodo：逐个套餐核对商品和价格与 `site.ts` 是否一致，售价更低时报失败，因为这样的付款会被判金额不符而不入账；Waffo：用不存在的订单号查单，验证签名和鉴权）、视频服务商（鉴权和余额，低于 5 美元提示）和分享封面审核（鉴权）。探测只读或自行清理，不建收银台、不提交任务，说明文字里的密钥值会被替换掉。
 - **订阅**：默认开启，开关是 `site.subscriptionsEnabled`。模板默认月付 $14.90、年付 $149，每月都发 60 积分；开关设为 `false` 就只卖积分包，定价页、条款、退款政策和 FAQ 里的订阅文案一起隐藏，已有订阅照常续费和发积分。开关、改套餐、支付商配置和排查见使用手册 [docs/subscriptions.md](docs/subscriptions.md)。
   - 每次扣款都是一张订单。续费订单号由支付商的付款 ID 派生，重复投递只建一次；续费金额按订阅时锁定的价格核对，对不上的转人工处理。
   - 订阅积分是当月结束作废的批次（流水 reason 为 `subscription`），生成时先于长期积分扣除。年付首付只发第一个月，其余由每 5 分钟的 Cron 按月补发，重复执行不会重发。
@@ -323,7 +323,7 @@ SMOKE_BASE_URL=https://video-template-staging.<子域名>.workers.dev SMOKE_EXPE
 - **生成**：先扣积分再入队，失败、超时或管理员判失败时自动退回。视频服务商的 webhook 和定时轮询可能同时处理同一个任务，只有一路能把任务置为成功，另一路不会删掉已落库的成片。
 - **成片分享**：用户在个人中心对自己的成片点“分享”，生成公开链接 `/v/<随机串>`（16 位，不可枚举，`/zh/v/…` 同样可用）。默认开启；`site.share.enabled` 设为 `false` 时按钮和页面都不出现，换脸、真人类站点建议关闭。
   - 分享页只有视频、AI 角标与声明、“我也做一条”按钮和举报入口，不显示作者信息，HTML 和接口里也没有视频 ID。响应头和 meta 都是 `noindex`，不进 sitemap。
-  - 链接预览：开启分享时浏览器从成片截一帧，画成 1200×630 的 JPEG（左上角带 AI 标识）一起上传，作为 `og:image`，成片地址写进 `og:video`。封面和上传照片一样过图片审核（不通过返回 422 `share_rejected`）；截帧失败（浏览器解码不了、超时）时不带封面，用站点默认 OG 图。
+  - 链接预览：开启分享时浏览器从成片截一帧，画成 1200×630 的 JPEG（左上角带 AI 标识）一起上传，作为 `og:image`，成片地址写进 `og:video`。公开分享封面单独审核（不通过返回 422 `share_rejected`）；生成照片上传不走这道检查。截帧失败（浏览器解码不了、超时）时不带封面，用站点默认 OG 图。
   - 媒体走 `/media/shares/<id>/video` 和 `/media/shares/<id>/poster.jpg`，支持 Range，`Cache-Control: public, max-age=300`，所以停止分享后已打开过的访客最多还能从缓存播放 5 分钟。
   - 失效：停止分享后旧链接返回 404，再分享得到新链接；成片到期或因举报下架返回 410，封面随之删除，之后不能再分享；删除视频时封面一并删除。
   - 迁移 `0015_shares.sql` 给 `generations` 加了 `share_id`、`share_poster_key`、`shared_at`。导出我的数据包含分享链接和开启时间；功能开启时隐私政策多一节“分享的视频”。
@@ -375,9 +375,10 @@ SMOKE_BASE_URL=https://video-template-staging.<子域名>.workers.dev SMOKE_EXPE
     - 哈希写入 `blocked_media`，此后再上传同一张图返回 422 `content_rejected`。
   - 驳回：必须填写原因。
   - 两种处理都写入 `admin_audit`。新举报、截止前 12 小时和超时时会给 `ADMIN_EMAILS` 发邮件（见“交易邮件”），但仍需要有人每天看队列。
-- **上传审核**：用 `MODERATION_PROVIDER` 选择。审核在写 R2 之前完成，不通过的图片不落盘，也不扣积分。
-  - `openai`：调用 OpenAI `omni-moderation-latest`（免费），需要 `OPENAI_API_KEY`。拦截 sexual、violence/graphic、self-harm 类别。接口失败时拒绝上传，返回 503。
-  - `none`：不审核。
+- **生成输入安全**：网站在写入私有上传前检查文件类型、大小和已下架原图哈希，不额外调用图片审核服务；提交任务时由所选视频服务商检查生成输入。服务商拒绝会进入现有生成失败和退积分流程。
+- **公开分享封面审核**：由 `MODERATION_PROVIDER` 选择。
+  - `openai`：调用 OpenAI `omni-moderation-latest`（免费），需要 `OPENAI_API_KEY`。拦截 sexual、violence/graphic、self-harm 类别。接口失败时拒绝分享封面上传，返回 503。
+  - `none`：分享封面不审核。
   - `mock`：仅限非 production。
   - 未成年人和名人识别不在 OpenAI 的图片类别里，这两类仍依赖同意声明和举报下架。
 - **Turnstile**：在 Cloudflare 控制台创建 widget，站点密钥写进 `vars.TURNSTILE_SITE_KEY`，再执行 `npx wrangler secret put TURNSTILE_SECRET_KEY`。
@@ -443,7 +444,7 @@ SMOKE_BASE_URL=https://video-template-staging.<子域名>.workers.dev SMOKE_EXPE
 
 ```bash
 npm run typecheck
-npm test            # vitest：Waffo/Dodo 验签与事件映射、退款比例与退款单号规则、归因解析、生产环境禁用 mock、Turnstile 与图片审核的错误分支、邮件模板与发送重试判定、告警阈值与时间桶、GA4 同意前不加载与撤回删 Cookie、CSP 报告和前端错误上报的摘要与脱敏、登录跳转校验、Google 登录的 PKCE 与 nonce、账号按 sub 绑定与注销邮箱不再领注册赠送、成片下载大小上限、D1 备份的 SQL 转义、付款通知的消息格式与地址脱敏、归因 Cookie 等同意后才写入、5xx 详情不对非管理员返回、生产环境拒绝弱 SESSION_SECRET、上线配置检查与 doctor 的规则和 wrangler 输出解析、模板同步计划的分层、密钥同步计划的校验与脱敏、积分账务、兑换码、邀请奖励与订阅（日历月、年付补发、续费、乱序事件、周期校正时当期积分到期时间对齐、退款、Dodo/Waffo 事件映射，SQLite）、运营设置的校验缓存与每日上限、测试连接与脱敏、e2e 验收目录与用例一致
+npm test            # vitest：Waffo/Dodo 验签与事件映射、退款比例与退款单号规则、归因解析、生产环境禁用 mock、Turnstile 与分享封面审核的错误分支、邮件模板与发送重试判定、告警阈值与时间桶、GA4 同意前不加载与撤回删 Cookie、CSP 报告和前端错误上报的摘要与脱敏、登录跳转校验、Google 登录的 PKCE 与 nonce、账号按 sub 绑定与注销邮箱不再领注册赠送、成片下载大小上限、D1 备份的 SQL 转义、付款通知的消息格式与地址脱敏、归因 Cookie 等同意后才写入、5xx 详情不对非管理员返回、生产环境拒绝弱 SESSION_SECRET、上线配置检查与 doctor 的规则和 wrangler 输出解析、模板同步计划的分层、密钥同步计划的校验与脱敏、积分账务、兑换码、邀请奖励与订阅（日历月、年付补发、续费、乱序事件、周期校正时当期积分到期时间对齐、退款、Dodo/Waffo 事件映射，SQLite）、运营设置的校验缓存与每日上限、测试连接与脱敏、e2e 验收目录与用例一致
 npm run test:e2e    # Playwright：需要先 npm run seed:local；会复用已运行在 127.0.0.1:3000 的 dev server
 E2E_PORT=3200 npm run test:e2e   # 3000 被其它程序占用时换端口
 npm run seo:check   # 需要 dev server 在跑；报告写到 .tmp/seo-check/
@@ -458,7 +459,7 @@ e2e 覆盖（64 个用例）：
 - 合规：
   - 保留期：进行中任务的原图不清理；到期原图不能再用；成片过期返回 410，个人中心显示已过期；重复清理是幂等的。
   - 举报下架：匿名在 `/report` 举报，管理员在后台下架。同一张原图的两条成片都被删除，无关成片保留，重新上传同一张图被拦截；已处理的举报不能再处理，处理结果写入审计。
-  - 审核：不通过的上传返回 422。
+  - 审核：生成输入由服务商在提交任务时检查；分享封面审核不通过返回 422。
   - 导出我的数据：设置页下载的 JSON 含本人全部记录，不含他人数据和内部字段；未登录和注销后返回 401。
   - 成片分享：个人中心开启后，匿名访客看到 noindex 的分享页和 AI 标识，页面不暴露视频 ID；他人不能开启或停止分享；停止分享后旧链接 404，成片到期或被举报下架后 410；封面不是 JPEG 或审核不通过被拒；凭带语言前缀的分享链接举报即可定位视频。
 - 积分批次：后台补发限时积分后，生成先扣它、失败原路退回，到期作废后账单页提示消失；余额只够一次时并发发起两个生成，一个成功一个 402。账务规则另有单元测试在 SQLite 上执行全部迁移核对。

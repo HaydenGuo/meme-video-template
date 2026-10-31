@@ -145,7 +145,7 @@ const pending = [
   `Google 控制台使用已批准的 OAuth Web 客户端，登记 Authorized JavaScript origins：${googleAuthorizedOrigins.join('、')}；Authorized redirect URI：${googleRedirectUri}`,
   '创建并绑定各站独立 D1、KV、R2 和 Queue；配置正式域名及生产服务商',
   '创建 25/$9.90、60/$19.90 与 100/$29.90 的一次性支付商品并登记 webhook',
-  '配置真实邮件域名、图片审核及 Turnstile；生产前运行 doctor 并完成登录/充值/生成验证',
+  '配置真实邮件域名、分享封面审核及 Turnstile；生产前运行 doctor 并完成登录/充值/生成验证',
   '人工审阅梗资料、翻译、指南和展示素材；脚本不代表 SEO 或真实生成验收通过',
 ]
 pending.push(`当前上线阶段：${launch}。仅核验已开放功能；关闭新购买时保留已有支付回调与凭据`)
