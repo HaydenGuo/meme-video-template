@@ -21,7 +21,7 @@ Worker 在扣积分前检查；Bridge 提交前使用相同规则。视频生成
 
 `PROMPT_SCAN_PROVIDER=waffo` 使用服务端 `WAFFO_MERCHANT_ID`、`WAFFO_PRIVATE_KEY` 对 `POST /v1/actions/verification/scan-prompt` 签名。它与充值渠道开关独立，关闭购买不代表可以跳过扫描。私钥支持 PKCS#8、PKCS#1 PEM 和无头尾的 Base64 DER；API Key 按其注册环境认证，不传 `X-Environment`。
 
-扫描固定生成意图、用户背景描述及照片限制合成的文本，`semantic=enforce`。YIR 使用当前配置的实际提示词；Hypit 的 Worker 预检只涵盖网站请求意图，完整模板由 Bridge 再次检查。fal 的接口不接受文本提示词，因此只有意图预检，不能声称它把限制文本传给了模型。
+扫描固定生成意图、用户背景描述及照片限制合成的文本，`semantic=enforce`。YIR 使用当前配置的实际提示词；Worker 的 Bridge 适配层预检只涵盖网站请求意图，完整模板由 Bridge 在任务准备阶段再次检查。fal 的接口不接受文本提示词，因此只有意图预检，不能声称它把限制文本传给了模型。
 
 - `allow` 且语义状态为 `scored` 才继续创建任务及扣积分。
 - `review`、`block` 均返回 422，不创建任务、不扣积分。`review` 暂停本次请求，用户稍后重试或联系客服；不承诺已经创建人工审核工单或自动恢复任务。
