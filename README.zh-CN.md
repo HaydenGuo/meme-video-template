@@ -30,6 +30,8 @@ Hypit Bridge 在模型提交前检查并归一化人像与参考视频尺寸，�
 
 示例区默认根据 `site.template.aspectRatio` 展示视频画幅，也可为 `site.examples.gallery` 中的单条视频设置 `aspectRatio`。竖版视频居中显示并限制卡片宽度，横版视频在宽屏下双列展示，视频完整显示不裁切。
 
+案例照片按原始比例显示，不裁切人物。
+
 纯视频案例填写 `site.examples.gallery`，可逐个设置原始画幅，并使用手动播放控件。
 
 首屏只展示原版参考视频，AI 成片继续在下方示例区展示。

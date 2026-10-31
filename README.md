@@ -30,6 +30,8 @@ The generator has an optional background description (up to 500 characters). Bla
 
 Example cards follow `site.template.aspectRatio` by default; individual videos in `site.examples.gallery` may set `aspectRatio`. Portrait videos are centered in a narrow card, while landscape videos use two columns on wide screens. Videos fit inside without cropping.
 
+Case photos retain their original aspect ratio so people are not cropped out.
+
 Add video-only cases in `site.examples.gallery`; each entry sets its original aspect ratio and uses manual playback controls.
 
 The hero shows only the original reference video; AI results remain in the examples section.
