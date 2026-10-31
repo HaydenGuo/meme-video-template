@@ -215,8 +215,12 @@ if response is None:
         candidate.replace(current)
         run('systemctl', 'restart', 'hypit-bridge.service')
     raise SystemExit('Bridge health or engine check failed; inspect systemctl/journalctl. No secrets printed.')
+runtime_enabled = subprocess.run(['systemctl', 'is-enabled', 'hypit-runtime.service'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
+runtime_active = subprocess.run(['systemctl', 'is-active', '--quiet', 'hypit-runtime.service'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
 report = {'revision': actual, 'release': str(release), 'previous': previous,
-          'node': version, 'bridgeHealth': response, 'engine': args.engine, 'generationReady': False,
+          'node': version, 'bridgeHealth': response, 'engine': args.engine,
+          'runtimeRequired': args.engine == 'hypit',
+          'hypitRuntime': {'enabled': runtime_enabled, 'active': runtime_active}, 'generationReady': False,
           'pending': ['provider API credentials in /etc/hypit-bridge/provider.env', 'site and template registration', 'HTTPS domain before Cloudflare connection']}
 Path('/var/lib/hypit/deployment.json').write_text(json.dumps(report, indent=2) + '\n')
 print(json.dumps(report, indent=2))
