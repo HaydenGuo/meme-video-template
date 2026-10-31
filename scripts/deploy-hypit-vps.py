@@ -9,6 +9,7 @@ import pwd
 import re
 import secrets
 import shutil
+import sqlite3
 import subprocess
 import time
 import urllib.request
@@ -117,18 +118,23 @@ bridge_config = {
 config_file = config / 'bridge.config.json'
 if config_file.exists():
     existing_config = json.loads(config_file.read_text())
-    bridge_config['sites'] = existing_config.get('sites', {})
+    # Engine migration may not strand jobs submitted to the previous runner.
+    if existing_config.get('engine', 'hypit') != args.engine:
+        database = Path(existing_config.get('dataDir', bridge_config['dataDir'])) / 'jobs.sqlite'
+        if database.exists():
+            with sqlite3.connect(f'file:{database}?mode=ro', uri=True) as connection:
+                active = connection.execute(
+                    "SELECT COUNT(*) FROM jobs WHERE state NOT IN ('completed','failed','expired')"
+                ).fetchone()[0]
+            if active:
+                raise SystemExit('Bridge has active jobs; wait for them to finish before switching engines')
+    # Keep all site registrations, credentials, and custom provider settings.
+    bridge_config = {**bridge_config, **existing_config}
     bridge_config['mode'] = existing_config.get('mode', 'hypit')
-    bridge_config['dataDir'] = existing_config.get('dataDir', bridge_config['dataDir'])
-    bridge_config['projectRoot'] = existing_config.get('projectRoot', bridge_config['projectRoot'])
-    bridge_config['publicUrl'] = existing_config.get('publicUrl', bridge_config['publicUrl'])
-    bridge_config['host'] = existing_config.get('host', bridge_config['host'])
-    bridge_config['port'] = existing_config.get('port', bridge_config['port'])
-    bridge_config['maxAgeMs'] = existing_config.get('maxAgeMs', bridge_config['maxAgeMs'])
-    bridge_config['retentionMs'] = existing_config.get('retentionMs', bridge_config['retentionMs'])
-    bridge_config['maxStorageBytes'] = existing_config.get('maxStorageBytes', bridge_config['maxStorageBytes'])
-    bridge_config['runtimeProfile'] = existing_config.get('runtimeProfile', bridge_config['runtimeProfile'])
-    # Preserve the site registry and deployment secrets while applying requested engine/capacity.
+    bridge_config['engine'] = args.engine
+    bridge_config['maxActive'] = 8 if args.engine == 'notoken' else 1
+    bridge_config['maxQueued'] = 100
+    bridge_config['ffmpegConcurrency'] = 2
     temp_config = config_file.with_suffix('.json.next')
     temp_config.write_text(json.dumps(bridge_config, indent=2) + '\n')
     temp_config.chmod(0o640)
