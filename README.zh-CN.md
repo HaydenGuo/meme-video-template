@@ -40,13 +40,13 @@ Hypit Bridge 在模型提交前检查并归一化人像与参考视频尺寸，�
 
 品牌图标支持[同源 AI 图标流程](docs/brand-assets.md)：资料填写 `media.brandIcon`，从一张 AI 源图派生导航 Logo、浏览器/Google favicon、Apple 和 Manifest 图标。
 
-支持无需语言模型现场调试的[固定 Hypit 复刻流程](docs/fixed-hypit-workflow.md)：按站点锁定提示词、参考片哈希和分镜参数，自动生成并合成原声；初始化可设置 5/12/14 等时长。
+支持无需语言模型现场调试的[固定参考视频复刻流程](docs/fixed-hypit-workflow.md)：按站点锁定提示词、参考片哈希和分镜参数，自动生成并合成原声；初始化可设置 5/12/14 等时长。
 
-共用 VPS 的提前配置、模型 API 资料和部署脚本见 [Hypit VPS 部署](docs/hypit-vps.md)。
+共用 Bridge VPS 的 NoToken 默认配置、并发限制和部署步骤见 [VPS 运维说明](docs/hypit-vps.md)。
 
 [使用此模板创建新站](https://github.com/new?template_owner=HaydenGuo&template_name=meme-video-template) · [GitHub 仓库](https://github.com/HaydenGuo/meme-video-template)
 
-Hypit Bridge 源码与空白配置示例见 [services/hypit-bridge](services/hypit-bridge/README.md)。Hypit 另行安装，模板不附带凭据和本地运行数据。
+Bridge 源码与空白配置示例见 [services/hypit-bridge](services/hypit-bridge/README.md)。模板不附带服务商凭据和本地运行数据。默认直接调用 NoToken；Hypit Runtime 仅作为显式选择的兼容执行器。
 
 **自动初始化梗视频站**：在新模板副本执行 `npm ci` 后，运行 `npm run site:init -- --profile <站点资料.json>` 预览，再加 `--apply --local` 完成配置、素材处理及本地导入。每站只需提供梗资料和本地素材，公共服务配置可跨站复用。见 [自动初始化说明](docs/site-initialization.md)。不自动发布或创建云端资源。
 
@@ -66,7 +66,7 @@ Google 登录作为模板通用模块，各站配置凭据和授权回调地址�
 
 当前模板首屏介绍 `site.keyword`，中英文介绍在 `site.keywordOverview`。生成档位为 5、12、15 秒，每秒消耗 1 积分；充值仅销售一次性积分包：$9.90 / 25 积分、$19.90 / 60 积分、$29.90 / 100 积分。已关闭新订阅销售。更换热词时同步更新关键词、介绍和参考视频；新视频素材需运行 `npm run seed:local` 加载到本地 R2。生产部署会将 `site.durations[].source` 配置的参考视频上传到远端 `MEDIA` 桶，并检查 Worker 公网路由是否返回 HTTP 206 和 Range 内容。上线前同步支付商商品的价格与积分说明。
 
-支持自托管 `VIDEO_PROVIDER=hypit`：通过独立 VPS Bridge 共用 Hypit Runtime，沿用队列、积分退款和 R2。先在本地用模拟任务验证，步骤见 [Hypit 接入](docs/hypit.md)。
+`VIDEO_PROVIDER=hypit` 用于连接兼容旧 Worker 的 Bridge 协议。Bridge 默认直接调用 NoToken，同时沿用网站队列、失败退积分和 R2 成片保存；Hypit Runtime 仅在显式选择时启用。先用本地 mock 验证协议，步骤见 [Bridge 接入](docs/hypit.md)。
 
 保留原声的梗站会声明 Bridge 必需的复刻工作流。Bridge 在排队前检查站点片段；工作流或已批准参考片哈希缺失时拒绝请求，不会静默退回旧流程。部署时用 Bridge 更新脚本应用 `bridge-site.json`，服务 `/health` 正常不能证明模板配置齐全。
 
