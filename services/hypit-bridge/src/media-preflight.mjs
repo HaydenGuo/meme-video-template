@@ -54,7 +54,7 @@ export async function prepareModelMedia({ dir, kind, probe, config, durationSeco
   // 模型只接收不含音轨的派生视频；原片保留给音频提取和最终合成。
   const args = ['-nostdin', '-hide_banner', '-loglevel', 'error', '-threads', '2', '-filter_threads', '1', '-y', '-i', input, '-map', '0:v:0', '-vf', `scale=${target.width}:${target.height}:flags=lanczos,setsar=1,setpts=PTS-STARTPTS`, '-map_metadata', '-1']
   if (kind === 'image') args.push('-frames:v', '1', '-pix_fmt', 'rgb24')
-  else args.push('-an', '-c:v', 'libx264', '-threads', '2', '-preset', 'fast', '-crf', '18', '-pix_fmt', 'yuv420p', '-movflags', '+faststart')
+  else args.push('-an', '-c:v', 'libx264', '-threads', '2', '-preset', 'fast', '-b:v', '1000k', '-maxrate', '1000k', '-bufsize', '2000k', '-pix_fmt', 'yuv420p', '-movflags', '+faststart')
   args.push(resolve(dir, file))
   try {
     await run(config.ffmpegPath ?? 'ffmpeg', args, { timeout: 120000, maxBuffer: 1024 * 1024, windowsHide: true })
