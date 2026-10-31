@@ -17,7 +17,7 @@ Waffo 正式商品、正式凭据、安全启用和 GitHub → Cloudflare 发布
 
 ## vars
 
-Hypit 可选接入：`VIDEO_PROVIDER=hypit`，新增 `HYPIT_BRIDGE_URL`（Bridge origin，正式/预发必须 HTTPS）、`HYPIT_SITE_ID`（Bridge 已登记的站点）和服务端密钥 `HYPIT_BRIDGE_TOKEN`（至少 32 字符）。本地可用 loopback HTTP。完整步骤见 [Hypit 接入](hypit.md)；每个站点的模板标识和估算成本在 `site.video.hypit`。
+Hypit Bridge 可选接入：`VIDEO_PROVIDER=hypit` 用于 Worker 调用兼容协议，新增 `HYPIT_BRIDGE_URL`（Bridge origin，正式/预发必须 HTTPS）、`HYPIT_SITE_ID`（Bridge 已登记的站点）和服务端密钥 `HYPIT_BRIDGE_TOKEN`（至少 32 字符）。本地可用 loopback HTTP。Bridge 执行器默认是 NoToken；通过健康接口的 `engine` 字段确认实际执行器。完整步骤见 [Bridge 接入](hypit.md)；每个站点的模板标识和估算成本在 `site.video.hypit`。
 
 | 名称 | 取值 | 上线必填 | 说明 |
 | --- | --- | --- | --- |
