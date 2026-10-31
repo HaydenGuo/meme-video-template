@@ -31,7 +31,7 @@ VPS 默认最多同时维护 8 个异步模型任务，队列最多 100 项；�
 
 使用 `scripts/update-hypit-bridge.py --revision <完整提交 SHA>` 更新 Bridge。脚本停止接收新任务、检查任务队列为空、验证 Node 源码语法、备份配置并检查鉴权健康接口；失败时恢复旧代码和配置，不发起模型调用。站点片段使用 `--site-fragment <bridge-site.json>` 原子合并并检查本站登记；不得覆盖其他站点。
 
-运行 `scripts/deploy-hypit-vps.py` 仅用于专用 VPS 安装或引擎迁移。它默认 NoToken，并在切换引擎前要求队列为空；引擎迁移不会改变已有网站 Worker 的 Bridge 协议。首次真实付费生成前应独立核实 API 凭据、账户额度和服务商并发策略。
+运行 `scripts/deploy-hypit-vps.py` 仅用于新建专用 VPS；它默认 NoToken，并拒绝覆盖已有 Bridge 安装。首次真实付费生成前应独立核实 API 凭据、账户额度和服务商并发策略。
 
 ## 存储与本地媒体资源
 
