@@ -38,3 +38,11 @@ VPS 默认最多同时维护 8 个异步模型任务，队列最多 100 项；�
 Bridge 任务文件位于配置的 `dataDir`，代码和持久配置分离。Bridge 成品目录大小有限额，结果会过期清理；还需监控全盘磁盘空间与网络流量。FFmpeg 使用有限线程，本地媒体处理并发与远程模型任务并发分别配置。
 
 提交 NoToken 任务前先完成两份媒体上传；只有即将调用创建任务接口时才进入 `submitting`。上传阶段错误会单独标记并走网站退款路径。若创建回执不确定，Bridge 保留 `attention` 并禁止盲目重提，站点会提示用户且暂停自动超时退款，直到核实结果。已获得的 NoToken 任务号会同步写入站点任务元数据，便于排查。
+
+## 任务号与运行时排查
+
+站点 generation ID、Bridge job ID 和 NoToken provider task ID 是不同编号。先从站点记录得到 Bridge job ID，再查看 Bridge 的 state、errorCode 和 providerTaskId。失败发生在媒体预处理或文件上传阶段时，NoToken 创建任务请求尚未发出，因此没有 provider task ID 是预期行为。只有 Bridge 已记录 providerTaskId 后，才应去 NoToken 后台查对应任务。
+
+参考视频上传前会转成静音 H.264，并使用 FFmpeg 参数 -b:v 1000k、-maxrate 1000k、-bufsize 2000k 控制体积；短暂传输失败按实现策略重试上传。上传成功后仍需核对 NoToken 文件记录、任务创建、轮询、成品下载和网站播放器。创建任务回执不明时继续检查同一个 Bridge job，不盲目再次提交付费任务。网页显示运行中、上传 HTTP 200 或 Bridge 健康都不能单独证明模型已创建任务或成片已完成。
+
+生产执行器以 /health 的 engine 为准。engine=notoken 时 Hypit Runtime 停止是正常状态，不要因 mode=hypit 兼容字段或 Runtime inactive 而启动它；只有选择 engine=hypit 才要求 Runtime 可用。更新脚本会输出 runtimeRequired 和 hypitRuntime.enabled/active 供读回。
