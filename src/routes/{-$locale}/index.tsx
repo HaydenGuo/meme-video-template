@@ -9,6 +9,15 @@ import { articlePath, formatPrice, site } from '#/config/site'
 import { getContent, localeFromParam, pageHead, useContent } from '#/lib/i18n'
 import { homeJsonLd, jsonLdScript } from '#/lib/seo'
 
+function isPortraitAspectRatio(value: string) {
+  const [width, height] = value.split(/\s*[:/]\s*/).map(Number)
+  return Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > width
+}
+
+function configuredAspectRatio(example: object) {
+  return 'aspectRatio' in example && typeof example.aspectRatio === 'string' ? example.aspectRatio : null
+}
+
 export const Route = createFileRoute('/{-$locale}/')({
   head: ({ params }) => {
     const locale = localeFromParam(params.locale)
@@ -37,8 +46,10 @@ function Home() {
   const exampleAspectRatio = Number.isFinite(exampleWidth) && Number.isFinite(exampleHeight) && exampleWidth > 0 && exampleHeight > 0
     ? `${exampleWidth} / ${exampleHeight}`
     : '16 / 9'
-  const portraitExamples = Number.isFinite(exampleWidth) && Number.isFinite(exampleHeight) && exampleHeight > exampleWidth
   const exampleVideos = [ex.madeWith, ...ex.additional, ...ex.gallery]
+  const exampleGridClass = exampleVideos.length === 1
+    ? 'mx-auto w-full max-w-5xl'
+    : 'mx-auto grid w-full max-w-5xl gap-6 sm:grid-cols-2'
   return (
     <>
       {/* 首屏先介绍目标关键词，再引导用户制作视频。 */}
@@ -172,16 +183,20 @@ function Home() {
           <div className="space-y-4">
             <h2 className="font-display text-4xl leading-tight sm:text-5xl">{c.madeWith.title}</h2>
           </div>
-          <div className={`mt-12 grid gap-6 ${portraitExamples ? exampleVideos.length === 1 ? 'mx-auto w-full max-w-sm' : 'mx-auto w-full max-w-3xl sm:grid-cols-2' : 'sm:grid-cols-2'}`}>
-            {exampleVideos.map((example) => (
-              <VideoCard
-                key={example.video}
-                video={example.video}
-                poster={example.poster}
-                aspectRatio={exampleAspectRatio}
-                fit="contain"
-              />
-            ))}
+          <div className={`mt-12 ${exampleGridClass}`}>
+            {exampleVideos.map((example) => {
+              const customAspectRatio = configuredAspectRatio(example)
+              return (
+                <VideoCard
+                  key={example.video}
+                  video={example.video}
+                  poster={example.poster}
+                  aspectRatio={customAspectRatio?.replace(':', ' / ') ?? exampleAspectRatio}
+                  className={customAspectRatio && isPortraitAspectRatio(customAspectRatio) ? 'mx-auto w-full max-w-sm' : ''}
+                  fit="contain"
+                />
+              )
+            })}
           </div>
         </div>
       </section>
