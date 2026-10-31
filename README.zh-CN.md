@@ -64,7 +64,7 @@ Google 登录作为模板通用模块，各站配置凭据和授权回调地址�
 
 制作区在桌面端左侧显示上传和生成设置，右侧显示待生成视频、任务状态及成片；手机端上下排列。
 
-当前模板首屏介绍 `site.keyword`，中英文介绍在 `site.keywordOverview`。生成档位为 5、12、15 秒，每秒消耗 1 积分；充值仅销售一次性积分包：$9.90 / 25 积分、$19.90 / 60 积分、$29.90 / 100 积分。已关闭新订阅销售。更换热词时同步更新关键词、介绍和参考视频；新视频素材需运行 `npm run seed:local` 加载到本地 R2。上线前同步支付商商品的价格与积分说明。
+当前模板首屏介绍 `site.keyword`，中英文介绍在 `site.keywordOverview`。生成档位为 5、12、15 秒，每秒消耗 1 积分；充值仅销售一次性积分包：$9.90 / 25 积分、$19.90 / 60 积分、$29.90 / 100 积分。已关闭新订阅销售。更换热词时同步更新关键词、介绍和参考视频；新视频素材需运行 `npm run seed:local` 加载到本地 R2。生产部署会将 `site.durations[].source` 配置的参考视频上传到远端 `MEDIA` 桶，并检查 Worker 公网路由是否返回 HTTP 206 和 Range 内容。上线前同步支付商商品的价格与积分说明。
 
 支持自托管 `VIDEO_PROVIDER=hypit`：通过独立 VPS Bridge 共用 Hypit Runtime，沿用队列、积分退款和 R2。先在本地用模拟任务验证，步骤见 [Hypit 接入](docs/hypit.md)。
 
@@ -108,6 +108,8 @@ npm run seed:local                   # 应用 D1 迁移 + 把 seed/templates/*.m
 npm run dev -- --host 127.0.0.1      # http://127.0.0.1:3000
 ```
 
+`npm run media:publish:remote` 会把 `site.durations[].source` 配置的文件上传到生产 R2；`npm run media:verify:remote` 会用单字节 Range 请求检查生产 Worker 路由。生产部署工作流会在发布 Worker 前后分别执行上传和读回；`seed:local` 只会写入本地 R2。
+
 - npm 用 11.19 及以上，版本更低时 `package.json` 里的 `devEngines` 会给出警告。用旧版 npm 跑 `npm install` 会把 `package-lock.json` 改写成 CI 上 `npm ci` 不认的结构（报 `Missing: @emnapi/core@… from lock file`）。
 - 本地默认 `PAYMENT_PROVIDER=mock`、`VIDEO_PROVIDER=mock`：点购买会进入模拟收银台，生成会复制模板视频作为结果，不花钱。
 - 登录页在非 production 环境有“开发登录”（`POST /api/auth/dev-login`），production 返回 404。开发登录、mock 支付和 `/api/dev/*` 只接受本机直连：经过隧道或代理的请求（带 `cf-connecting-ip`、`X-Forwarded-For` 等头）一律返回 404。局域网里的人能伪造这些条件，所以不要用 `--host 0.0.0.0` 启动，也不要把 dev server 直接暴露到公网；联调 webhook 用 `scripts/webhook-proxy.mjs`（见下文）。
@@ -148,7 +150,7 @@ npm run dev -- --host 127.0.0.1      # http://127.0.0.1:3000
    - 文案按语言拆包，浏览器只下载当前语言（含法律页全文）。组件里照常用 `getContent(locale)`；只有在根路由之外、渲染之前要用文案时，才需要先 `await loadContent(locale)`。
    - 加一种语言：在 `site.ts` 的 `LOCALES` 和 `LOCALE_META` 里登记，新建 `src/content/<locale>.ts`（类型与 `en.ts` 一致），再在 `src/lib/i18n.ts` 的 `loaders` 里加一行动态 import。
 4. **换素材**：
-   - `seed/templates/<template.id>-<秒数>s.mp4`：生成用的源视频，部署后上传到 R2 的 `templates/`。
+   - `seed/templates/<template.id>-<秒数>s.mp4`：生成用的源视频；生产部署工作流会在部署前上传配置中的文件到 R2 的 `templates/`，部署后验证公网 Range 响应。
    - `public/demo/*`：首页展示视频和海报。必须是自有或已获授权的素材，在 `site.examples.*.credit` 写明来源。
    - `public/og.png`、`public/favicon.svg`。
    - `node scripts/generate-placeholder-media.mjs`（需要 ffmpeg）按 `site.durations` 的文件名和品牌名重新生成原创占位素材。之后删掉 `seed/templates/` 里旧 `template.id` 的文件。

@@ -51,7 +51,11 @@ jobs:
       # 配置错误时必须在修改远端数据库之前终止。
       - run: npm run doctor -- --offline
       - run: npm run db:migrate:remote
+      # Source clips live in the private MEDIA bucket and are fetched by Hypit Bridge
+      # through /media/templates/ before it submits any model work.
+      - run: npm run media:publish:remote
       - run: npm run deploy
+      - run: npm run media:verify:remote
       - name: Record deployed source
         shell: pwsh
         run: |
