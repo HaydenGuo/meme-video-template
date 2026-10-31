@@ -23,6 +23,8 @@ if os.geteuid() != 0 or not re.fullmatch(r'[a-f0-9]{40}', args.revision):
 os.umask(0o027)
 os.environ['DEBIAN_FRONTEND'] = 'noninteractive'
 os.environ['PATH'] = '/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin'
+if Path('/etc/hypit-bridge/bridge.config.json').exists():
+    raise SystemExit('已有 Bridge 安装；请使用 update-hypit-bridge.py 更新')
 
 def run(*argv, **kwargs):
     return subprocess.run(argv, check=True, **kwargs)
@@ -109,39 +111,16 @@ bridge_config = {
     'mode': 'hypit', 'engine': args.engine,
     'dataDir': str(project / '.hypit/bridge'),
     'maxActive': 8 if args.engine == 'notoken' else 1,
-    'maxQueued': 100, 'ffmpegConcurrency': 2,
+    'maxQueued': 100 if args.engine == 'notoken' else 20,
+    'ffmpegConcurrency': 2,
     'maxAgeMs': 2100000, 'retentionMs': 86400000, 'maxStorageBytes': 2147483648,
     'projectRoot': str(project), 'runtimeProfile': str(config / 'hypit.runtime.json'),
-    # No API key and site/template registration means generation stays unavailable.
+    # 没有模型 API 和正式站点资料时，拒绝全部任务；健康可用不表示生成能力已接通。
     'sites': {},
 }
 config_file = config / 'bridge.config.json'
-if config_file.exists():
-    existing_config = json.loads(config_file.read_text())
-    # Engine migration may not strand jobs submitted to the previous runner.
-    if existing_config.get('engine', 'hypit') != args.engine:
-        database = Path(existing_config.get('dataDir', bridge_config['dataDir'])) / 'jobs.sqlite'
-        if database.exists():
-            with sqlite3.connect(f'file:{database}?mode=ro', uri=True) as connection:
-                active = connection.execute(
-                    "SELECT COUNT(*) FROM jobs WHERE state NOT IN ('completed','failed','expired')"
-                ).fetchone()[0]
-            if active:
-                raise SystemExit('Bridge has active jobs; wait for them to finish before switching engines')
-    # Keep all site registrations, credentials, and custom provider settings.
-    bridge_config = {**bridge_config, **existing_config}
-    bridge_config['mode'] = existing_config.get('mode', 'hypit')
-    bridge_config['engine'] = args.engine
-    bridge_config['maxActive'] = 8 if args.engine == 'notoken' else 1
-    bridge_config['maxQueued'] = 100
-    bridge_config['ffmpegConcurrency'] = 2
-    temp_config = config_file.with_suffix('.json.next')
-    temp_config.write_text(json.dumps(bridge_config, indent=2) + '\n')
-    temp_config.chmod(0o640)
-    temp_config.replace(config_file)
-else:
-    config_file.write_text(json.dumps(bridge_config, indent=2) + '\n')
-    config_file.chmod(0o640)
+config_file.write_text(json.dumps(bridge_config, indent=2) + '\n')
+config_file.chmod(0o640)
 run('chown', '-R', 'root:hypit', str(config))
 
 current = Path('/opt/meme-video/current')
