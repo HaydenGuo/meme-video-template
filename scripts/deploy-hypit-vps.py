@@ -228,12 +228,14 @@ for attempt in range(15):
         break
     except OSError:
         time.sleep(2)
+if response is not None and (response.get('mode') != bridge_config['mode'] or response.get('engine') != args.engine):
+    response = None
 if response is None:
     if previous:
         candidate.symlink_to(previous, target_is_directory=True)
         candidate.replace(current)
         run('systemctl', 'restart', 'hypit-bridge.service')
-    raise SystemExit('Bridge health failed; inspect systemctl/journalctl. No secrets printed.')
+    raise SystemExit('Bridge health or engine check failed; inspect systemctl/journalctl. No secrets printed.')
 report = {'revision': actual, 'release': str(release), 'previous': previous,
           'node': version, 'bridgeHealth': response, 'engine': args.engine, 'generationReady': False,
           'pending': ['provider API credentials in /etc/hypit-bridge/provider.env', 'site and template registration', 'HTTPS domain before Cloudflare connection']}
