@@ -76,6 +76,6 @@ npm run dev
 
 ## 需要另外接通的服务
 
-本地可以自动准备；线上还需要已授权账号及各站真实资源 ID：Cloudflare D1/KV/R2/Queue、正式域名、Google 回调、邮件域名、审核、Turnstile 和支付商品/webhook。初始化报告逐项列出。Bridge 真实模式、模型能力和预算需先确认，再切换 `VIDEO_PROVIDER=hypit`。这些不会因为复制模板或复用 Google 凭据而自动创建。
+本地可以自动准备；线上还需要已授权账号及各站真实资源 ID：Cloudflare D1/KV/R2/Queue、正式域名、Google 回调、邮件域名、审核、Turnstile 和支付商品/webhook。初始化报告逐项列出。Bridge 的 `engine=notoken`、站点模板、模型能力和预算需先确认；`VIDEO_PROVIDER=hypit` 只是兼容 Worker 的 Bridge 协议设置。复制模板或复用 Google 凭据不会自动创建这些资源。
 
 此入口不会发布网站、修改 DNS、创建支付商品、发送邮件或发起真实付费生成。实际登录、充值和生成仍需单独验证。
