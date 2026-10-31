@@ -195,7 +195,7 @@ function Home() {
         </div>
       </section>
 
-      {/* 示例按画幅分组：竖版单独居中，横版在宽屏下成组双列。 */}
+      {/* 示例按画幅分组：宽屏竖版每行三列，横版每行双列；窄屏自动减列。 */}
       <section id="examples" className="scroll-mt-20 border-t border-line bg-bg-soft/60 py-20">
         <div className="container-page">
           <div className="space-y-4">
@@ -203,7 +203,7 @@ function Home() {
           </div>
           <div className="mt-12 space-y-10">
             {portraitExamples.length > 0 ? (
-              <div className="mx-auto w-full max-w-sm">
+              <div className={`mx-auto grid w-full gap-6 ${portraitExamples.length === 1 ? 'max-w-sm' : portraitExamples.length === 2 ? 'max-w-3xl sm:grid-cols-2' : 'max-w-5xl sm:grid-cols-2 lg:grid-cols-3'}`}>
                 {portraitExamples.map(renderExample)}
               </div>
             ) : null}
