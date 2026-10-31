@@ -92,8 +92,11 @@ export function createNoTokenRunner(config, { fetcher = globalThis.fetch, run = 
         redirect: 'error',
         signal: AbortSignal.timeout(timeoutMs),
       })
-    } catch {
-      throw new Error('NoToken API request failed')
+    } catch (error) {
+      const causeCode = typeof error?.cause?.code === 'string' && /^[A-Z][A-Z0-9_]{1,30}$/.test(error.cause.code)
+        ? error.cause.code.toLowerCase()
+        : error?.name === 'TimeoutError' ? 'timeout' : 'unavailable'
+      throw Object.assign(new Error('NoToken API request failed'), { code: `notoken_transport_${causeCode}` })
     }
     if (!response.ok) {
       const error = new Error(`NoToken API returned HTTP ${response.status}`)
@@ -105,7 +108,7 @@ export function createNoTokenRunner(config, { fetcher = globalThis.fetch, run = 
   async function json(path, init) {
     let value
     try { value = await (await request(path, init)).json() } catch (error) {
-      if (error?.status) throw error
+      if (error?.status || error?.code) throw error
       throw new Error('NoToken returned invalid JSON')
     }
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('NoToken returned an invalid response')
@@ -121,7 +124,16 @@ export function createNoTokenRunner(config, { fetcher = globalThis.fetch, run = 
       const file = await json(`/api/v3/files/${encodeURIComponent(id)}`)
       return isTrustedUrl(firstString(file.url, object(file.data).url), hosts)
     } catch (error) {
-      error.code = phaseCode
+      const status = Number.isInteger(error?.status) && error.status >= 100 && error.status <= 599
+        ? `http_${error.status}`
+        : typeof error?.code === 'string' && /^notoken_transport_[a-z0-9_]+$/.test(error.code)
+          ? `transport_${error.code.slice('notoken_transport_'.length)}`
+          : error?.message === 'NoToken returned invalid JSON' ? 'invalid_json'
+            : error?.message === 'NoToken returned an invalid response' ? 'invalid_response'
+              : error?.message === 'NoToken upload returned no file id' ? 'missing_file_id'
+                : error?.message === 'NoToken returned an invalid media URL' || error?.message === 'NoToken returned an untrusted media URL'
+                  ? 'invalid_media_url' : 'upload_error'
+      error.code = `${phaseCode}_${status}`
       throw error
     }
   }
