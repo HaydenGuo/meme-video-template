@@ -50,7 +50,7 @@ it('Hypit 探测只读健康接口，模拟模式与待核对提交报告 warn',
 describe('支付探测', () => {
   const dodo = { PAYMENT_PROVIDER: 'dodo', DODO_API_KEY: DODO_KEY, DODO_PRODUCTS }
 
-  it('Dodo：每个套餐的商品和价格一致时 ok，只读 GET 商品接口，走 test 环境', async () => {
+  it.skipIf(!site.packages.length)('Dodo：每个套餐的商品和价格一致时 ok，只读 GET 商品接口，走 test 环境', async () => {
     const calls = stubFetch({ '/products/': dodoPrice({}) })
     const result = await probe('payment', dodo)
     expect(result).toMatchObject({ target: 'payment', provider: 'dodo', status: 'ok' })
@@ -58,7 +58,7 @@ describe('支付探测', () => {
     expect(calls.every((c) => c.auth === `Bearer ${DODO_KEY}`)).toBe(true)
   })
 
-  it('Dodo：售价低于 site.ts 时 fail（付款会因金额不符不入账）；高于或币种不同只提示', async () => {
+  it.skipIf(!site.packages.length)('Dodo：售价低于 site.ts 时 fail（付款会因金额不符不入账）；高于或币种不同只提示', async () => {
     const [cheap, pricey] = site.packages
     stubFetch({ '/products/': dodoPrice({ [cheap!.id]: cheap!.priceCents - 1, [pricey!.id]: pricey!.priceCents + 100 }) })
     const result = await probe('payment', dodo)
@@ -72,7 +72,7 @@ describe('支付探测', () => {
     expect((await probe('payment', dodo)).message).toContain('币种是 EUR')
   })
 
-  it('Dodo：Key 无效、商品不存在、套餐没配商品 ID 都是 fail，说明里不带 Key', async () => {
+  it.skipIf(!site.packages.length)('Dodo：Key 无效、商品不存在、套餐没配商品 ID 都是 fail，说明里不带 Key', async () => {
     stubFetch({ '/products/': { status: 401 } })
     const unauthorized = await probe('payment', { ...dodo, DODO_ENVIRONMENT: 'live' })
     expect(unauthorized).toMatchObject({ status: 'fail' })
