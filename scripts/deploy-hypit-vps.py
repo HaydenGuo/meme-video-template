@@ -199,7 +199,8 @@ MemoryMax=1024M
 WantedBy=multi-user.target
 '''
 Path('/etc/systemd/system/hypit-bridge.service').write_text(bridge_unit)
-run('python3', str(release / 'services/hypit-bridge/configure-render-limits.py'))
+if args.engine == 'hypit':
+    run('python3', str(release / 'services/hypit-bridge/configure-render-limits.py'))
 run('systemctl', 'daemon-reload')
 if args.engine == 'hypit':
     run('systemctl', 'enable', 'hypit-runtime.service')
