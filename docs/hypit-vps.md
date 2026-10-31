@@ -41,10 +41,10 @@ Bridge 验证原视频哈希、时长、音视频轨道及人物图片，再从�
 
 每个梗站独立登记 `siteId`、模板、固定提示词、媒体 origin、参考视频哈希及工作流。通过 `scripts/update-hypit-bridge.py --site-fragment <bridge-site.json>` 合并站点片段，必须保留 VPS 上其他站点。不要仅凭 `/health` 推断站点模板已配置。
 
-现有 VPS 从 Hypit 切到直接模式时，先确认 `NOTOKEN_API_KEY` 已配置且 Bridge 队列为空，再执行更新脚本。它会停用 Hypit Runtime、切换 `engine=notoken`、设置 8/100/2 并核对健康接口；失败时回滚代码、配置和 systemd 依赖：
+现有 VPS 的更新脚本默认切换到直接 NoToken：先确认 `NOTOKEN_API_KEY` 已配置且 Bridge 队列为空，再执行。它会停用 Hypit Runtime、设置 `engine=notoken` 和 8/100/2 并核对健康接口；失败时回滚代码、配置和 systemd 依赖。只有需要兼容旧工程时才显式传 `--engine hypit`：
 
 ```text
-python3 scripts/update-hypit-bridge.py --revision <完整提交 SHA> --engine notoken --max-active 8 --max-queued 100 --ffmpeg-concurrency 2
+python3 scripts/update-hypit-bridge.py --revision <完整提交 SHA> --max-active 8 --max-queued 100 --ffmpeg-concurrency 2
 ```
 
 若只更新代码而不切换执行器，省略 `--engine`。源码更新和执行器切换均先要求任务队列为空，不会发起模型生成。新建 VPS 使用 `deploy-hypit-vps.py`；它拒绝覆盖已有 Bridge 安装。
