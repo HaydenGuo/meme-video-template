@@ -41,4 +41,12 @@ Bridge 验证原视频哈希、时长、音视频轨道及人物图片，再从�
 
 每个梗站独立登记 `siteId`、模板、固定提示词、媒体 origin、参考视频哈希及工作流。通过 `scripts/update-hypit-bridge.py --site-fragment <bridge-site.json>` 合并站点片段，必须保留 VPS 上其他站点。不要仅凭 `/health` 推断站点模板已配置。
 
-使用公网服务前配置 HTTPS 域名并将反向代理指向 loopback Bridge；不要直接开放公网 8788。模板仓库源码更新走已存在的 Bridge 更新脚本，先检查队列为空，再更新并读回健康状态。
+现有 VPS 从 Hypit 切到直接模式时，先确认 `NOTOKEN_API_KEY` 已配置且 Bridge 队列为空，再执行更新脚本。它会停用 Hypit Runtime、切换 `engine=notoken`、设置 8/100/2 并核对健康接口；失败时回滚代码、配置和 systemd 依赖：
+
+```text
+python3 scripts/update-hypit-bridge.py --revision <完整提交 SHA> --engine notoken --max-active 8 --max-queued 100 --ffmpeg-concurrency 2
+```
+
+若只更新代码而不切换执行器，省略 `--engine`。源码更新和执行器切换均先要求任务队列为空，不会发起模型生成。新建 VPS 使用 `deploy-hypit-vps.py`；它拒绝覆盖已有 Bridge 安装。
+
+使用公网服务前配置 HTTPS 域名并将反向代理指向 loopback Bridge；不要直接开放公网 8788。
