@@ -52,6 +52,8 @@ Hypit Bridge 可选接入：`VIDEO_PROVIDER=hypit` 用于 Worker 调用兼容协
 | `TURNSTILE_SECRET_KEY` | 配了 `TURNSTILE_SITE_KEY` | 同上 |
 | `PAYMENT_NOTIFY_WEBHOOK_URL` | 可选 | 每笔订单首次入账（含后台补单）时往聊天群发一条付款消息：金额、套餐、积分、来源和订单号。按域名识别：Telegram 填 `https://api.telegram.org/bot<token>/sendMessage?chat_id=<id>`；飞书 / Lark 填自定义机器人地址（不要开“签名校验”，可以用关键词“新付款”）；Discord 填频道 webhook；其他地址（如 Slack Incoming Webhook）发 `{"text": ...}`。发送失败只记日志，不影响入账。地址里带 token，所以放 secret。可选 secret，类型声明在 `src/env.d.ts` |
 
+复用共享 Google OAuth 客户端时，`GOOGLE_SHARED_CLIENT_SECRET` 保存在 Infisical；同步脚本只将它映射为 Worker 运行时的 `GOOGLE_CLIENT_SECRET`。不要在站点 Infisical 目录中另建同义密钥，详情见 [Google 登录](google-auth.md)。
+
 切换支付商后，只要旧支付商还有订单可能退款或需要查单，就保留它的 secret。
 
 ## site.ts 中和上线有关的字段

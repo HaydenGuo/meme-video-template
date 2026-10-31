@@ -8,7 +8,7 @@ Google 登录模块随模板供各热词站复用。OAuth 配置与 Hypit Bridge
 2. **Authorized JavaScript origins** 填每个实际显示 Google 登录按钮的 origin，例如 `https://example.com`、`https://www.example.com`；只填 scheme、host、port，不加路径。
 3. **Authorized redirect URIs** 填规范 `SITE_URL` 加 `/api/auth/google/callback`。本地开发用 `http://127.0.0.1:<port>/api/auth/google/callback`，正式和预发分别使用对应的站点地址。
 4. 在品牌页核对授权网域包含本站的根域名。受众群体必须允许外部用户；正式使用时确认发布状态。客户端条目、来源和回调是客户端级设置；同意页名称、主页、隐私政策和支持邮箱是项目级设置，会影响同项目内所有使用者。共享客户端尚未确认多站品牌方案前，不修改这些项目级品牌字段。
-5. Google Cloud 创建后的客户端密钥不能再次查看或下载；每个客户端最多保留 2 个 Secret。优先从本站授权的私密配置源读取 `GOOGLE_CLIENT_SECRET`。确实缺失时，先取得用户明确授权，再在同一已批准客户端添加 Secret；名额已满时，仅在用户授权后删除确认无使用方的已停用 Secret，保留仍启用的旧 Secret直到新值完成部署和真实登录验证。用 Playwriter 将新值直接传入本地忽略的 `.dev.vars` 或目标 Cloudflare Worker Secret；不要把密钥显示给操作者、写入剪贴板、日志、wrangler vars、初始化报告、源码、终端输出或聊天。
+5. Google Cloud 创建后的客户端密钥不能再次查看或下载；每个客户端最多保留 2 个 Secret。所有复用此已批准客户端的站点统一从 Infisical 读取唯一变量 `GOOGLE_SHARED_CLIENT_SECRET`，并通过下方同步脚本映射到 Worker 运行时变量 `GOOGLE_CLIENT_SECRET`。不要为单站创建同义 Secret。确实缺失时，先取得用户明确授权，再在同一已批准客户端添加 Secret 并安全保存；名额已满时，只能删除用户确认可移除的已停用 Secret。禁止将密钥写入 dotenv、剪贴板、日志、wrangler vars、源码、报告或聊天。
 
 以 Playwriter 操作 Google Cloud Console 时，每次仅执行一个保存动作；保存后重新打开同一客户端读回来源、回调和客户端 ID，确认旧站条目仍在。未经授权不要删除、覆盖或重命名其它站点的条目。
 
@@ -67,6 +67,26 @@ infisical run --domain http://localhost/api --projectId <项目ID> --env dev --p
 启动器兼容 Halloween 的 `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET`，仅在子进程中映射为标准变量；已有 `GOOGLE_CLIENT_*` 优先。不写 dotenv 文件，不打印密钥。仅注入本站目录。
 
 环境加载规则见 [Cloudflare 官方文档](https://developers.cloudflare.com/workers/vite-plugin/reference/cloudflare-environments/)。此入口只启动开发服务，正常生产构建不使用它。
+
+## 将共享 OAuth Secret 写入 Cloudflare
+
+复用共享客户端的原始值固定保存在本机 Infisical 项目 `HBCodeRepo Secrets` 的 `dev` 环境、路径 `/projects/gamewebs/shared-core`、变量 `GOOGLE_SHARED_CLIENT_SECRET`。项目 ID 作为本机配置传入，不写进公开模板。
+
+在站点仓库根目录运行 PowerShell 脚本。先只预览目标 Worker：
+
+```powershell
+$projectId = '<Infisical project ID>'
+.\scripts\sync-google-oauth-secret.ps1 -ProjectId $projectId
+```
+
+核对 Worker 名称和配置文件后，显式加 `-Apply` 才会写入 Cloudflare。生产默认使用 `wrangler.jsonc`；预发传 `-Config wrangler.staging.jsonc`：
+
+```powershell
+.\scripts\sync-google-oauth-secret.ps1 -ProjectId $projectId -Apply
+.\scripts\sync-google-oauth-secret.ps1 -ProjectId $projectId -Config wrangler.staging.jsonc -Apply
+```
+
+脚本只读取指定的 Infisical 变量，通过 `wrangler secret bulk` 标准输入设置 Worker Secret，不创建临时文件，也不输出密钥。写入会发布 Worker 新版本；随后按下方流程核验线上配置和真实登录回调。`-Apply` 会改变对应 Cloudflare Worker，只有目标配置和发布授权明确时才运行。
 
 ## 部署和当前状态
 
