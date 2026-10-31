@@ -46,7 +46,7 @@ function Home() {
   const exampleAspectRatio = Number.isFinite(exampleWidth) && Number.isFinite(exampleHeight) && exampleWidth > 0 && exampleHeight > 0
     ? `${exampleWidth} / ${exampleHeight}`
     : '16 / 9'
-  const exampleVideos = [ex.madeWith, ...ex.additional, ...ex.gallery]
+  const exampleVideos = [...(ex.madeWith ? [ex.madeWith] : []), ...ex.additional, ...ex.gallery]
   const portraitExamples = exampleVideos.filter((example) => {
     const customAspectRatio = configuredAspectRatio(example)
     return isPortraitAspectRatio(customAspectRatio ?? exampleAspectRatio)
