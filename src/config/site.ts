@@ -60,7 +60,7 @@ export const site = {
     aiVersions: [
       { video: '/demo/ai1.mp4', poster: '/demo/ai1.jpg', credit: 'Demo clip · AI render' },
     ],
-    madeWith: { photo: '/demo/sample-photo.jpg', video: '/demo/madeWith.mp4', poster: '/demo/madeWith.jpg' },
+    madeWith: { photo: '/demo/sample-photo.jpg', video: '/demo/madeWith.mp4', poster: '/demo/madeWith.jpg' } as { photo: string; video: string; poster: string } | null,
     additional: [] as { photo: string; video: string; poster: string }[],
     gallery: [] as { video: string; poster: string; aspectRatio: string }[],
     // “创意”区块：每条 = 一张示例照片 + 一段成片
