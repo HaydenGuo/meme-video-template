@@ -5,6 +5,7 @@ import { promisify } from 'node:util'
 import { execFile } from 'node:child_process'
 import { dirname, resolve } from 'node:path'
 import { pipeline } from 'node:stream/promises'
+import { Transform } from 'node:stream'
 import { extractReferenceAudio, prepareModelMedia } from './media-preflight.mjs'
 import { composeVideoPrompt, scanLocalPrompt } from './prompt-safety.mjs'
 
@@ -64,8 +65,20 @@ export function createNoTokenRunner(config, { fetcher = globalThis.fetch, run = 
   }
   const hosts = new Set([...DEFAULT_HOSTS, base.hostname, ...(config.noTokenMediaHosts ?? []).map((value) => String(value).toLowerCase())])
   const timeoutMs = Number.isSafeInteger(config.noTokenTimeoutMs) ? config.noTokenTimeoutMs : 120_000
+  const ffmpegConcurrency = Number.isSafeInteger(config.ffmpegConcurrency) && config.ffmpegConcurrency > 0 ? config.ffmpegConcurrency : 2
+  let ffmpegActive = 0
+  const ffmpegWaiters = []
+  async function runMedia(command, args, options) {
+    if (ffmpegActive >= ffmpegConcurrency) await new Promise((resolve) => ffmpegWaiters.push(resolve))
+    ffmpegActive += 1
+    try { return await run(command, args, options) }
+    finally {
+      ffmpegActive -= 1
+      ffmpegWaiters.shift()?.()
+    }
+  }
   const probe = async (path) => {
-    const { stdout } = await run(config.ffprobePath ?? 'ffprobe', ['-v', 'error', '-show_format', '-show_streams', '-of', 'json', path], {
+    const { stdout } = await runMedia(config.ffprobePath ?? 'ffprobe', ['-v', 'error', '-show_format', '-show_streams', '-of', 'json', path], {
       timeout: 30_000, maxBuffer: 1024 * 1024, windowsHide: true,
     })
     return JSON.parse(stdout)
@@ -118,7 +131,7 @@ export function createNoTokenRunner(config, { fetcher = globalThis.fetch, run = 
     const declared = Number(response.headers.get('content-length'))
     if (Number.isFinite(declared) && declared > maximum) { await response.body.cancel(); throw new Error('NoToken video result too large') }
     let total = 0
-    const limiter = new (await import('node:stream')).Transform({
+    const limiter = new Transform({
       transform(chunk, _encoding, callback) {
         total += chunk.length
         callback(total > maximum ? new Error('NoToken video result too large') : null, chunk)
@@ -149,10 +162,10 @@ export function createNoTokenRunner(config, { fetcher = globalThis.fetch, run = 
       const verdict = await scanLocalPrompt(prompt, job.backgroundDescription?.trim() ?? '')
       await writeFile(resolve(dir, 'prompt-review.json'), JSON.stringify(verdict), { mode: 0o600 })
       if (verdict.action !== 'allow') throw new Error(verdict.action === 'review' ? 'prompt_review_required' : 'prompt_blocked')
-      const soundtrack = await extractReferenceAudio({ dir, probe, config })
+      const soundtrack = await extractReferenceAudio({ dir, probe, config, durationSeconds: job.durationSeconds, run: runMedia })
       const prepared = {
-        image: await prepareModelMedia({ dir, kind: 'image', probe, config }),
-        video: await prepareModelMedia({ dir, kind: 'video', probe, config, durationSeconds: job.durationSeconds }),
+        image: await prepareModelMedia({ dir, kind: 'image', probe, config, run: runMedia }),
+        video: await prepareModelMedia({ dir, kind: 'video', probe, config, durationSeconds: job.durationSeconds, run: runMedia }),
       }
       await writeFile(resolve(dir, 'media-preflight.json'), JSON.stringify({ version: 1, image: prepared.image, silentReferenceVideo: prepared.video, soundtrack }), { mode: 0o600 })
       const requestPath = resolve(dir, 'notoken-request.json')
@@ -220,7 +233,7 @@ export function createNoTokenRunner(config, { fetcher = globalThis.fetch, run = 
       const soundtrack = resolve(dir, 'source-audio.wav')
       const duration = String(input.durationSeconds)
       try {
-        await run(config.ffmpegPath ?? 'ffmpeg', [
+        await runMedia(config.ffmpegPath ?? 'ffmpeg', [
           '-nostdin', '-hide_banner', '-loglevel', 'error', '-threads', '2', '-filter_threads', '1', '-y',
           '-i', raw, '-i', soundtrack, '-map', '0:v:0', '-map', '1:a:0',
           '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-t', duration, '-shortest', '-movflags', '+faststart', path,
