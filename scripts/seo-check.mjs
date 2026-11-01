@@ -207,7 +207,7 @@ export async function runSeoCheck({ base = 'http://127.0.0.1:3000', production =
       if (!types.includes(type)) report('error', `缺少 JSON-LD ${type}`)
     }
     const imgs = [...html.matchAll(/<img\s[^>]*>/gi)].map((m) => m[0])
-    const noAlt = imgs.filter((tag) => !attr(tag, 'alt'))
+    const noAlt = imgs.filter((tag) => attr(tag, 'alt') === null)
     if (noAlt.length) report('warn', `${noAlt.length} 张图片缺少 alt`)
     // 内链：/guides 是文章枢纽，必须链到每一篇；首页至少链到 /guides
     if (kind === 'guides') {
