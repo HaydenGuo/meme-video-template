@@ -13,9 +13,9 @@ import { isProduction } from './server/util'
 import type { VideoJobMessage } from './server/types'
 
 // mock 收银台页面（/checkout/mock、/zh/checkout/mock）：生产环境它调用的接口都是 404，页面本身也不该能打开
-const MOCK_CHECKOUT_PAGE = /^\/(?:[a-z]{2}(?:-[a-z]{2})?\/)?checkout\/mock$/i
+const MOCK_CHECKOUT_PAGE = /^\\/(?:[a-z]{2}(?:-[a-z]{2})?\\/)?checkout\\/mock$/i
 // 支付结果页：支付商回跳时会附带 email 等参数（Dodo 带买家邮箱），只保留 order
-const CHECKOUT_RESULT_PAGE = /^\/(?:[a-z]{2}(?:-[a-z]{2})?\/)?checkout\/success$/i
+const CHECKOUT_RESULT_PAGE = /^\\/(?:[a-z]{2}(?:-[a-z]{2})?\\/)?checkout\\/success$/i
 
 const SECURITY_HEADERS: Record<string, string> = {
   'X-Content-Type-Options': 'nosniff',
@@ -28,6 +28,12 @@ export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
     const url = new URL(request.url)
     const { pathname } = url
+    if (isProduction(env) && (url.protocol !== 'https:' || url.hostname !== site.domain)) {
+      url.protocol = 'https:'
+      url.hostname = site.domain
+      url.port = ''
+      return withSecurityHeaders(Response.redirect(url.toString(), 308), env, url)
+    }
     const toHono = pathname.startsWith('/api/') || pathname.startsWith('/media/') || pathname.startsWith('/i/') || isSeoPath(pathname)
     // 正式站的 workers.dev 备用页面收敛到主域名；API 与媒体保持可用，预发站不跳转。
     // 同时规范尾斜杠，避免备用域名与路径规范化产生两次跳转。
@@ -35,12 +41,12 @@ export default {
       url.hostname = site.domain
       url.protocol = 'https:'
       url.port = ''
-      url.pathname = pathname.replace(/\/+$/, '') || '/'
+      url.pathname = pathname.replace(/\\/+$/, '') || '/'
       return withSecurityHeaders(Response.redirect(url.toString(), 301), env, url)
     }
     // 页面统一无尾斜杠：/pricing/ → 301 /pricing。
     if (!toHono && pathname.length > 1 && pathname.endsWith('/') && (request.method === 'GET' || request.method === 'HEAD')) {
-      url.pathname = pathname.replace(/\/+$/, '') || '/'
+      url.pathname = pathname.replace(/\\/+$/, '') || '/'
       return withSecurityHeaders(Response.redirect(url.toString(), 301), env, url)
     }
     // 先 302 去掉多余参数再渲染：邮箱不会进页面、前端统计、错误上报和浏览器历史（第一次请求的 URL 仍会出现在 Workers 日志里）
@@ -55,7 +61,7 @@ export default {
     }
     // 页面请求生成 CSP nonce，经请求上下文交给 router（src/router.tsx 的 ssr.nonce），内联脚本都会带上它
     const nonce = toHono ? undefined : createNonce()
-    // 分享页：先查好数据交给页面渲染 OG 标签，失效的链接返回 404/410；页面一律 noindex（用户内容不进搜索引擎）
+    // 分享页：先查好数据交给 TanStack Start SSR 交给 router，失效的链接返回 404/410；页面一律 noindex（用户内容不进搜索引擎）
     const shareId = !toHono && request.method === 'GET' ? pathname.match(SHARE_PAGE)?.[1] : undefined
     const share = shareId !== undefined ? await loadShare(env, shareId) : undefined
     let response = nonce ? await handler.fetch(request, { context: { nonce, share } }) : await app.fetch(request, env, ctx)
