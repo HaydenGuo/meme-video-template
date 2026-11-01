@@ -71,6 +71,7 @@ export function zh(s: S): Content {
       dropTitle: '拖入照片或点击上传',
       dropHint: 'JPG、PNG 或 WebP · 不超过 10 MB',
       guidance: '最佳效果：单人、正对镜头、光线均匀、露出头部和肩膀。避免墨镜、口罩和重度滤镜。',
+      modelDisclosure: (name: string) => `视频生成模型：${name}`,
       change: '更换照片',
       uploading: '上传中…',
       uploaded: '照片已就绪',
