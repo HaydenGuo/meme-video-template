@@ -203,6 +203,7 @@ function Home() {
         <div className="container-page">
           <div className="space-y-4">
             <h2 className="font-display text-4xl leading-tight sm:text-5xl">{c.madeWith.title}</h2>
+            <p className="max-w-3xl text-base leading-7 text-muted">{c.madeWith.body}</p>
           </div>
           <div className="mt-12 space-y-10">
             {portraitExamples.length > 0 ? (
