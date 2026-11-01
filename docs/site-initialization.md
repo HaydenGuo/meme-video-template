@@ -51,6 +51,20 @@ npm run dev
 
 未使用公共服务配置时省略 `--services`。`--local` 应用本地 D1 迁移并将本次生成的三个源视频导入本地 R2；不带它则只生成文件。Vite 使用资料指定端口且禁止静默换端口，保证 OAuth 回调地址一致。
 
+### 绑定域名前的本地加载与调试（可选）
+
+`--apply --local` 后可以先在本机查看和调试站点，不需要域名、Cloudflare 资源或部署。若初始化时未加 `--local`，先运行 `npm run seed:local`；它会应用本地 D1 迁移并把 `seed/templates/` 中的视频写入本地 R2。然后在仓库目录启动只接受本机连接的开发服务器：
+
+```powershell
+npm run dev -- --host 127.0.0.1
+```
+
+在浏览器打开资料指定端口的 `http://127.0.0.1:<port>`（未指定端口时为 `http://127.0.0.1:3000`）。先检查首页、中英文切换、移动布局、案例播放、上传预览和本地 mock 生成/模拟结账。默认 `VIDEO_PROVIDER=mock`、`PAYMENT_PROVIDER=mock`，只产生本地模拟结果，不调用真实模型或扣款；本地开发登录也只在非 production 开放。改完页面/API/配置后按需要运行 `npm run typecheck`、`npm test` 或 `npm run test:e2e`，不需要为单纯预览运行全部测试。
+
+要调试 Google OAuth 时，需用已批准的 OAuth 客户端登记精确本地 origin 和 `${SITE_URL}/api/auth/google/callback`，并通过 Infisical 注入本站凭据后运行 `npm run dev:infisical`。使用 Infisical 启动时，根目录不能同时存在 `.dev.vars` 或 `.dev.vars.local`；无需 Google 登录时不必配置 OAuth。保持服务器绑定 `127.0.0.1`，不要用隧道、`0.0.0.0` 或公网地址暴露本地 mock/开发登录接口。
+
+本地预览属于绑定域名前的可选调试阶段，不修改 DNS、不创建云资源，也不代表生产 OAuth、支付或付费生成已验收。
+
 ## 自动完成的内容
 
 - 调用已有 `new-site.mjs` 设置品牌、slug、文章路径、资源名称、日期，清空旧站分析和验证标识；不再删除原有 staging 配置。
