@@ -147,7 +147,7 @@ const beforeLimiters = wrangler
 wrangler = wrangler.replace(/"namespace_id": "\d+"/g, () => `"namespace_id": "${base + ++limiter}"`)
 if (wrangler !== beforeLimiters) changes.push(`${wranglerFile}  ${limiter} 个 ratelimit namespace_id → ${base + 1}–${base + limiter}`)
 // 交易邮件发件地址用新站域名（域名还要在 Email Service 完成 Onboard，见清单）
-wrangler = replaceOnce(wrangler, wranglerFile, `EMAIL_FROM = noreply@${domain}`, /("EMAIL_FROM": )"[^"]*"/, `$1"noreply@${domain}"`)
+wrangler = replaceOnce(wrangler, wranglerFile, `EMAIL_FROM = support@${domain}`, /("EMAIL_FROM": )"[^"]*"/, `$1"support@${domain}"`)
 // 模板自身的 workers.dev 预发配置，资源名属于模板，新站点不能沿用
 const stagingFile = 'wrangler.staging.jsonc'
 const removeStaging = existsSync(stagingFile)
@@ -204,7 +204,7 @@ console.log(`
    MODERATION_PROVIDER=openai（生产禁止 mock，否则上传一律 503）、TURNSTILE_SITE_KEY、ADMIN_EMAILS、GOOGLE_CLIENT_ID。
    密钥：除支付与视频密钥外，再 secret put OPENAI_API_KEY、TURNSTILE_SECRET_KEY。
    交易邮件：Dashboard → Compute > Email Service → Onboard Domain 添加 ${domain}（DNS 须托管在 Cloudflare）；
-   发给任意收件人需 Workers Paid。EMAIL_FROM 已改为 noreply@${domain}；ADMIN_EMAILS 同时接收举报、留言提醒和系统告警。
+   发给任意收件人需 Workers Paid。EMAIL_FROM 已改为 support@${domain}；ADMIN_EMAILS 必须指向已验证的实际收件箱，同时接收举报、留言提醒和系统告警。发布前分别验证 support 入站、网站表单通知与 support 发件；不能把 support 转发别名当作 ADMIN_EMAILS 收件目标。
 5. 支付商品：node scripts/waffo-setup.mjs --store STO_xxx --apply（先 test 店铺跑通再建 prod），把输出写进 WAFFO_PRODUCTS；webhook 指向 https://${domain}/api/webhooks/waffo。
 6. 本地验证：npm run typecheck && npm test && npm run test:e2e && npm run seo:check；部署前 npm run doctor（npm run deploy 会先跑）
 7. 上线后：npm run seo:check -- --base https://${domain} --production；Search Console 与 Bing Webmaster 验证并提交 https://${domain}/sitemap-index.xml；
