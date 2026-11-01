@@ -10,7 +10,7 @@ Hypit Bridge 在模型提交前检查并归一化人像与参考视频尺寸，�
 
 生成请求在扣积分前执行本站关键词预检，Bridge 提交前执行相同规则，Seedance 服务商执行自身审核。拒绝时停止，不绕过；用户须确认授权。默认不依赖 Waffo 扫描接口或支付凭据。见[内容安全](docs/content-safety.md)。
 
-新增公开 AUP 及价格、条款、隐私和退款页之间的链接；`site.business` 填写已核实的经营者、模型、处理方与记录商户。展示模式开放客服和内容举报，继续校验 CSRF、字段与限流。政策当前如实描述预览状态，开放付费生成前须按实际流程更新；页面完善不等于具备支付准入或已接通提示词及成片审核。
+新增公开 AUP 及价格、条款、隐私和退款页之间的链接；`site.business` 填写已核实的经营者、模型、处理方与记录商户。 生产生成开放前，`npm run doctor` 会要求填写已核实的 `videoModel`，生成界面和政策页会展示该模型。展示模式开放客服和内容举报，继续校验 CSRF、字段与限流。政策当前如实描述预览状态，开放付费生成前须按实际流程更新；页面完善不等于具备支付准入或已接通提示词及成片审核。
 
 展示模式下可用 `SHOWCASE_AUTH_ENABLED=true` 单独开放正式登录，生成与充值继续关闭。邮箱密码注册需配置强随机 `SESSION_SECRET`，注册时不验证邮箱真实性；找回密码仍需已验证的发信服务。启用 Google 登录时，Google OAuth Web 客户端必须登记每个实际提供登录页面的 Authorized JavaScript origins（只填 origin，不带路径）及精确的 `${SITE_URL}/api/auth/google/callback` Authorized redirect URI，详见[Google 登录配置](docs/google-auth.md)。
 
