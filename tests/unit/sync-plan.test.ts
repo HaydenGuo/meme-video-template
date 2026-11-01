@@ -2,24 +2,24 @@ import { describe, expect, it } from 'vitest'
 import { buildPlan, layerOf } from '../../scripts/sync-plan.mjs'
 
 describe('sync-plan', () => {
-  it('按 AGENTS.md 的站点差异文件分层，public/_headers 仍是共用代码', () => {
+  it('按 AGENTS.md 的架构层、配置层和内容层分类', () => {
     const layers = Object.fromEntries(
       ['src/config/site.ts', 'src/content/zh.ts', 'public/og.png', 'public/_headers', 'seed/templates/a-6s.mp4', 'wrangler.jsonc', 'package.json', 'bridge-site.json', 'package-lock.json', 'wrangler.staging.jsonc', 'src/server/orders.ts', 'src/styles.css', 'migrations/0009_x.sql'].map((p) => [p, layerOf(p)]),
     )
     expect(layers).toEqual({
-      'src/config/site.ts': 'site',
-      'src/content/zh.ts': 'site',
-      'public/og.png': 'site',
-      'public/_headers': 'shared',
-      'seed/templates/a-6s.mp4': 'site',
-      'wrangler.jsonc': 'site',
-      'package.json': 'site',
-      'bridge-site.json': 'site',
+      'src/config/site.ts': 'config',
+      'src/content/zh.ts': 'content',
+      'public/og.png': 'content',
+      'public/_headers': 'architecture',
+      'seed/templates/a-6s.mp4': 'content',
+      'wrangler.jsonc': 'config',
+      'package.json': 'config',
+      'bridge-site.json': 'config',
       'package-lock.json': 'lockfile',
       'wrangler.staging.jsonc': 'removed',
-      'src/server/orders.ts': 'shared',
-      'src/styles.css': 'shared',
-      'migrations/0009_x.sql': 'shared',
+      'src/server/orders.ts': 'architecture',
+      'src/styles.css': 'architecture',
+      'migrations/0009_x.sql': 'architecture',
     })
   })
 
