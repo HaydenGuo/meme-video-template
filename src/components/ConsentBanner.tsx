@@ -29,12 +29,10 @@ export function ConsentBanner({ ga4Id }: { ga4Id: string }) {
       className="fixed inset-x-3 bottom-3 z-40 mx-auto max-w-2xl rounded-2xl border border-line bg-card p-5 text-fg shadow-xl sm:inset-x-6"
     >
       <h2 className="font-semibold">{c.consent.title}</h2>
-      <p className="mt-2 text-sm text-muted">
-        {c.consent.body}{' '}
-        <LocalLink to="/privacy-policy" className="underline hover:text-fg">
-          {c.consent.learnMore}
-        </LocalLink>
-      </p>
+      <p className="mt-2 text-sm text-muted">{c.consent.body}</p>
+      <LocalLink to="/privacy-policy" className="mt-1 inline-block text-sm underline hover:text-fg">
+        {c.consent.learnMore}
+      </LocalLink>
       <div className="mt-4 flex flex-wrap justify-end gap-3">
         <button type="button" className="btn-ghost" onClick={() => choose('denied')}>
           {c.consent.reject}

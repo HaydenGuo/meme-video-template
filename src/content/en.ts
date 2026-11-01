@@ -261,7 +261,7 @@ export function en(s: S) {
     // 统计同意横幅：只在配置了 GA4 时出现
     consent: {
       title: 'Analytics cookies',
-      body: 'We’d like to use Google Analytics cookies, plus a first-party cookie that records which link brought you here, to understand how the site is used and which channels work. They are only set if you accept, and you can change your choice at any time under “Cookie settings” in the footer.',
+      body: 'We use Google Analytics and a first-party referral cookie to understand site use and referral sources. They’re set only if you accept.',
       learnMore: 'Privacy Policy',
       accept: 'Accept',
       reject: 'Reject',

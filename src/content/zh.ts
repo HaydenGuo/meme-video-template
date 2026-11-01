@@ -241,7 +241,7 @@ export function zh(s: S): Content {
     support: { label: '帮助与支持' },
     consent: {
       title: '统计 Cookie',
-      body: '我们希望使用 Google Analytics Cookie 和一个记录来源链接的第一方 Cookie，了解网站的使用情况和哪些渠道有效。只有你点击“接受”后才会写入，之后也可以随时在页脚“Cookie 设置”里修改。',
+      body: '我们使用 Google Analytics 和第一方来源 Cookie 了解网站使用情况及访问来源。仅在你接受后写入。',
       learnMore: '隐私政策',
       accept: '接受',
       reject: '拒绝',
