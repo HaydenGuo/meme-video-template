@@ -71,19 +71,22 @@ function Home() {
   return (
     <>
       {/* 首屏先介绍目标关键词，再引导用户制作视频。 */}
-      <section className="relative overflow-hidden">
-        <div className="hero-glow pointer-events-none absolute inset-0" aria-hidden />
-        <div className="container-page relative grid gap-10 py-10 lg:grid-cols-[minmax(0,430px)_1fr] lg:gap-16 lg:py-14">
-          <div className="flex flex-col justify-center space-y-5" data-testid="keyword-intro">
-            <h1 className="font-display text-5xl leading-[1.04] tracking-tight sm:text-6xl">{c.hero.title}</h1>
-            <p className="text-lg leading-8 text-muted">{c.hero.subtitle}</p>
-            <a href="#create" className="btn-primary w-fit">{c.finalCta.cta} <ArrowRight className="size-4" /></a>
+      <section className="home-hero-section relative overflow-hidden">
+        <div className="home-hero-orbit pointer-events-none absolute inset-0" aria-hidden />
+        <div className="container-page home-hero-grid relative grid gap-10 py-10 lg:grid-cols-[minmax(0,520px)_1fr] lg:gap-16 lg:py-14">
+          <div className="home-hero-copy flex flex-col justify-center space-y-5" data-testid="keyword-intro">
+            <p className="home-hero-eyebrow">{c.hero.badge}</p>
+            <h1 className="home-hero-title">{c.hero.title}</h1>
+            <p className="home-hero-subtitle text-lg leading-8 text-muted">{c.hero.subtitle}</p>
+            <a href="#create" className="btn-primary home-hero-cta w-fit">{c.finalCta.cta} <ArrowRight className="size-4" /></a>
           </div>
-          <div className="flex flex-col justify-center gap-5">
-            <div className={`mx-auto w-full ${heroYoutube || originalAspectRatio !== '9 / 16' ? 'max-w-2xl' : 'max-w-sm'}`}>
+          <div className="home-hero-media flex flex-col justify-center gap-5">
+            <div className={`home-hero-video-wrap mx-auto w-full ${heroYoutube || originalAspectRatio !== '9 / 16' ? 'max-w-2xl' : 'max-w-sm'}`}>
+              <span className="home-hero-frame home-hero-frame-back" aria-hidden />
+              <span className="home-hero-frame home-hero-frame-front" aria-hidden />
               {heroYoutubeSrc ? (
                 <figure>
-                  <div style={{ aspectRatio: '16 / 9' }} className="overflow-hidden rounded-2xl bg-bg-soft shadow-sm ring-1 ring-line">
+                  <div style={{ aspectRatio: '16 / 9' }} className="home-hero-player overflow-hidden rounded-2xl bg-bg-soft shadow-sm ring-1 ring-line">
                     <iframe
                       className="size-full"
                       src={heroYoutubeSrc}
@@ -95,10 +98,10 @@ function Home() {
                   </div>
                 </figure>
               ) : (
-                <VideoCard video={ex.original.video} poster={ex.original.poster} label={c.hero.original} aspectRatio={originalAspectRatio} fit="contain" />
+                <VideoCard className="home-hero-player" video={ex.original.video} poster={ex.original.poster} label={c.hero.original} aspectRatio={originalAspectRatio} fit="contain" />
               )}
             </div>
-            <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm font-medium">
+            <div className="home-hero-links flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm font-medium">
               <LocalLink to={articlePath('trend')} className="inline-flex items-center gap-1.5 hover:text-accent">
                 {c.articles.trend.title} <ArrowRight className="size-4" />
               </LocalLink>
@@ -252,33 +255,35 @@ function Home() {
         </div>
       </section>
 
-      {/* Ideas：左右交替 */}
-      <section className="border-t border-line py-20">
-        <div className="container-page">
-          <h2 className="mt-3 font-display text-4xl leading-tight sm:text-5xl">{c.ideas.title}</h2>
-          <div className="mt-14 space-y-20">
-            {c.ideas.items.map((idea, index) => {
-              const media = ex.ideas[index % ex.ideas.length]!
-              const flip = index % 2 === 1
-              return (
-                <div key={idea.title} className="grid items-center gap-10 md:grid-cols-2">
-                  <div className={`grid grid-cols-[0.8fr_1fr] items-end gap-4 ${flip ? 'md:order-2' : ''}`}>
-                    <img src={media.photo} alt={c.alt.inputPhoto} loading="lazy" className="h-auto w-full rounded-2xl object-contain ring-1 ring-line" />
-                    <VideoCard video={media.video} poster={media.poster} />
+      {/* 没有单独配置创意案例时，不渲染空区块；常规复刻案例已在上方展示。 */}
+      {c.ideas.items.length > 0 ? (
+        <section className="border-t border-line py-20">
+          <div className="container-page">
+            <h2 className="mt-3 font-display text-4xl leading-tight sm:text-5xl">{c.ideas.title}</h2>
+            <div className="mt-14 space-y-20">
+              {c.ideas.items.map((idea, index) => {
+                const media = ex.ideas[index % ex.ideas.length]!
+                const flip = index % 2 === 1
+                return (
+                  <div key={idea.title} className="grid items-center gap-10 md:grid-cols-2">
+                    <div className={`grid grid-cols-[0.8fr_1fr] items-end gap-4 ${flip ? 'md:order-2' : ''}`}>
+                      <img src={media.photo} alt={c.alt.inputPhoto} loading="lazy" className="h-auto w-full rounded-2xl object-contain ring-1 ring-line" />
+                      <VideoCard video={media.video} poster={media.poster} />
+                    </div>
+                    <div className="space-y-4">
+                      <h3 className="font-display text-3xl">{idea.title}</h3>
+                      <p className="max-w-md text-lg leading-8 text-muted">{idea.body}</p>
+                      <a href="#create" className="inline-flex items-center gap-1.5 text-sm font-semibold hover:text-accent">
+                        {c.ideas.cta} <ArrowRight className="size-4" />
+                      </a>
+                    </div>
                   </div>
-                  <div className="space-y-4">
-                    <h3 className="font-display text-3xl">{idea.title}</h3>
-                    <p className="max-w-md text-lg leading-8 text-muted">{idea.body}</p>
-                    <a href="#create" className="inline-flex items-center gap-1.5 text-sm font-semibold hover:text-accent">
-                      {c.ideas.cta} <ArrowRight className="size-4" />
-                    </a>
-                  </div>
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      ) : null}
 
       {/* Pricing */}
       <section id="pricing" className="scroll-mt-20 border-t border-line bg-bg-soft/60 py-20">

@@ -5,35 +5,35 @@
 
 /* 颜色全部走 CSS 变量：换站时改这里的几行即可换肤 */
 :root {
-  --bg: #f7f4ee;
-  --bg-soft: #efe9df;
-  --card: #fffdf9;
-  --fg: #1d1a16;
-  --muted: #6d665c;
-  --line: #e4ddd1;
-  --ink: #1d1a16;
-  --ink-fg: #fbf8f2;
-  --accent: #e0306f;
+  --bg: #f4f0e7;
+  --bg-soft: #e9e2d5;
+  --card: #fffdf8;
+  --fg: #1c1c24;
+  --muted: #696771;
+  --line: #ded8cd;
+  --ink: #1c1c24;
+  --ink-fg: #fffdf8;
+  --accent: #ef5a35;
   /* 小号强调文字用：对 --bg 的对比度需 ≥ 4.5:1（WCAG AA），--accent 只适合图标、大字和背景 */
-  --accent-text: #c41f5c;
-  --accent-2: #00b8d9;
-  --glow: rgba(224, 48, 111, 0.12);
+  --accent-text: #bd3d20;
+  --accent-2: #5546e8;
+  --glow: rgba(239, 90, 53, 0.15);
   color-scheme: light;
 }
 
 [data-theme='dark'] {
-  --bg: #12110f;
-  --bg-soft: #1b1916;
-  --card: #1c1a17;
-  --fg: #f2ede4;
-  --muted: #a39b8f;
-  --line: #2f2b26;
-  --ink: #f2ede4;
-  --ink-fg: #12110f;
-  --accent: #ff4f8b;
-  --accent-text: #ff4f8b;
-  --accent-2: #2fd6f5;
-  --glow: rgba(255, 79, 139, 0.14);
+  --bg: #14151b;
+  --bg-soft: #1e2028;
+  --card: #20222a;
+  --fg: #f4f0e7;
+  --muted: #aaa8b3;
+  --line: #353640;
+  --ink: #f4f0e7;
+  --ink-fg: #14151b;
+  --accent: #ff704c;
+  --accent-text: #ff8a69;
+  --accent-2: #9b91ff;
+  --glow: rgba(255, 112, 76, 0.16);
   color-scheme: dark;
 }
 
@@ -142,8 +142,178 @@
   }
 }
 
-.hero-glow {
-  background: radial-gradient(60% 50% at 70% 30%, var(--glow), transparent 70%);
+.home-hero-section {
+  isolation: isolate;
+  background:
+    linear-gradient(115deg, color-mix(in srgb, var(--bg-soft) 38%, transparent), transparent 53%),
+    var(--bg);
+}
+
+.home-hero-orbit {
+  z-index: -1;
+  background:
+    radial-gradient(34rem 32rem at 76% 48%, var(--glow), transparent 72%),
+    radial-gradient(1px 1px at 20px 20px, color-mix(in srgb, var(--fg) 11%, transparent) 1px, transparent 0);
+  background-size: auto, 32px 32px;
+  mask-image: linear-gradient(to bottom, black 0%, black 74%, transparent 100%);
+}
+
+.home-hero-grid {
+  min-height: min(720px, calc(100svh - 4rem));
+}
+
+.home-hero-copy {
+  position: relative;
+  z-index: 2;
+  padding-block: 2.5rem;
+}
+
+.home-hero-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  color: var(--accent-text);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.home-hero-eyebrow::before {
+  width: 1.8rem;
+  height: 3px;
+  background: var(--accent);
+  content: '';
+}
+
+.home-hero-title {
+  max-width: 12ch;
+  font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', 'Arial Black', sans-serif;
+  font-size: clamp(3.35rem, 6.5vw, 6.1rem);
+  font-weight: 900;
+  line-height: 0.91;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
+}
+
+.home-hero-subtitle {
+  max-width: 34rem;
+}
+
+.home-hero-cta {
+  min-height: 3.25rem;
+  border-radius: 0.7rem;
+  box-shadow: 5px 5px 0 var(--accent-2);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.home-hero-cta:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 3px 3px 0 var(--accent-2);
+}
+
+.home-hero-video-wrap {
+  position: relative;
+  isolation: isolate;
+  padding: 1.25rem 1.25rem 1.75rem;
+}
+
+.home-hero-frame {
+  position: absolute;
+  inset: 4% 8% 7%;
+  z-index: -1;
+  border: 1px solid color-mix(in srgb, var(--fg) 20%, transparent);
+  border-radius: 1.8rem;
+}
+
+.home-hero-frame-back {
+  transform: rotate(7deg) translate(0.45rem, 0.2rem);
+  background: var(--accent-2);
+  border-color: transparent;
+}
+
+.home-hero-frame-front {
+  transform: rotate(-4deg) translate(-0.15rem, 0.3rem);
+  background: color-mix(in srgb, var(--accent) 18%, var(--card));
+}
+
+.home-hero-player {
+  position: relative;
+  z-index: 1;
+}
+
+.home-hero-player > div {
+  border-radius: 1.25rem;
+  box-shadow: 0 22px 58px color-mix(in srgb, var(--fg) 20%, transparent);
+}
+
+.home-hero-links a {
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.3rem;
+}
+
+.home-hero-links a:hover {
+  text-decoration-line: underline;
+}
+
+@media (max-width: 1023px) {
+  .home-hero-grid {
+    min-height: auto;
+  }
+
+  .home-hero-copy {
+    padding-block: 2.25rem 0;
+  }
+
+  .home-hero-title {
+    max-width: 11ch;
+    font-size: clamp(3.4rem, 10vw, 6rem);
+  }
+
+  .home-hero-video-wrap {
+    max-width: 24rem;
+  }
+}
+
+@media (max-width: 639px) {
+  .home-hero-grid {
+    gap: 1rem;
+    padding-block: 1.5rem 2rem;
+  }
+
+  .home-hero-copy {
+    gap: 1rem;
+    padding-block: 1rem 0;
+  }
+
+  .home-hero-title {
+    max-width: 10ch;
+    font-size: clamp(3.2rem, 15vw, 4.8rem);
+  }
+
+  .home-hero-subtitle {
+    font-size: 1rem;
+    line-height: 1.7;
+  }
+
+  .home-hero-video-wrap {
+    max-width: 21rem;
+    padding: 0.75rem 0.75rem 1.1rem;
+  }
+
+  .site-wordmark {
+    flex: none;
+    white-space: nowrap;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-hero-cta {
+    transition: none;
+  }
 }
 
 @keyframes spin-slow {

@@ -31,7 +31,7 @@ export function Logo() {
   return (
     <LocalLink to="/" className="flex items-center gap-2.5">
       <LogoMark />
-      <span className="font-mono text-lg font-bold tracking-[0.12em] uppercase">{site.brandName}</span>
+      <span className="site-wordmark font-mono text-lg font-bold tracking-[0.12em] uppercase">{site.brandName}</span>
     </LocalLink>
   )
 }

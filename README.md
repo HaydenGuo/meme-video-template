@@ -66,6 +66,8 @@ The creation area places upload and generation settings on the left and the pend
 
 The homepage introduces `site.keyword` using localized copy in `site.keywordOverview`. Video lengths are 5, 12 and 15 seconds at 1 credit per second. Only one-time credit packs are sold: $9.90 for 25 credits, $19.90 for 60 credits, and $29.90 for 100 credits. New subscriptions are disabled. When launching a keyword site, update the keyword, overview and reference videos, seed local R2 with `npm run seed:local`, and synchronize the payment provider's product prices and credit descriptions before release. Production deployment uploads the configured reference videos to the remote `MEDIA` bucket and checks that the public Worker route serves each file with HTTP 206 Range support.
 
+The optional Ideas showcase renders only when its list contains entries, so an empty configuration never leaves a heading-only section.
+
 `VIDEO_PROVIDER=hypit` connects the site to the backward-compatible Bridge protocol. The Bridge calls NoToken directly by default, while preserving the site's queue, credit refund and R2 delivery paths. Hypit Runtime is an explicit compatibility option. See [Bridge setup](docs/hypit.md). Paid generation and VPS deployment require separate validation.
 
 Reference-remix sites declare their required Bridge workflow. The Bridge rejects requests before queue creation when its site fragment lacks the required workflow or approved reference hashes. Apply the generated `bridge-site.json` with the Bridge updater; a healthy service alone does not prove a site's template is ready.
