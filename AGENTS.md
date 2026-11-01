@@ -2,10 +2,19 @@
 
 给在本仓库改代码的 agent 和人看的约定。用法、部署和设计说明见 [README.zh-CN.md](README.zh-CN.md)，进度见 [ROADMAP.md](ROADMAP.md)。这里只写从代码里不容易看出来、违反了会出事的规则。
 
+## 三层边界
+
+边界说明见 [docs/template-layers.md](docs/template-layers.md)。
+
+- **架构层**：路由、组件、服务端、数据库迁移、构建与部署流程、共享安全配置和测试。缺陷与通用能力先在模板修复，再由站点合并模板更新。
+- **配置层**：`src/config/site.ts`、`wrangler.jsonc`、`bridge-site.json`，以及 `package.json` 中站点的 `name`。这里放站点身份、功能参数、服务绑定和部署标识；不放页面段落或独有业务逻辑。
+- **内容层**：`src/content/*`、`public/*`、`seed/`。这里放多语言文案、文章、品牌/展示素材和生成参考视频；不放服务端行为或密钥。
+- 站点差异只进入配置层与内容层。`public/_headers` 是共享安全配置，属于架构层。lockfile 与模板删除文件继续按同步计划单独处理。
+- 三层分类必须同步维护在 `scripts/sync-plan.mjs` 的 `layerOf`、`tests/unit/sync-plan.test.ts` 和 new-hot-site Skill 中；检查或改边界时同步更新三处。
+
 ## 改动前
 
-- 本仓库是模板，热词站是以它为 `upstream` 的独立仓库。站点差异只放在 `src/config/site.ts`、`src/content/*`、`public/*`、`seed/`、`wrangler.jsonc`、`bridge-site.json` 和 `package.json` 的 `name`；其它文件的修复在模板里做，再合并到各站。
-  - 这份清单还写在 `scripts/sync-plan.mjs` 的 `layerOf`（同步计划按它分层，`tests/unit/sync-plan.test.ts` 核对）和 new-hot-site skill 的白名单里，改动时三处一起改。
+- 本仓库是模板，热词站是以它为 `upstream` 的独立仓库。站点差异只进入配置层与内容层；其它文件的修复在模板里做，再合并到各站。
   - 站点只能用 `git merge` 同步模板（`sync-upstream` skill），同步基线取 `git merge-base`；合并提交带 `Template-sync: <sha>` trailer。
 - 代码注释、docs 用简体中文；commit message 用英文。
 - 在站点仓库上新词按 `.claude/skills/new-hot-site/SKILL.md` 做。缺的信息写成 `TODO(site): …`，只能放在 `src/config/site.ts`、`src/content/*.ts`、`wrangler.jsonc` 里（`scripts/doctor.mjs` 只扫这些文件，正式环境报错）。
