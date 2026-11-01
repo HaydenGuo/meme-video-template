@@ -79,6 +79,7 @@ export function en(s: S) {
       dropTitle: 'Drop a photo or click to upload',
       dropHint: 'JPG, PNG or WebP · up to 10 MB',
       guidance: 'Best results: one person, facing the camera, even lighting, head and shoulders visible. Avoid sunglasses, masks and heavy filters.',
+      modelDisclosure: (name: string) => `Video model: ${name}`,
       change: 'Change photo',
       uploading: 'Uploading…',
       uploaded: 'Photo ready',
