@@ -150,7 +150,8 @@ describe('doctor', () => {
     workers_dev: false,
   })
   const allSecrets = Object.keys(ready().secrets)
-  const doctorKeys = (config: Record<string, any>, options: Parameters<typeof runDoctor>[1] = {}) =>
+  type DoctorOptions = Parameters<typeof runDoctor>[1] & { siteModel?: string }
+  const doctorKeys = (config: Record<string, any>, options: DoctorOptions = {}) =>
     runDoctor(config, { secretNames: allSecrets, pendingMigrations: [], siteDomain: 'moonhop.ai', siteModel: 'Seedance 2.0 mini', ...options }).map((i) => `${i.level}:${i.key}`)
 
   it('可上线的配置通过；缺 secret、未应用 migration、查询失败都报错', () => {
