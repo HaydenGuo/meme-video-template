@@ -71,7 +71,7 @@ export function findSiteTodos(root = fileURLToPath(new URL('..', import.meta.url
 // secretNames / pendingMigrations：undefined = 没有核对（--offline），null = 查询失败
 export function runDoctor(
   config,
-  { secretNames, pendingMigrations, siteDomain = site.domain, packageIds = site.packages.map((p) => p.id), planIds = sellingPlans.map((p) => p.id), siteTodos = [] } = {},
+  { secretNames, pendingMigrations, siteDomain = site.domain, packageIds = site.packages.map((p) => p.id), planIds = sellingPlans.map((p) => p.id), siteTodos = [], siteModel = site.business.videoModel } = {},
 ) {
   const vars = config.vars ?? {}
   const issues = checkConfig({
@@ -117,6 +117,10 @@ export function runDoctor(
     }
   } else if (appEnv === 'production' && config.workers_dev !== false) {
     warn('workers_dev', '自定义域名可用后设 "workers_dev": false 和 "preview_urls": false，否则 *.workers.dev 绕过域名上的 WAF 和限流')
+  }
+
+  if (appEnv === 'production' && vars.GENERATION_ENABLED === 'true' && !siteModel.trim()) {
+    error('model-disclosure', '生产生成已开放，但 site.business.videoModel 为空：填写已核实的底层生成模型名称后再部署')
   }
 
   if (siteTodos.length) {
