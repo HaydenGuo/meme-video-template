@@ -14,13 +14,16 @@ export function ArticleCards({ articles, headingLevel }: { articles: readonly Ar
         const text = c.articles[article.key]
         return (
           <li key={article.key}>
-            <LocalLink to={`/${article.slug}`} className="card group flex h-full flex-col gap-3 p-6 transition hover:border-fg/40">
-              <Heading className="font-display text-xl leading-snug group-hover:text-accent-text">{text.title}</Heading>
-              <p className="text-sm leading-6 text-muted">{text.description}</p>
-              <span className="mt-auto flex items-center justify-between pt-2 text-xs text-muted">
-                <time dateTime={article.updatedAt}>{formatDay(article.updatedAt, locale)}</time>
-                <ArrowRight className="size-4" aria-hidden />
-              </span>
+            <LocalLink to={`/${article.slug}`} className="card group flex h-full flex-col gap-3 overflow-hidden transition hover:border-fg/40">
+              {article.cover ? <img src={article.cover} alt="" width={1200} height={630} loading="lazy" className="aspect-[1200/630] w-full border-b border-line object-cover" /> : null}
+              <div className="flex flex-1 flex-col gap-3 p-6">
+                <Heading className="font-display text-xl leading-snug group-hover:text-accent-text">{text.title}</Heading>
+                <p className="text-sm leading-6 text-muted">{text.description}</p>
+                <span className="mt-auto flex items-center justify-between pt-2 text-xs text-muted">
+                  <time dateTime={article.updatedAt}>{formatDay(article.updatedAt, locale)}</time>
+                  <ArrowRight className="size-4" aria-hidden />
+                </span>
+              </div>
             </LocalLink>
           </li>
         )
