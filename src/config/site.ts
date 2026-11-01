@@ -156,10 +156,13 @@ export const site = {
   // SEO 文章（指南），按展示顺序排列。slug 是根路径：/<slug> 与 /zh/<slug>；正文在 src/content/<locale>.ts 的 articles[key]。
   // 新增文章：这里加一项，各语言 content 的 articles 补同名 key（缺了 typecheck 会报错）。
   // trend、howTo 两篇被首页直接链接，不要删。related 不填时推荐其余文章里最近更新的。
+  // cover 可选：public/ 下 1200×630 图片路径，用于指南卡片、文章页与社交分享图；用 scripts/article-cover.mjs 从本站素材生成。
+  // styleDemo 可选：true 时在导语后展示本站原片与 AI 案例，并显示制作入口。
+  // 各语言文章内容可选 faq: [{ q, a }]；有值时文章页显示折叠问答并加入 FAQPage 结构化数据。
   // 日期写进 Article 的 datePublished/dateModified、页面上的“最后更新”和 sitemap lastmod，改正文时同步改 updatedAt
   articles: [
     { key: 'trend', slug: 'neon-shuffle-ai-trend', publishedAt: '2026-10-20', updatedAt: '2026-10-20' },
-    { key: 'howTo', slug: 'how-to-make-neon-shuffle-ai-video', publishedAt: '2026-10-20', updatedAt: '2026-10-20' },
+    { key: 'howTo', slug: 'how-to-make-neon-shuffle-ai-video', publishedAt: '2026-10-20', updatedAt: '2026-11-01', styleDemo: true },
   ],
 
   seo: {
@@ -229,6 +232,8 @@ export interface Article {
   updatedAt: string
   related?: readonly ArticleKey[]
   sources?: readonly { url: string; name: Readonly<Record<Locale, string>> }[]
+  cover?: string
+  styleDemo?: boolean
 }
 export const ARTICLES: readonly Article[] = site.articles
 
