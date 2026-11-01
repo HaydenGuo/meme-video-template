@@ -152,7 +152,7 @@ npm run dev -- --host 127.0.0.1      # http://127.0.0.1:3000
 
    积分包价格（`packages`）、订阅开关和套餐（`subscriptionsEnabled`、`plans`，开关设为 `false` 只卖积分包）、`durations`、`video.falModel` 按需在 `src/config/site.ts` 手改。套餐可加 `anchorPriceCents` 显示划线原价和折扣，只能填这个套餐真实卖过的价格（欧盟按降价前 30 天内最低价算），新站一般不填。
 3. **改文案**：`src/content/en.ts`、`src/content/zh.ts`。文案通过 `{keyword}` 等变量套用。每个词至少要重写 hero、whatIs、ideas、FAQ 和两篇文章，首页正文要自然覆盖长尾词。创意案例列表为空时不渲染该区块，避免留下空标题。首页的痛点（`problem`）和对比（`withWithout`）区块目前中英文均设为 `null`，不渲染。整站只换关键词会被 Google 判为 [scaled content abuse](https://developers.google.com/search/docs/essentials/spam-policies#scaled-content)。
-   - **文章**：在 `site.ts` 的 `articles` 加一项（`key`、`slug`、发布和更新日期，可选 `related`），再在每种语言的 `articles` 里补同名 key，缺了 typecheck 会报错。文章页地址是 `/<slug>`，自动进入 `/guides` 列表、sitemap 和其它文章的“相关文章”。`trend`、`howTo` 两篇被首页直接链接，不要删。建议每站至少一篇 1,200 词以上的支柱页，加 4–6 篇长尾页（教程、灵感、排错、对比）。
+   - **文章**：在 `site.ts` 的 `articles` 加一项（`key`、`slug`、发布和更新日期，可选 `related`），再在每种语言的 `articles` 里补同名 key，缺了 typecheck 会报错。文章页地址是 `/<slug>`，自动进入 `/guides` 列表、sitemap 和其它文章的“相关文章”。`trend`、`howTo` 两篇被首页直接链接，不要删。建议每站至少一篇 1,200 词以上的支柱页，加 4–6 篇长尾页（教程、灵感、排错、对比）。 可选 `cover`（`public/` 下 1200×630 图片）会显示在指南卡片和文章页，也用作分享图与 Article 结构化数据图片。可用本站素材生成：`node scripts/article-cover.mjs public/guides/<slug>.jpg --tag Guide --title "短标题" public/demo/original.mp4@1 public/demo/ai1.mp4@2`（需要 ffmpeg 和 Playwright Chromium 浏览器）。`styleDemo: true` 可在文章中展示本站配置的原片和 AI 案例；在对应语言文章内容中添加可选的 `faq: [{ q, a }]`，页面会显示折叠问答并输出 FAQPage 结构化数据。
    - 文案按语言拆包，浏览器只下载当前语言（含法律页全文）。组件里照常用 `getContent(locale)`；只有在根路由之外、渲染之前要用文案时，才需要先 `await loadContent(locale)`。
    - 加一种语言：在 `site.ts` 的 `LOCALES` 和 `LOCALE_META` 里登记，新建 `src/content/<locale>.ts`（类型与 `en.ts` 一致），再在 `src/lib/i18n.ts` 的 `loaders` 里加一行动态 import。
 4. **换素材**：
