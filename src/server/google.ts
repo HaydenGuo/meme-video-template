@@ -66,7 +66,17 @@ export async function exchangeGoogleCode(
       code_verifier: pkce.verifier,
     }),
   })
-  if (!response.ok) throw new ApiError(502, 'google_token_exchange_failed')
+  if (!response.ok) {
+    let providerError = 'unknown'
+    try {
+      const body = (await response.json()) as { error?: unknown }
+      if (typeof body.error === 'string' && /^[a-z][a-z0-9_]{0,63}$/.test(body.error)) providerError = body.error
+    } catch {
+      // Google のエラーレスポンスが JSON でない場合も、公開側のエラーコードは変えない
+    }
+    console.error(`[auth] Google token exchange rejected: status=${response.status} error=${providerError}`)
+    throw new ApiError(502, 'google_token_exchange_failed')
+  }
   const body = (await response.json()) as { id_token?: string }
   if (!body.id_token) throw new ApiError(502, 'google_missing_id_token')
   return verifyGoogleIdToken(body.id_token, config.clientId, pkce.nonce)
