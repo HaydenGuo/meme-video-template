@@ -268,6 +268,12 @@ export function Generator() {
           <span>{g.consent}</span>
         </label>
 
+        {site.business.videoModel ? (
+          <p className="text-center text-xs text-muted" data-testid="generator-model-disclosure">
+            {g.modelDisclosure(site.business.videoModel)}
+          </p>
+        ) : null}
+
         {/* CTA */}
         <div className="space-y-2">
           {!loading && (!generationEnabled || (!user && !authEnabled)) ? (
