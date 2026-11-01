@@ -90,7 +90,7 @@ export function articleJsonLd(
   locale: Locale,
   path: string,
   text: { title: string; description: string },
-  dates: Pick<Article, 'publishedAt' | 'updatedAt' | 'sources'>,
+  dates: Pick<Article, 'publishedAt' | 'updatedAt' | 'sources' | 'cover'>,
 ) {
   return {
     '@context': 'https://schema.org',
@@ -101,7 +101,7 @@ export function articleJsonLd(
     datePublished: dates.publishedAt,
     dateModified: dates.updatedAt,
     ...(dates.sources?.length ? { citation: dates.sources.map((source) => source.url) } : {}),
-    image: [absoluteUrl(site.ogImage)],
+    image: [absoluteUrl(dates.cover ?? site.ogImage)],
     author: publisherRef,
     publisher: { ...publisherRef, logo: { '@type': 'ImageObject', url: absoluteUrl(site.branding?.icon ?? '/favicon.svg') } },
     mainEntityOfPage: absoluteUrl(localePath(locale, path)),
