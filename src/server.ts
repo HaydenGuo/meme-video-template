@@ -28,7 +28,7 @@ export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
     const url = new URL(request.url)
     const { pathname } = url
-    if (isProduction(env) && (url.protocol !== 'https:' || url.hostname !== site.domain)) {
+    if (isProduction(env) && (url.hostname === site.domain || url.hostname === `www.${site.domain}`) && (url.protocol !== 'https:' || url.hostname !== site.domain)) {
       url.protocol = 'https:'
       url.hostname = site.domain
       url.port = ''
