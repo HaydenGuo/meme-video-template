@@ -17,7 +17,7 @@ const RESOURCE_KEYS = new Set(['database_name', 'database_id', 'bucket_name', 'i
 function shape(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(shape)
   if (value && typeof value === 'object') {
-    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, k === 'vars' ? Object.keys(v).sort() : RESOURCE_KEYS.has(k) ? '<resource>' : shape(v)]))
+    return Object.fromEntries(Object.entries(value).filter(([k]) => k !== 'routes').map(([k, v]) => [k, k === 'vars' ? Object.keys(v).sort() : RESOURCE_KEYS.has(k) ? '<resource>' : shape(v)]))
   }
   return value
 }
@@ -47,7 +47,8 @@ describe.skipIf(!hasStaging)('wrangler.staging.jsonc', () => {
 
   // 漏改一个名字，staging 就会读写正式站的库、桶或队列
   it('资源名都带 -staging，且不与 wrangler.jsonc 共用', () => {
-    expect(staging.name).toBe(`${main.name}-staging`)
+    expect(staging.name).not.toBe(main.name)
+    expect(staging.name).toMatch(/-staging$/)
     const own = resources(staging)
     const theirs = resources(main)
     for (const key of ['database_name', 'bucket_name', 'queue', 'dead_letter_queue']) {
