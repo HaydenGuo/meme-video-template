@@ -235,7 +235,7 @@ export function en(s: S) {
         ...(subs
           ? [{ q: 'How do I cancel my subscription?', a: 'Open My account → Billing and choose Cancel renewal. You won’t be charged again, and your plan and credits stay available until the end of the current period.' }]
           : []),
-        { q: 'Can I use someone else’s photo?', a: 'Only with their permission, and never photos of minors, celebrities or public figures. Accounts that break this rule are closed.' },
+        { q: 'Can I use someone else’s photo?', a: 'Only use a photo with the person’s permission. See the Acceptable Use Policy for the full image-use rules.' },
         { q: 'What happens to my photos?', a: `Uploads are private, used only to make your video and ${photoRetention}. Finished videos are ${videoRetention}. Account deletion removes your media and anonymizes your account; required transaction and safety records may remain.` },
       ] as FaqItem[],
     },
@@ -573,16 +573,16 @@ export function en(s: S) {
       account_conflict: `This email is linked to a different Google account. Sign in with that account, or email ${s.supportEmail} for help.`,
     } as Record<string, string>,
     legal: {
-      updated: '2026-10-24',
+      updated: '2026-11-01',
       aup: review.aup,
       privacy: {
         title: 'Privacy Policy',
         sections: [
           ...review.privacy,
-          { h: 'What we collect', p: [`If you sign in with Google, we receive the email and profile picture Google provides. Email and password registration does not verify inbox ownership. We store the email you enter and a salted password hash, never your plaintext password. Password recovery requires access to that inbox and a one-time code. When you create a video we store the photo you upload and the video we generate. Payment details are handled by our payment partner; ${b} never sees your card number.`] },
+          { h: 'What we collect', p: [`If you sign in with Google, we receive the name, email and profile picture Google provides. Email and password registration does not verify inbox ownership. We store the email you enter and a salted password hash, never your plaintext password. Password recovery requires access to that inbox and a one-time code. When you create a video we store the photo you upload and the video we generate. Payment details are handled by our payment partner; ${b} never sees your card number.`] },
           { h: 'How we use it', p: ['We use submitted media and background descriptions for the requested video when generation is available. We use your email for account operation, service notices and support; message delivery depends on the configured mail service. We do not send marketing email, sell personal data or train our own models on your photos. Upstream providers have their own processing policies; we do not promise unverified provider-wide training exclusions. We also store session IP addresses and browser details for account security, and report or contact information you submit for handling those requests.'] },
           { h: 'Storage and retention', p: [`Files are stored with our infrastructure provider in encrypted form. Uploaded photos are ${photoRetention} and generated videos are ${videoRetention}, unless you delete them or your account sooner. Account deletion removes media and anonymizes the account. Order, payment and credit records may be retained for accounting and legal obligations; support, report and safety records may remain where needed to handle disputes or abuse. A one-way email hash is retained to prevent repeat sign-up bonuses.`] },
-          { h: 'Safety checks', p: ['Generation is disabled in the current preview. When enabled, the video provider checks generation inputs and outputs, while the site checks prompts and handles reports and takedowns. The site does not claim complete automated moderation. Public forms are rate limited; if Cloudflare Turnstile is enabled, it also processes IP addresses and browser signals for bot detection.'] },
+          { h: 'Safety checks', p: ['When you request a video, the configured video provider processes the submitted inputs and result. The site checks prompts and handles reports and takedowns; it does not claim comprehensive automated moderation. Public forms are rate limited; if Cloudflare Turnstile is enabled, it also processes IP addresses and browser signals for bot detection.'] },
           {
             h: 'Cookies and analytics',
             p: [
