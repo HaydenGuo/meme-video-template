@@ -1,8 +1,10 @@
 import { createFileRoute, notFound } from '@tanstack/react-router'
 import { ArticleCards } from '#/components/ArticleCards'
+import { FaqList, faqJsonLd } from '#/components/Faq'
+import { VideoCard } from '#/components/VideoCard'
 import { Breadcrumbs, formatDay } from '#/components/ui'
 import { findArticle, relatedArticles, site } from '#/config/site'
-import { getContent, localeFromParam, pageHead, useContent, useLocale, useLocalePath } from '#/lib/i18n'
+import { absoluteUrl, getContent, localeFromParam, pageHead, useContent, useLocale, useLocalePath } from '#/lib/i18n'
 import { articleJsonLd, breadcrumbJsonLd, jsonLdScript } from '#/lib/seo'
 
 // SEO 文章：slug 来自 site.articles。非文章 slug 不参与匹配，这样 /zh 会落到中文首页而不是被当成 slug
@@ -30,9 +32,18 @@ export const Route = createFileRoute('/{-$locale}/$slug')({
         { property: 'og:type', content: 'article' },
         { property: 'article:published_time', content: article.publishedAt },
         { property: 'article:modified_time', content: article.updatedAt },
+        ...(article.cover
+          ? [
+              { property: 'og:image', content: absoluteUrl(article.cover) },
+              { property: 'og:image:width', content: String(site.seo.ogImageSize.width) },
+              { property: 'og:image:height', content: String(site.seo.ogImageSize.height) },
+              { name: 'twitter:image', content: absoluteUrl(article.cover) },
+            ]
+          : []),
       ],
       scripts: [
         jsonLdScript(articleJsonLd(locale, path, text, article)),
+        ...(text.faq?.length ? [jsonLdScript(faqJsonLd(text.faq))] : []),
         jsonLdScript(breadcrumbJsonLd(locale, c.meta.breadcrumbHome, breadcrumbItems(c, text.title, path))),
       ],
     }
@@ -61,7 +72,19 @@ function ArticlePage() {
       <p className="mt-4 text-sm text-muted">
         {c.common.lastUpdated}: <time dateTime={article.updatedAt}>{formatDay(article.updatedAt, locale)}</time>
       </p>
+      {article.cover ? <img src={article.cover} alt="" width={1200} height={630} fetchPriority="high" className="mt-8 aspect-[1200/630] w-full rounded-2xl border border-line object-cover" /> : null}
       <p className="mt-6 text-xl leading-9 text-muted">{text.intro}</p>
+      {article.styleDemo && site.examples.aiVersions.length > 0 ? (
+        <section className="mt-8" aria-labelledby="style-demo">
+          <h2 id="style-demo" className="mb-4 font-display text-2xl">{c.guides.styleDemo}</h2>
+          <div className="mx-auto grid max-w-xl grid-cols-2 gap-3 sm:gap-4">
+            <VideoCard video={site.examples.original.video} poster={site.examples.original.poster} label={c.hero.original} credit={site.examples.original.credit} />
+            {site.examples.aiVersions.map((example) => (
+              <VideoCard key={example.video} video={example.video} poster={example.poster} label={c.hero.aiVersion} credit={example.credit} />
+            ))}
+          </div>
+        </section>
+      ) : null}
       <div className="prose-article mt-6">
         {text.sections.map((section) => (
           <section key={section.h}>
@@ -72,6 +95,12 @@ function ArticlePage() {
           </section>
         ))}
       </div>
+      {text.faq?.length ? (
+        <section className="mt-12" aria-labelledby="article-faq">
+          <h2 id="article-faq" className="mb-4 font-display text-3xl">{c.guides.faqTitle}</h2>
+          <FaqList items={text.faq} />
+        </section>
+      ) : null}
       {article.sources?.length ? (
         <section className="mt-10" aria-labelledby="article-sources">
           <h2 id="article-sources" className="font-display text-2xl">{c.common.sources}</h2>
