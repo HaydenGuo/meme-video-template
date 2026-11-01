@@ -8,16 +8,17 @@ import { spawnSync } from 'node:child_process'
 import { pathToFileURL } from 'node:url'
 import ts from 'typescript'
 
-// 站点层：每个站自己的值（与 AGENTS.md“改动前”一致）。public/_headers 是共用的安全响应头，不算站点层
-const SITE_FILES = ['src/config/site.ts', 'wrangler.jsonc', 'package.json', 'bridge-site.json']
-const SITE_DIRS = ['src/content/', 'public/', 'seed/']
-const SHARED_IN_SITE_DIRS = ['public/_headers']
+// 三层边界与 AGENTS.md 一致。public/_headers 是架构层的共享安全配置。
+const CONFIG_FILES = ['src/config/site.ts', 'wrangler.jsonc', 'package.json', 'bridge-site.json']
+const CONTENT_DIRS = ['src/content/', 'public/', 'seed/']
+const ARCHITECTURE_FILES = ['public/_headers']
 // new-site 在站点里删掉的模板自用文件
 const SITE_REMOVED = ['wrangler.staging.jsonc']
 
 export const LAYERS = {
-  shared: '共用代码：取模板版本；站点改过的先停下确认',
-  site: '站点层：保留站点的值，接受模板新增的键和字段',
+  architecture: '架构层：取模板版本；站点改过的先停下确认',
+  config: '配置层：保留站点的值，接受模板新增的键和字段',
+  content: '内容层：保留站点内容并审阅模板结构更新',
   removed: '站点已删除：git rm',
   lockfile: '依赖锁：取模板版本后 npm install',
 }
@@ -25,9 +26,10 @@ export const LAYERS = {
 export function layerOf(path) {
   if (SITE_REMOVED.includes(path)) return 'removed'
   if (path === 'package-lock.json') return 'lockfile'
-  if (SHARED_IN_SITE_DIRS.includes(path)) return 'shared'
-  if (SITE_FILES.includes(path) || SITE_DIRS.some((dir) => path.startsWith(dir))) return 'site'
-  return 'shared'
+  if (ARCHITECTURE_FILES.includes(path)) return 'architecture'
+  if (CONFIG_FILES.includes(path)) return 'config'
+  if (CONTENT_DIRS.some((dir) => path.startsWith(dir))) return 'content'
+  return 'architecture'
 }
 
 export function parseNameStatus(output) {
@@ -71,7 +73,7 @@ export function buildPlan(git, target = 'upstream/main') {
     templateChanges,
     bothChanged: templateChanges.filter((c) => siteChanged.has(c.path)).map((c) => c.path),
     // 站点改过的共用文件：合并时会被模板覆盖或冲突，应该先回到模板里修
-    divergent: siteChanges.filter((c) => c.layer === 'shared').map((c) => c.path),
+    divergent: siteChanges.filter((c) => c.layer === 'architecture').map((c) => c.path),
     migrations: templateChanges.filter((c) => c.status === 'A' && c.path.startsWith('migrations/')).map((c) => c.path),
     newVars: added(varsKeys(show(base, 'wrangler.jsonc')), varsKeys(show(targetSha, 'wrangler.jsonc'))),
     newSecrets: added(devVarsKeys(show(base, '.dev.vars.example')), devVarsKeys(show(targetSha, '.dev.vars.example'))),
@@ -108,7 +110,7 @@ function main(args) {
     for (const c of files) console.log(`  ${c.status} ${c.path}${plan.bothChanged.includes(c.path) ? '  ← 站点也改过' : ''}`)
   }
   const section = (title, items) => items.length && console.log(`\n${title}：\n${items.map((i) => `  ${i}`).join('\n')}`)
-  section('站点改过的共用文件（合并前先确认，能回到模板修的回模板修）', plan.divergent)
+  section('站点改过的架构层文件（合并前先确认，通用修复回模板处理）', plan.divergent)
   section('新 migration（部署前 npm run db:migrate:remote）', plan.migrations)
   section('新增 vars（wrangler.jsonc，填站点的值，含义见 docs/env.md）', plan.newVars)
   section('新增密钥（.dev.vars.example，线上用 wrangler secret put）', plan.newSecrets)
