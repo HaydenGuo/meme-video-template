@@ -112,6 +112,8 @@ npm run seed:local                   # 应用 D1 迁移 + 把 seed/templates/*.m
 npm run dev -- --host 127.0.0.1      # http://127.0.0.1:3000
 ```
 
+新站初始化后可选先做本地预览：`site:init --apply --local` 会准备本地 D1/R2，随后用资料指定端口打开 `http://127.0.0.1:<port>`，检查页面、上传预览和本地 mock 生成。Google OAuth 可用 `npm run dev:infisical` 注入本站密钥；其余情况下本地开发登录即可。整个阶段不需要绑定域名或创建 Cloudflare 资源。详见[自动初始化](docs/site-initialization.md)。
+
 `npm run media:publish:remote` 会把 `site.durations[].source` 配置的文件上传到生产 R2；`npm run media:verify:remote` 会用单字节 Range 请求检查生产 Worker 路由。生产部署工作流会在发布 Worker 前后分别执行上传和读回；`seed:local` 只会写入本地 R2。
 
 - npm 用 11.19 及以上，版本更低时 `package.json` 里的 `devEngines` 会给出警告。用旧版 npm 跑 `npm install` 会把 `package-lock.json` 改写成 CI 上 `npm ci` 不认的结构（报 `Missing: @emnapi/core@… from lock file`）。
@@ -498,15 +500,3 @@ tests/                  unit（单元）、e2e（mock 服务商）、smoke（部
 
 [MIT](LICENSE)
 ## 分阶段发布
-
-`AUTH_ENABLED`、`GENERATION_ENABLED`、`PAYMENTS_ENABLED` 分别控制新登录、上传生成和新购买。关闭新购买仍处理已有订单回调与订阅管理；未设置开关兼容旧站行为，拼错的值会关闭对应入口并由 doctor 报错。
-
-初始化资料可选 `launch`：`local`、`showcase`、`accounts`、`generate`、`full`。初始化后运行 `npm run site:mode -- generate` 预览“开放登录生成、暂不充值”，追加 `--apply` 更新本地开关。命令不部署或生成服务凭据，设置正确环境与 URL 并通过 doctor 后再发布。
-
-`SHOWCASE_MODE=true` 可先发布介绍和案例，关闭上传、生成与购买并暂停队列和定时任务。账户默认关闭，可在 `AUTH_ENABLED` 开启时用 `SHOWCASE_AUTH_ENABLED=true` 开放。它适合新站，不适合暂停有活跃订单或任务的站点。见 [环境配置](docs/env.md)。
-
-生成使用本站关键词预检与生成服务商审核；Waffo 提示词扫描为可选项，充值独立配置。
-
-正式环境的 workers.dev 备用公开页面一次跳转到配置的主域名；API、媒体与预发环境保留原访问方式。
-
-VPS 安装器限制本地 FFmpeg 与浏览器并发，并为合成预留线程名额。最终合成失败可复用已有生成素材，无需再次请求模型，见 [Bridge 运维](services/hypit-bridge/README.md)。
