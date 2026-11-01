@@ -61,7 +61,7 @@ export default {
     }
     // 页面请求生成 CSP nonce，经请求上下文交给 router（src/router.tsx 的 ssr.nonce），内联脚本都会带上它
     const nonce = toHono ? undefined : createNonce()
-    // 分享页：先查好数据交给 TanStack Start 交给 router，失效的链接返回 404/410；页面一律 noindex（用户内容不进搜索引擎）
+    // 分享页：先查好数据交给 router，失效的链接返回 404/410；页面一律 noindex（用户内容不进搜索引擎）
     const shareId = !toHono && request.method === 'GET' ? pathname.match(SHARE_PAGE)?.[1] : undefined
     const share = shareId !== undefined ? await loadShare(env, shareId) : undefined
     let response = nonce ? await handler.fetch(request, { context: { nonce, share } }) : await app.fetch(request, env, ctx)
