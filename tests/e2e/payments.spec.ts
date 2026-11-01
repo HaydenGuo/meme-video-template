@@ -2,6 +2,25 @@ import { expect, test } from '@playwright/test'
 import { site } from '../../src/config/site'
 import { buyPackage, credits, devLogin, json, ledger, post, uniqueEmail, uploadPhoto } from './helpers'
 
+test('未开放支付时价格仍显示且购买按钮禁用', async ({ page }) => {
+  await page.route('**/api/me', async (route) => {
+    const response = await route.fetch()
+    const body = await response.json() as { config: { features: { payments: boolean }; paymentProvider: string } }
+    body.config.features.payments = false
+    body.config.paymentProvider = 'disabled'
+    await route.fulfill({ response, json: body })
+  })
+
+  await page.goto('/pricing')
+  for (const pack of site.packages) {
+    await expect(page.getByTestId(`package-${pack.id}`)).toBeVisible()
+    const button = page.getByTestId(`buy-${pack.id}`)
+    await expect(button).toBeVisible()
+    await expect(button).toBeDisabled()
+    await expect(button).toHaveText('Buy credits')
+  }
+})
+
 type Result = { status: 'processed' | 'duplicate' | 'ignored' | 'orphan' | 'mismatch'; note?: string }
 type HealthCheck = { stats: { paymentReview: { count: number; latest: string | null } }; alerts: Array<{ kind: string; count: number }> }
 
