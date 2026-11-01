@@ -92,10 +92,11 @@ HowTo 富结果 Google 已下线，所以三步流程只用语义化有序列表
 上线后：
 
 1. `npm run seo:check -- --base https://<domain> --production`。
-2. Search Console 与 Bing Webmaster 验证（DNS 或填 `site.seo.googleVerification` / `bingVerification`），提交 `https://<domain>/sitemap.xml`。
-3. 配置了 IndexNow key 时运行 `npm run seo:indexnow -- --submit`。
-4. 热度变化后更新文案：改了哪篇文章就改 `site.articles` 里那篇的 `updatedAt`（页面"最后更新"、Article dateModified、sitemap lastmod 跟随）；改首页等站点页面时更新 `site.seo.updatedAt`。
-5. 新增文章：在 `site.articles` 加一条（key、slug、日期），再在两份文案的 `articles` 里加同名 key 的正文；`/guides`、页脚、sitemap、相关文章自动跟随。
+2. 验证 Google Search Console property，在生产 `robots.txt` 读出实际 sitemap 地址并提交；确认 Sitemap 报告中的状态、错误和 `lastDownloaded`，不要把“已提交”写成“已抓取”或“已收录”。
+3. 首次发布或更换正式域名后，在 Search Console 的 URL Inspection 输入 canonical 首页完整 URL，运行 Live Test；确认抓取成功、允许编入索引且 canonical 正确后，点击 **Request indexing** 并记录结果。URL Inspection API 只能读取已索引状态，不能代替这个请求；提交请求也不保证收录。
+4. 在 Bing Webmaster 验证站点并按其流程提交 sitemap。配置了 IndexNow key 时运行 `npm run seo:indexnow -- --submit`；IndexNow 不会向 Google 请求收录。
+5. 热度变化后更新文案：改了哪篇文章就改 `site.articles` 里那篇的 `updatedAt`（页面"最后更新"、Article dateModified、sitemap lastmod 跟随）；改首页等站点页面时更新 `site.seo.updatedAt`。
+6. 新增文章：在 `site.articles` 加一条（key、slug、日期），再在两份文案的 `articles` 里加同名 key 的正文；`/guides`、页脚、sitemap、相关文章自动跟随。
 
 ## 未覆盖
 
