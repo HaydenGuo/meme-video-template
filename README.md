@@ -112,6 +112,8 @@ npm run seed:local                   # apply D1 migrations and upload seed/templ
 npm run dev -- --host 127.0.0.1      # http://127.0.0.1:3000
 ```
 
+After initializing a new site, you can optionally preview and debug it locally before binding a domain. `site:init --apply --local` prepares local D1/R2; open `http://127.0.0.1:<port>` and inspect the pages, upload preview and mock generation. Use `npm run dev:infisical` only when testing Google OAuth with the site's secrets. This stage needs no domain or Cloudflare resources. See [automatic initialization](docs/site-initialization.md).
+
 `npm run media:publish:remote` uploads the configured `site.durations[].source` files to the production R2 bucket. `npm run media:verify:remote` checks the production Worker route with a one-byte Range request. The production deploy workflow runs both around the Worker deploy; `seed:local` only seeds the local R2 bucket.
 
 - Use npm 11.19 or newer; `devEngines` in `package.json` warns on older versions. Running `npm install` with an older npm rewrites `package-lock.json` into a form that `npm ci` on CI rejects (`Missing: @emnapi/core@… from lock file`).
@@ -498,16 +500,3 @@ tests/                  unit, e2e (mock providers), smoke (post-deploy), sandbox
 ## License
 
 [MIT](LICENSE)
-## Launch in stages
-
-Control sign-in, new video submissions and new purchases independently with `AUTH_ENABLED`, `GENERATION_ENABLED` and `PAYMENTS_ENABLED`. Disabled checkout keeps existing payment callbacks and subscription management running. Unset flags preserve existing behavior; invalid values fail closed and are rejected by doctor.
-
-Choose `launch` in the initialization profile (`local`, `showcase`, `accounts`, `generate`, `full`). After initialization, `npm run site:mode -- generate` previews a launch with purchases closed; append `--apply` to update local flags. It does not deploy or provision credentials. Configure the environment and URL, then run doctor before publishing.
-
-`SHOWCASE_MODE=true` closes uploads, generation and purchases and pauses queues and scheduled tasks. Accounts are closed by default; `SHOWCASE_AUTH_ENABLED=true` can open them while `AUTH_ENABLED` remains enabled. Use showcase mode for a new launch, not for pausing a site with active orders or jobs. See [environment settings](docs/env.md).
-
-Generation uses server-side keyword prechecks and the generation provider’s safety checks. Waffo prompt scanning is optional; checkout is configured separately.
-
-Production public pages on the workers.dev fallback redirect directly to the configured canonical domain. API and media routes remain available; staging retains its own host.
-
-The VPS installer bounds local FFmpeg and browser concurrency and reserves process slots for composition. Failed final renders can reuse saved generated media without a new model request; see [Bridge operations](services/hypit-bridge/README.md).
