@@ -187,12 +187,12 @@
 }
 
 .home-hero-title {
-  max-width: 12ch;
-  font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', 'Arial Black', sans-serif;
-  font-size: clamp(3.35rem, 6.5vw, 6.1rem);
-  font-weight: 900;
-  line-height: 0.91;
-  letter-spacing: -0.045em;
+  max-width: 14ch;
+  font-family: var(--font-sans);
+  font-size: clamp(2.75rem, 5vw, 4.5rem);
+  font-weight: 800;
+  line-height: 1.04;
+  letter-spacing: -0.04em;
   text-wrap: balance;
 }
 
@@ -267,8 +267,8 @@
   }
 
   .home-hero-title {
-    max-width: 11ch;
-    font-size: clamp(3.4rem, 10vw, 6rem);
+    max-width: 14ch;
+    font-size: clamp(2.75rem, 6.5vw, 4.25rem);
   }
 
   .home-hero-video-wrap {
@@ -288,8 +288,8 @@
   }
 
   .home-hero-title {
-    max-width: 10ch;
-    font-size: clamp(3.2rem, 15vw, 4.8rem);
+    max-width: 12ch;
+    font-size: clamp(2.4rem, 10vw, 3.25rem);
   }
 
   .home-hero-subtitle {
