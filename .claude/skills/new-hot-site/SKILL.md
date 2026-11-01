@@ -5,6 +5,13 @@ description: 从 meme-video-template 初始化或更新梗视频站，核实素�
 
 # 新建梗视频站
 
+## 三层边界
+
+- 架构层（路由、组件、服务端、数据库、构建与共享安全规则）由模板统一维护；新站初始化不得复制或改写为站点特有行为。
+- 配置层使用 `src/config/site.ts`、`wrangler.jsonc`、`bridge-site.json` 和 `package.json` 的站点 `name`，承载品牌、功能、服务绑定与部署标识。
+- 内容层使用 `src/content/*`、`public/*` 和 `seed/`，承载多语言文案、文章、品牌/展示素材与生成参考视频。
+- 初始化和后续改站只修改配置层与内容层。新增站点差异文件时，先更新仓库 `AGENTS.md`、`scripts/sync-plan.mjs` 的 `layerOf`、`tests/unit/sync-plan.test.ts` 与本 Skill 白名单，再写入站点差异。
+
 ## 开始前
 
 1. 先读当前仓库 `AGENTS.md` 和 `docs/site-initialization.md`，确认这是模板的新副本、目标目录与当前模板 SHA。
