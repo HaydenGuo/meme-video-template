@@ -72,7 +72,7 @@ export async function exchangeGoogleCode(
       const body = (await response.json()) as { error?: unknown }
       if (typeof body.error === 'string' && /^[a-z][a-z0-9_]{0,63}$/.test(body.error)) providerError = body.error
     } catch {
-      // Google のエラーレスポンスが JSON でない場合も、公開側のエラーコードは変えない
+      // Google 返回非 JSON 错误时，仍保持原有的公开错误码
     }
     console.error(`[auth] Google token exchange rejected: status=${response.status} error=${providerError}`)
     throw new ApiError(502, 'google_token_exchange_failed')
