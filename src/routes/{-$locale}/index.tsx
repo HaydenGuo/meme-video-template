@@ -229,6 +229,11 @@ function Home() {
               {paragraph}
             </p>
           ))}
+          {site.business.videoModel ? (
+            <p className="mt-5 text-sm text-muted" data-testid="site-model-disclosure">
+              {c.generator.modelDisclosure(site.business.videoModel)}
+            </p>
+          ) : null}
           <LocalLink to={articlePath('trend')} className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold hover:text-accent">
             {c.whatIs.guide} <ArrowRight className="size-4" />
           </LocalLink>

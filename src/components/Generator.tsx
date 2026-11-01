@@ -268,12 +268,6 @@ export function Generator() {
           <span>{g.consent}</span>
         </label>
 
-        {site.business.videoModel ? (
-          <p className="text-center text-xs text-muted" data-testid="generator-model-disclosure">
-            {g.modelDisclosure(site.business.videoModel)}
-          </p>
-        ) : null}
-
         {/* CTA */}
         <div className="space-y-2">
           {!loading && (!generationEnabled || (!user && !authEnabled)) ? (
@@ -304,10 +298,9 @@ export function Generator() {
               {g.ctaGenerate(duration.credits)}
             </button>
           )}
-          {user ? (
-            <p className="text-center text-xs text-muted" data-testid="generator-balance">
-              {g.balance(user.credits)}
-              {shortfall > 0 ? ` · ${g.needMore(shortfall)}` : ''}
+          {user && shortfall > 0 ? (
+            <p className="text-center text-xs text-muted" data-testid="generator-shortfall">
+              {g.needMore(shortfall)}
             </p>
           ) : null}
           {user && photo && !consent && !generation ? <p className="text-center text-xs text-muted">{g.needConsent}</p> : null}
