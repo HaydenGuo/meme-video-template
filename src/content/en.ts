@@ -4,7 +4,7 @@ import type { ArticleKey, site as Site } from '#/config/site'
 import { reviewPoliciesEn } from './review-policies-en'
 
 type S = typeof Site
-type ArticleContent = { title: string; description: string; intro: string; sections: Array<{ h: string; p: string[] }> }
+type ArticleContent = { title: string; description: string; intro: string; sections: Array<{ h: string; p: string[] }>; faq?: Array<{ q: string; a: string }> }
 // FAQ 答案可附一条文章链接；锚文本用与文章标题不同的长尾词
 type FaqItem = { q: string; a: string; guide?: { article: ArticleKey; label: string } }
 // 首页可选转化区块，设为 null 就不渲染。痛点只写不用本站时的麻烦，不提产品；对比逐行写“自己做”和“用本站”，不承诺生成效果
@@ -503,6 +503,8 @@ export function en(s: S) {
       description: `Guides to the ${k} trend and to making your own ${k} AI video: where it came from, which photos work best and step-by-step tips.`,
       intro: `Background on the ${k} trend and practical tips for turning one photo into a ${k} AI video.`,
       related: 'Related guides',
+      styleDemo: `See the ${k} routine in action`,
+      faqTitle: 'FAQ',
     },
     errors: {
       invalid_auth_request: 'Invalid authentication request.',
@@ -676,6 +678,11 @@ export function en(s: S) {
           { h: '2. Upload and choose a length', p: ['Sign in, drop the photo into the generator and pick a length. Shorter clips render faster and cost fewer credits; the full version follows the complete routine.'] },
           { h: '3. Confirm consent and generate', p: ['Tick the consent box to confirm the photo is yours or that you have permission, then start the render. You can leave the page while it works.'] },
           { h: '4. Download and share', p: ['When the video is ready, download the MP4 from the generator or from My videos and post it wherever you like.'] },
+        ],
+        faq: [
+          { q: `How long does a ${k} AI video take to make?`, a: 'Rendering usually takes a few minutes; timing depends on clip length and the queue. You can leave the page while it renders and find the finished video in My videos.' },
+          { q: 'How many credits does a video cost?', a: `The price depends on the selected length: ${s.durations.map((d) => `${d.seconds} seconds costs ${d.credits} credits`).join(', ')}. Credits are returned automatically if a render fails.` },
+          { q: 'Which photo should I use?', a: 'Choose a recent, clear photo of one adult facing the camera in even light. Avoid sunglasses, face coverings and heavy filters.' },
         ],
       },
     } satisfies Record<ArticleKey, ArticleContent>,
