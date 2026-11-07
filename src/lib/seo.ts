@@ -33,7 +33,7 @@ type PackagePrice = { priceCents: number; currency: string }
 
 export function aggregateOffer(packages: readonly PackagePrice[]) {
   const first = packages[0]
-  if (!first) return undefined
+  if (!first || packages.some((pack) => pack.currency !== first.currency)) return undefined
   const prices = packages.map((pack) => pack.priceCents)
   return {
     '@type': 'AggregateOffer',
@@ -44,7 +44,7 @@ export function aggregateOffer(packages: readonly PackagePrice[]) {
   }
 }
 
-// 首页：组织 + 网站 + 应用（有积分包时附报价）+ 示例视频
+// 首页：组织 + 网站 + 应用（同币种积分包时附报价）+ 示例视频
 export function homeJsonLd(locale: Locale, description: string, video: { name: string; description: string }) {
   const offers = aggregateOffer(site.packages)
   const sample = site.examples.aiVersions[0]
