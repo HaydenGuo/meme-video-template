@@ -18,7 +18,7 @@ function organization() {
     name: site.brandName,
     url: absoluteUrl('/'),
     logo: absoluteUrl(site.branding?.icon ?? '/favicon.svg'),
-    email: site.supportEmail,
+    ...(site.supportEmail ? { email: site.supportEmail } : {}),
     ...(site.seo.sameAs.length ? { sameAs: site.seo.sameAs } : {}),
   }
 }
@@ -29,9 +29,24 @@ function priceOf(cents: number) {
   return (cents / 100).toFixed(2)
 }
 
-// 首页：组织 + 网站 + 应用（全部积分包汇总成 AggregateOffer）+ 示例视频
+type PackagePrice = { priceCents: number; currency: string }
+
+export function aggregateOffer(packages: readonly PackagePrice[]) {
+  const first = packages[0]
+  if (!first || packages.some((pack) => pack.currency !== first.currency)) return undefined
+  const prices = packages.map((pack) => pack.priceCents)
+  return {
+    '@type': 'AggregateOffer',
+    priceCurrency: first.currency,
+    lowPrice: priceOf(Math.min(...prices)),
+    highPrice: priceOf(Math.max(...prices)),
+    offerCount: packages.length,
+  }
+}
+
+// 首页：组织 + 网站 + 应用（同币种积分包时附报价）+ 示例视频
 export function homeJsonLd(locale: Locale, description: string, video: { name: string; description: string }) {
-  const prices = site.packages.map((p) => p.priceCents)
+  const offers = aggregateOffer(site.packages)
   const sample = site.examples.aiVersions[0]
   return {
     '@context': 'https://schema.org',
@@ -47,13 +62,7 @@ export function homeJsonLd(locale: Locale, description: string, video: { name: s
         description,
         inLanguage: htmlLang(locale),
         publisher: { '@id': ORG_ID },
-        offers: {
-          '@type': 'AggregateOffer',
-          priceCurrency: site.packages[0]!.currency,
-          lowPrice: priceOf(Math.min(...prices)),
-          highPrice: priceOf(Math.max(...prices)),
-          offerCount: site.packages.length,
-        },
+        ...(offers ? { offers } : {}),
       },
       ...(sample
         ? [
