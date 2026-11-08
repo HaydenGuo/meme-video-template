@@ -398,3 +398,10 @@
 
 - 将独立站初始化后的本地加载/调试列为绑定域名前的可选阶段，复用 `site:init --apply --local`、`seed:local`、`npm run dev` 与本地 mock，不增加云资源或真实付费操作。
 - 补充页面、上传预览、模拟生成与 OAuth 调试入口，以及只绑定 `127.0.0.1` 的要求；详见 `docs/site-initialization.md` 和中英文 README。
+
+
+## 局部多语言文章与阅读布局
+
+文章可用 `locales` 限定语言，并用 `slugs` 配置翻译路径；未翻译文章不进入该语言的指南、RSS、sitemap 或 hreflang。`LOCALE_STATIC_PATHS` 可限制新增语言的公开页面。文章支持独立 `metaTitle`、带说明的配图和段落后链接。阅读页提供桌面固定目录与手机折叠目录，外框最大 1440px、正文最大 952px。
+
+`Sync template remotely` 工作流供不下载本地源码的维护使用：先导入明确 SHA 的公开模板历史，再用 `git merge` 与已审阅的站点 resolution tree 合并；更新 main 前校验预期 SHA。首次引入工作流是远程同步的引导步骤；后续架构更新沿用真正的模板合并。

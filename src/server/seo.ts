@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { ARTICLES, DEFAULT_LOCALE, LOCALES, localePath, site } from '#/config/site'
+import { articlesForLocale, supportsLocalePath, ARTICLES, DEFAULT_LOCALE, LOCALES, localePath, site } from '#/config/site'
 import { absoluteUrl, loadContent } from '#/lib/i18n'
 import type { AppContext } from './types'
 import { isIndexable } from './util'
@@ -8,7 +8,7 @@ export const seoRoutes = new Hono<AppContext>()
 
 // IndexNow 验证文件：site.seo.indexNowKey 非空时在 /<key>.txt 返回 key 本身（npm run seo:indexnow 用它提交 URL）
 const INDEXNOW_PATH = site.seo.indexNowKey ? `/${site.seo.indexNowKey}.txt` : null
-const FEED_PATHS = LOCALES.map((locale) => localePath(locale, '/feed.xml'))
+const FEED_PATHS = LOCALES.filter((locale) => supportsLocalePath(locale, '/feed.xml')).map((locale) => localePath(locale, '/feed.xml'))
 
 // server.ts 用它决定交给 Hono 还是 TanStack
 export function isSeoPath(pathname: string) {
@@ -33,12 +33,13 @@ function escapeXml(value: string) {
 }
 
 // 指南与页面共用文案和日期，不依赖请求时间，也不包含用户视频或账户数据。
-for (const locale of LOCALES) {
+for (const locale of LOCALES.filter((l) => supportsLocalePath(l, '/feed.xml'))) {
   seoRoutes.get(localePath(locale, '/feed.xml'), async (c) => {
     const content = await loadContent(locale)
     const feedUrl = absoluteUrl(localePath(locale, '/feed.xml'))
-    const items = [...ARTICLES].sort((a, b) => b.publishedAt.localeCompare(a.publishedAt)).map((article) => {
+    const items = articlesForLocale(locale).sort((a, b) => b.publishedAt.localeCompare(a.publishedAt)).map((article) => {
       const text = content.articles[article.key]
+      if (!text) return ''
       const url = escapeXml(absoluteUrl(localePath(locale, `/${article.slug}`)))
       return `<item><title>${escapeXml(text.title)}</title><link>${url}</link><guid isPermaLink="true">${url}</guid><description>${escapeXml(text.description)}</description><pubDate>${new Date(`${article.publishedAt}T00:00:00Z`).toUTCString()}</pubDate></item>`
     })
@@ -61,17 +62,21 @@ seoRoutes.get('/sitemap-index.xml', (c) => {
 // 旧地址仍返回同一子地图，兼容已有订阅和搜索引擎记录。
 // 页面 URL 沿用实际 canonical，不额外引入会重定向的尾斜杠。
 seoRoutes.on('GET', ['/sitemap-0.xml', '/sitemap.xml'], (c) => {
-  const urls = PUBLIC_PATHS.flatMap((path) =>
-    LOCALES.map((locale) => {
-      const alternates = [
-        ...LOCALES.map((alt) => `<xhtml:link rel="alternate" hreflang="${alt}" href="${escapeXml(absoluteUrl(localePath(alt, path)))}"/>`),
-        `<xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(absoluteUrl(localePath(DEFAULT_LOCALE, path)))}"/>`,
-      ].join('')
-      const contentPage = path === '/guides' || ARTICLE_PATHS.includes(path)
-      const lastmod = contentPage ? `<lastmod>${new Date(`${lastModified(path)}T00:00:00Z`).toISOString()}</lastmod>` : ''
-      return `<url><loc>${escapeXml(absoluteUrl(localePath(locale, path)))}</loc>${lastmod}${alternates}</url>`
-    }),
-  )
+  const pages = PUBLIC_PATHS.map((path) => ({
+    path,
+    locales: LOCALES.filter((locale) => supportsLocalePath(locale, path)),
+    updatedAt: path === '/guides' || ARTICLE_PATHS.includes(path) ? lastModified(path) : null,
+  }))
+  const urls = pages.flatMap(({ path, locales, updatedAt }) => {
+    const fallback = locales.includes(DEFAULT_LOCALE) ? DEFAULT_LOCALE : locales[0]
+    if (!fallback) return []
+    const alternates = [
+      ...locales.map((alt) => `<xhtml:link rel="alternate" hreflang="${alt}" href="${escapeXml(absoluteUrl(localePath(alt, path)))}"/>`),
+      `<xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(absoluteUrl(localePath(fallback, path)))}"/>`,
+    ].join('')
+    const lastmod = updatedAt ? `<lastmod>${new Date(`${updatedAt}T00:00:00Z`).toISOString()}</lastmod>` : ''
+    return locales.map((locale) => `<url><loc>${escapeXml(absoluteUrl(localePath(locale, path)))}</loc>${lastmod}${alternates}</url>`)
+  })
   const xml = `${XML_DECLARATION}<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">${urls.join('')}</urlset>`
   return c.body(xml, 200, SITEMAP_HEADERS)
 })

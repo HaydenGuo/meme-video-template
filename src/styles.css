@@ -5,6 +5,8 @@
 
 /* 颜色全部走 CSS 变量：换站时改这里的几行即可换肤 */
 :root {
+  --page-width: 1440px;
+  --reading-width: 952px;
   --bg: #f4f0e7;
   --bg-soft: #e9e2d5;
   --card: #fffdf8;
@@ -81,7 +83,8 @@
 
 @layer components {
   .container-page {
-    @apply mx-auto w-full max-w-6xl px-5 sm:px-8;
+    @apply mx-auto w-full px-5;
+    max-width: var(--page-width);
   }
   .eyebrow {
     @apply text-xs font-medium tracking-[0.28em] uppercase;
@@ -320,4 +323,26 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+/* 长文采用独立阅读列；目录随视口切换，锚点避开固定导航。 */
+.article-layout { display: grid; gap: 2rem; }
+.article-body { min-width: 0; max-width: var(--reading-width); }
+.article-toc-desktop { display: none; }
+.article-toc-mobile { margin-block: 1.5rem; padding: 1rem 0; border-block: 1px solid var(--line); }
+.article-toc a { display: block; padding: .4rem 0; font-size: .875rem; line-height: 1.55; color: var(--muted); }
+.article-toc a:hover { color: var(--fg); }
+.article-body section[id] { scroll-margin-top: 6rem; }
+.article-body h1 { font-size: clamp(2.25rem, 4vw, 3.75rem); line-height: 1.12; text-wrap: balance; letter-spacing: -.025em; }
+.article-body .prose-article { font-size: 1.0625rem; }
+.article-body .prose-article p { line-height: 1.85; }
+.article-body .prose-article h2 { font-size: clamp(1.55rem, 2.3vw, 2rem); line-height: 1.25; }
+@media (min-width: 1024px) {
+  .article-layout { grid-template-columns: 192px minmax(0, 1fr); column-gap: 48px; }
+  .article-toc-desktop { display: block; position: sticky; top: 8rem; align-self: start; max-height: calc(100dvh - 10rem); overflow-y: auto; }
+  .article-toc-mobile { display: none; }
+}
+@media (min-width: 1280px) {
+  .article-layout { grid-template-columns: 192px minmax(0, 1fr) 160px; }
+  .article-body { grid-column: 2; }
 }

@@ -1,0 +1,79 @@
+name: Sync template remotely
+
+on:
+  workflow_dispatch:
+    inputs:
+      template_sha:
+        description: Approved full template commit SHA
+        required: true
+        type: string
+      operation:
+        description: Import history or merge an inspected resolution
+        required: true
+        default: import
+        type: choice
+        options: [import, merge]
+      resolution_sha:
+        description: Inspected site resolution commit SHA (merge only)
+        required: false
+        type: string
+      expected_main:
+        description: Expected main SHA (merge only)
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: template-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TEMPLATE_SHA: ${{ inputs.template_sha }}
+      OPERATION: ${{ inputs.operation }}
+      RESOLUTION_SHA: ${{ inputs.resolution_sha }}
+      EXPECTED_MAIN: ${{ inputs.expected_main }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ref: main
+      - name: Import or merge approved template
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:TEMPLATE_SHA -notmatch '^[a-f0-9]{40}$') { throw 'Invalid template SHA' }
+          git fetch --no-tags https://github.com/HaydenGuo/meme-video-template.git $env:TEMPLATE_SHA
+          if ($LASTEXITCODE -ne 0) { throw 'Template fetch failed' }
+          $fetched = (git rev-parse FETCH_HEAD).Trim()
+          if ($fetched -ne $env:TEMPLATE_SHA) { throw 'Unexpected template revision' }
+          if ($env:OPERATION -eq 'import') {
+            git push origin "${fetched}:refs/heads/codex/template-source"
+            if ($LASTEXITCODE -ne 0) { throw 'History import failed' }
+            exit 0
+          }
+          if ($env:RESOLUTION_SHA -notmatch '^[a-f0-9]{40}$' -or $env:EXPECTED_MAIN -notmatch '^[a-f0-9]{40}$') { throw 'Invalid merge inputs' }
+          $actual = (git rev-parse HEAD).Trim()
+          if ($actual -ne $env:EXPECTED_MAIN) { throw 'Main moved; inspect changes before retrying' }
+          git fetch origin $env:RESOLUTION_SHA
+          if ($LASTEXITCODE -ne 0) { throw 'Resolution fetch failed' }
+          git merge-base --is-ancestor $env:EXPECTED_MAIN $env:RESOLUTION_SHA
+          if ($LASTEXITCODE -ne 0) { throw 'Resolution does not descend from expected main' }
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git merge --no-ff --no-commit $env:TEMPLATE_SHA
+          if ($LASTEXITCODE -gt 1) { throw 'Merge failed' }
+          # 使用经审阅的完整树解决冲突，保留真正的双亲合并历史。
+          git read-tree --reset -u $env:RESOLUTION_SHA
+          if ($LASTEXITCODE -ne 0) { throw 'Resolution tree failed' }
+          git commit -m "Merge template locale and reading improvements" -m "Template-sync: $env:TEMPLATE_SHA"
+          if ($LASTEXITCODE -ne 0) { throw 'Merge commit failed' }
+          git push origin HEAD:refs/heads/main
+          if ($LASTEXITCODE -ne 0) { throw 'Main push failed' }
+          "Template: $env:TEMPLATE_SHA" >> $env:GITHUB_STEP_SUMMARY
+          "Merged: $(git rev-parse HEAD)" >> $env:GITHUB_STEP_SUMMARY

@@ -1,6 +1,6 @@
 import { ArrowRight, Plus } from 'lucide-react'
-import { articlePath, type ArticleKey } from '#/config/site'
-import { useContent } from '#/lib/i18n'
+import { articlePath, supportsLocalePath, type ArticleKey } from '#/config/site'
+import { useContent, useLocale } from '#/lib/i18n'
 import { LocalLink } from './ui'
 
 export function Faq() {
@@ -19,6 +19,7 @@ export function Faq() {
 }
 
 export function FaqList({ items }: { items: Array<{ q: string; a: string; guide?: { article: ArticleKey; label: string } }> }) {
+  const locale = useLocale()
   return (
     <div className="divide-y divide-line border-y border-line">
       {items.map((item) => (
@@ -28,7 +29,7 @@ export function FaqList({ items }: { items: Array<{ q: string; a: string; guide?
             <Plus className="size-4 shrink-0 transition group-open:rotate-45" />
           </summary>
           <p className="mt-3 leading-7 text-muted">{item.a}</p>
-          {item.guide ? (
+          {item.guide && supportsLocalePath(locale, articlePath(item.guide.article)) ? (
             <LocalLink to={articlePath(item.guide.article)} className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold hover:text-accent">
               {item.guide.label} <ArrowRight className="size-4" />
             </LocalLink>

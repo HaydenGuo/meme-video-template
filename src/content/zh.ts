@@ -472,6 +472,7 @@ export function zh(s: S): Content {
       maintenance: '系统维护中，暂停生成新视频和购买，稍后恢复。已有的视频和积分不受影响。',
     },
     guides: {
+      toc: "本页目录",
       nav: '指南',
       title: `${k} 指南`,
       metaTitle: `${k} AI 视频指南 – ${b}`,

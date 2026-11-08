@@ -1,5 +1,5 @@
 import { useRouterState } from '@tanstack/react-router'
-import { DEFAULT_LOCALE, LOCALE_META, LOCALES, isLocale, localePath, site, type Locale } from '#/config/site'
+import { DEFAULT_LOCALE, LOCALE_META, LOCALES, isLocale, supportsLocalePath, localePath, site, type Locale } from '#/config/site'
 import type { Content } from '#/content/en'
 
 // 文案按语言拆包：每种语言一个 chunk，浏览器只下载当前语言。加载时机：
@@ -65,7 +65,8 @@ export function stripLocale(pathname: string) {
 }
 
 export function switchLocalePath(pathname: string, target: Locale) {
-  return localePath(target, stripLocale(pathname))
+  const path = stripLocale(pathname)
+  return localePath(target, supportsLocalePath(target, path) ? path : '/guides')
 }
 
 export function htmlLang(locale: Locale) {
@@ -91,6 +92,8 @@ export function absoluteUrl(path: string) {
 
 // 每个页面的 SEO head：title/description/canonical/hreflang/OG
 export function pageHead(locale: Locale, path: string, title: string, description: string) {
+  const locales = LOCALES.filter((l) => supportsLocalePath(l, path))
+  const fallback = locales.includes(DEFAULT_LOCALE) ? DEFAULT_LOCALE : locales[0] ?? DEFAULT_LOCALE
   const canonical = absoluteUrl(localePath(locale, path))
   return {
     meta: [
@@ -107,8 +110,8 @@ export function pageHead(locale: Locale, path: string, title: string, descriptio
     links: [
       { rel: 'canonical', href: canonical },
       { rel: 'alternate', type: 'application/rss+xml', title: getContent(locale).guides.title, href: absoluteUrl(localePath(locale, '/feed.xml')) },
-      ...LOCALES.map((l) => ({ rel: 'alternate', hrefLang: l, href: absoluteUrl(localePath(l, path)) })),
-      { rel: 'alternate', hrefLang: 'x-default', href: absoluteUrl(localePath(DEFAULT_LOCALE, path)) },
+      ...locales.map((l) => ({ rel: 'alternate', hrefLang: l, href: absoluteUrl(localePath(l, path)) })),
+      { rel: 'alternate', hrefLang: 'x-default', href: absoluteUrl(localePath(fallback, path)) },
     ],
   }
 }

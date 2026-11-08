@@ -103,10 +103,10 @@ function Home() {
             </div>
             <div className="home-hero-links flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm font-medium">
               <LocalLink to={articlePath('trend')} className="inline-flex items-center gap-1.5 hover:text-accent">
-                {c.articles.trend.title} <ArrowRight className="size-4" />
+                {c.articles.trend?.title ?? c.whatIs.guide} <ArrowRight className="size-4" />
               </LocalLink>
               <LocalLink to={articlePath('howTo')} className="inline-flex items-center gap-1.5 hover:text-accent">
-                {c.articles.howTo.title} <ArrowRight className="size-4" />
+                {c.articles.howTo?.title ?? c.howTo.guide} <ArrowRight className="size-4" />
               </LocalLink>
             </div>
           </div>

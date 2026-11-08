@@ -2,17 +2,20 @@
 // 文案在 src/content/<locale>.ts，通过 {keyword} 等变量自动套用。
 
 // 支持的语言全集；LOCALES 只启用当前站点实际提供了文案的语言。
-export const KNOWN_LOCALES = ['en', 'zh', 'de'] as const
+export const KNOWN_LOCALES = ['en', 'zh', 'de', 'es'] as const
 export type KnownLocale = (typeof KNOWN_LOCALES)[number]
 export const LOCALES = ['en', 'zh'] as const satisfies readonly KnownLocale[]
 export type Locale = (typeof LOCALES)[number]
 export const DEFAULT_LOCALE: Locale = 'en'
+// 未配置的语言提供全部静态页；局部翻译站点可显式限定页面。
+export const LOCALE_STATIC_PATHS: Partial<Record<KnownLocale, readonly string[]>> = {}
 
 // 每种支持语言的 BCP 47 标签（<html lang>、日期格式、Turnstile）、og:locale 和切换器里显示的自称。
 // 启用新语言时更新 KNOWN_LOCALES 和元数据，并在 src/config/site.ts 的 LOCALES 启用及提供 src/content/<locale>.ts。
 export const LOCALE_META: Record<KnownLocale, { tag: string; ogLocale: string; name: string }> = {
   en: { tag: 'en', ogLocale: 'en_US', name: 'English' },
   zh: { tag: 'zh-CN', ogLocale: 'zh_CN', name: '简体中文' },
+  es: { tag: 'es', ogLocale: 'es_ES', name: 'Español' },
   de: { tag: 'de', ogLocale: 'de_DE', name: 'Deutsch' },
 }
 
@@ -230,21 +233,45 @@ export interface Article {
   slug: string
   publishedAt: string
   updatedAt: string
+  locales?: readonly KnownLocale[]
+  slugs?: Partial<Record<KnownLocale, string>>
   related?: readonly ArticleKey[]
-  sources?: readonly { url: string; name: Readonly<Record<Locale, string>> }[]
+  sources?: readonly { url: string; name: Readonly<Partial<Record<KnownLocale, string>>> }[]
   cover?: string
   styleDemo?: boolean
 }
 export const ARTICLES: readonly Article[] = site.articles
 
-export function findArticle(slug: string) {
-  return ARTICLES.find((a) => a.slug === slug)
+export function articleLocales(article: Article): Locale[] {
+  return LOCALES.filter((locale) => !article.locales || article.locales.includes(locale))
+}
+
+export function articleSlug(article: Article, locale: Locale): string {
+  return article.slugs?.[locale] ?? article.slug
+}
+
+export function articlesForLocale(locale: Locale): Article[] {
+  return ARTICLES.filter((article) => articleLocales(article).includes(locale))
+}
+
+export function findArticle(slug: string, locale?: Locale) {
+  return ARTICLES.find((article) => locale
+    ? articleLocales(article).includes(locale) && articleSlug(article, locale) === slug
+    : article.slug === slug || Object.values(article.slugs ?? {}).includes(slug))
 }
 
 export function articlePath(key: ArticleKey) {
   const article = ARTICLES.find((a) => a.key === key)
   if (!article) throw new Error(`Unknown article: ${key}`)
   return `/${article.slug}`
+}
+
+export function supportsLocalePath(locale: Locale, path: string): boolean {
+  const clean = path.split(/[?#]/)[0] || '/'
+  const article = findArticle(clean.slice(1))
+  if (article) return articleLocales(article).includes(locale)
+  const paths = LOCALE_STATIC_PATHS[locale]
+  return !paths || paths.includes(clean)
 }
 
 export function relatedArticles(article: Article, limit = 3): Article[] {
@@ -260,8 +287,12 @@ export function isLocale(value: string | undefined): value is Locale {
 
 export function localePath(locale: Locale, path: string) {
   const clean = path.startsWith('/') ? path : `/${path}`
-  if (locale === DEFAULT_LOCALE) return clean
-  return clean === '/' ? `/${locale}` : `/${locale}${clean}`
+  const match = clean.match(/^([^?#]*)(.*)$/)!
+  const article = findArticle(match[1].slice(1))
+  const target = supportsLocalePath(locale, match[1]) ? locale : DEFAULT_LOCALE
+  const resolved = article ? `/${articleSlug(article, target)}${match[2]}` : clean
+  if (target === DEFAULT_LOCALE) return resolved
+  return resolved === '/' ? `/${target}` : `/${target}${resolved}`
 }
 
 export function formatPrice(cents: number, currency: string) {

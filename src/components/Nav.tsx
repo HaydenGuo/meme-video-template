@@ -1,8 +1,8 @@
 import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { ChevronDown, Languages, LogOut, Menu, Moon, Sun, X } from 'lucide-react'
 import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react'
-import { LOCALE_META, LOCALES } from '#/config/site'
-import { htmlLang, switchLocalePath, useContent, useLocale, useLocalePath } from '#/lib/i18n'
+import { LOCALE_META, LOCALES, supportsLocalePath } from '#/config/site'
+import { stripLocale, htmlLang, switchLocalePath, useContent, useLocale, useLocalePath } from '#/lib/i18n'
 import { useSession } from '#/lib/session'
 import { featureEnabled } from '#/lib/api'
 import { LocalLink, Logo } from './ui'
@@ -170,7 +170,7 @@ export function useLocaleLinks() {
   const current = useLocale()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const search = useRouterState({ select: (s) => s.location.searchStr })
-  return LOCALES.map((locale) => ({
+  return LOCALES.filter((locale) => supportsLocalePath(locale, stripLocale(pathname))).map((locale) => ({
     locale,
     current: locale === current,
     href: switchLocalePath(pathname, locale) + (search ?? ''),

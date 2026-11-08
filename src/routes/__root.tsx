@@ -1,14 +1,14 @@
 /// <reference types="vite/client" />
-import { HeadContent, Outlet, Scripts, createRootRoute, useRouterState, type ErrorComponentProps } from '@tanstack/react-router'
+import { notFound, HeadContent, Outlet, Scripts, createRootRoute, useRouterState, type ErrorComponentProps } from '@tanstack/react-router'
 import { useEffect, useState, type ReactNode } from 'react'
 import { ConsentBanner } from '#/components/ConsentBanner'
 import { Footer } from '#/components/Footer'
 import { Nav } from '#/components/Nav'
 import { LocalLink } from '#/components/ui'
-import { site } from '#/config/site'
+import { site, supportsLocalePath } from '#/config/site'
 import { ga4BootstrapScript } from '#/lib/consent'
 import { installErrorReporting, reportClientError } from '#/lib/error-report'
-import { htmlLang, loadContent, localeFromPathname, useContent } from '#/lib/i18n'
+import { stripLocale, htmlLang, loadContent, localeFromPathname, useContent } from '#/lib/i18n'
 import { SessionProvider } from '#/lib/session'
 import css from '../styles.css?url'
 
@@ -34,7 +34,9 @@ function headScripts() {
 export const Route = createRootRoute({
   // 当前语言的文案（按语言拆包，见 lib/i18n.ts）；已加载时立即返回
   beforeLoad: async ({ location }) => {
-    await loadContent(localeFromPathname(location.pathname))
+    const locale = localeFromPathname(location.pathname)
+    await loadContent(locale)
+    if (!supportsLocalePath(locale, stripLocale(location.pathname))) throw notFound()
   },
   head: () => ({
     meta: [

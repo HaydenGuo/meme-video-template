@@ -1,7 +1,7 @@
 import { LifeBuoy } from 'lucide-react'
-import { ARTICLES, site } from '#/config/site'
+import { articlesForLocale, site } from '#/config/site'
 import { CONSENT_OPEN_EVENT } from '#/lib/consent'
-import { useContent } from '#/lib/i18n'
+import { useContent, useLocale } from '#/lib/i18n'
 import { LanguageLinks } from './Nav'
 import { LocalLink, LogoMark } from './ui'
 
@@ -10,12 +10,13 @@ const FOOTER_ARTICLES = 3
 
 export function Footer() {
   const c = useContent()
+  const locale = useLocale()
   const columns = [
     {
       title: c.footer.resources,
       links: [
         { to: '/guides', label: c.guides.nav },
-        ...ARTICLES.slice(0, FOOTER_ARTICLES).map((article) => ({ to: `/${article.slug}`, label: c.articles[article.key].title })),
+        ...articlesForLocale(locale).filter((article) => c.articles[article.key]).slice(0, FOOTER_ARTICLES).map((article) => ({ to: `/${article.slug}`, label: c.articles[article.key]!.title })),
         { to: '/pricing', label: c.nav.pricing },
         { to: '/contact', label: c.footer.contact },
       ],

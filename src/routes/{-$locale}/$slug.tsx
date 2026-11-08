@@ -3,7 +3,7 @@ import { ArticleCards } from '#/components/ArticleCards'
 import { FaqList, faqJsonLd } from '#/components/Faq'
 import { VideoCard } from '#/components/VideoCard'
 import { Breadcrumbs, formatDay } from '#/components/ui'
-import { findArticle, relatedArticles, site } from '#/config/site'
+import { DEFAULT_LOCALE, articlesForLocale, findArticle, relatedArticles, site } from '#/config/site'
 import { absoluteUrl, getContent, localeFromParam, pageHead, useContent, useLocale, useLocalePath } from '#/lib/i18n'
 import { articleJsonLd, breadcrumbJsonLd, jsonLdScript } from '#/lib/seo'
 
@@ -13,8 +13,9 @@ export const Route = createFileRoute('/{-$locale}/$slug')({
     parse: (raw) => (findArticle(raw.slug) ? raw : false),
   },
   loader: ({ params }) => {
-    const article = findArticle(params.slug)
-    if (!article) throw notFound()
+    const locale = localeFromParam(params.locale)
+    const article = findArticle(params.slug, locale)
+    if (!article || !getContent(locale).articles[article.key]) throw notFound()
     return { article }
   },
   head: ({ params, loaderData }) => {
@@ -23,8 +24,9 @@ export const Route = createFileRoute('/{-$locale}/$slug')({
     const locale = localeFromParam(params.locale)
     const c = getContent(locale)
     const text = c.articles[article.key]
+    if (!text) return {}
     const path = `/${article.slug}`
-    const head = pageHead(locale, path, `${text.title} | ${site.brandName}`, text.description)
+    const head = pageHead(locale, path, text.metaTitle ?? `${text.title} | ${site.brandName}`, text.description)
     return {
       ...head,
       meta: [
@@ -64,9 +66,14 @@ function ArticlePage() {
   const locale = useLocale()
   const lp = useLocalePath()
   const text = c.articles[article.key]
-  const related = relatedArticles(article)
+  if (!text) throw notFound()
+  const related = relatedArticles(article, articlesForLocale(locale).length).filter((a) => articlesForLocale(locale).includes(a) && c.articles[a.key]).slice(0, 3)
+  const toc = text.sections.map((section, index) => ({ id: `section-${index + 1}`, label: section.h }))
+  const tocLinks = <ul>{toc.map((item) => <li key={item.id}><a href={`#${item.id}`}>{item.label}</a></li>)}</ul>
   return (
-    <article className="container-page max-w-3xl py-16">
+    <article className="container-page article-layout py-10 sm:py-16">
+      <aside className="article-toc article-toc-desktop" aria-label={c.guides.toc}><p className="eyebrow mb-4">{c.guides.toc}</p>{tocLinks}</aside>
+      <div className="article-body">
       <Breadcrumbs items={breadcrumbItems(c, text.title, `/${article.slug}`)} />
       <h1 className="font-display text-5xl leading-tight">{text.title}</h1>
       <p className="mt-4 text-sm text-muted">
@@ -85,13 +92,16 @@ function ArticlePage() {
           </div>
         </section>
       ) : null}
+      {text.image ? <img src={text.image.src} alt={text.image.alt} width={text.image.width} height={text.image.height} className="mt-8 h-auto w-full rounded-2xl border border-line" loading="lazy" /> : null}
+      <details className="article-toc article-toc-mobile"><summary className="cursor-pointer font-semibold">{c.guides.toc}</summary>{tocLinks}</details>
       <div className="prose-article mt-6">
-        {text.sections.map((section) => (
-          <section key={section.h}>
+        {text.sections.map((section, index) => (
+          <section id={`section-${index + 1}`} key={section.h}>
             <h2>{section.h}</h2>
             {section.p.map((paragraph) => (
               <p key={paragraph}>{paragraph}</p>
             ))}
+            {section.links?.map((link) => <p key={link.href}><a href={link.href.startsWith('/') ? lp(link.href) : link.href}>{link.label}</a></p>)}
           </section>
         ))}
       </div>
@@ -106,7 +116,7 @@ function ArticlePage() {
           <h2 id="article-sources" className="font-display text-2xl">{c.common.sources}</h2>
           <ul className="mt-4 list-disc space-y-2 pl-5">
             {article.sources.map((source) => (
-              <li key={source.url}><a className="underline underline-offset-4" href={source.url}>{source.name[locale]}</a></li>
+              <li key={source.url}><a className="underline underline-offset-4" href={source.url}>{source.name[locale] ?? source.name[DEFAULT_LOCALE] ?? source.url}</a></li>
             ))}
           </ul>
         </section>
@@ -125,6 +135,7 @@ function ArticlePage() {
           <ArticleCards articles={related} headingLevel={3} />
         </aside>
       ) : null}
+      </div>
     </article>
   )
 }
