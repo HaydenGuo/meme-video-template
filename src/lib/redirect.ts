@@ -1,3 +1,5 @@
+import { DEFAULT_LOCALE, isLocale } from '#/config/site'
+
 // 登录后的跳转地址只允许站内路径（服务端 Google 回调和登录页共用）。
 // 浏览器解析 URL 时把 \ 当 /、丢掉 tab 和换行，"/\evil.com"、"/\t/evil.com" 都会变成 https://evil.com/，
 // 所以除了拒绝 // 开头，还要拒绝反斜杠和控制字符；"/..//evil.com" 规范化后又是 "//evil.com"，
@@ -9,4 +11,10 @@ export function safeRedirectPath(value: string | null | undefined, fallback: str
   const url = new URL(value, BASE)
   const path = `${url.pathname}${url.search}${url.hash}`
   return url.origin === BASE && !path.startsWith('//') ? path : fallback
+}
+
+// 从经过站内校验的回跳路径取得语言，未知路径使用默认语言。
+export function redirectLocale(value: string | null | undefined) {
+  const segment = safeRedirectPath(value, '/').split(/[/?#]/)[1]
+  return isLocale(segment) ? segment : DEFAULT_LOCALE
 }

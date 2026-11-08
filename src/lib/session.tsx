@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { api, errorCode, type ClientConfig, type PublicUser } from './api'
-import { site } from '#/config/site'
+import { localePath, site } from '#/config/site'
+import { redirectLocale } from './redirect'
 import { captureAttribution, track } from './attribution'
 import { trackGoogleLoginReturn } from './analytics'
 
@@ -106,13 +107,13 @@ function GoogleOneTap({ clientId, onSignedIn }: { clientId: string; onSignedIn: 
         use_fedcm_for_prompt: true,
         callback: async ({ credential }: { credential: string }) => {
           try {
-            await api('/api/auth/google/one-tap', { json: { credential } })
+            await api('/api/auth/google/one-tap', { json: { credential, locale: redirectLocale(location.pathname) } })
             track('login', { method: 'google' })
             await onSignedIn()
           } catch (error) {
             const code = errorCode(error)
             // 账号问题要让用户看到原因（例如这个邮箱已绑定另一个 Google 账号），其余失败只记日志
-            if (code.startsWith('account_')) location.href = `/sign-in?error=${encodeURIComponent(code)}`
+            if (code.startsWith('account_')) location.href = `${localePath(redirectLocale(location.pathname), '/sign-in')}?error=${encodeURIComponent(code)}&redirect=${encodeURIComponent(location.pathname + location.search + location.hash)}`
             else console.error('one tap failed', error)
           }
         },

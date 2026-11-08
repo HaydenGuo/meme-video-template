@@ -85,14 +85,15 @@ type Referral = { enabled: false } | { enabled: true; url: string; rewardPercent
 // 邀请好友：关闭邀请奖励（site.referralRewardPercent = 0）或加载失败时不显示
 function ReferralCard() {
   const s = useContent().settings
+  const locale = useLocale()
   const [referral, setReferral] = useState<Referral | null>(null)
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
-    api<Referral>('/api/referral')
+    api<Referral>(`/api/referral?locale=${encodeURIComponent(locale)}`)
       .then(setReferral)
       .catch(() => setReferral(null))
-  }, [])
+  }, [locale])
 
   if (!referral?.enabled) return null
   const { url } = referral

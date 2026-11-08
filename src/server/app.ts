@@ -3,7 +3,7 @@ import { resolveFeatures } from './config-health'
 import type { ContentfulStatusCode } from 'hono/utils/http-status'
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import { findDuration, findPackage, findPlan, isLocale, localePath, sellingPlans, site } from '#/config/site'
-import { safeRedirectPath } from '#/lib/redirect'
+import { redirectLocale, safeRedirectPath } from '#/lib/redirect'
 import { exportFileName, exportUserData } from './account-export'
 import { adminRoutes } from './admin'
 import { runHealthCheck } from './alerts'
@@ -258,12 +258,14 @@ app.get('/api/auth/google/start', async (c) => {
 
 app.get('/api/auth/google/callback', async (c) => {
   const [expectedState, verifier, nonce, ...rest] = (getCookie(c, 'oauth_state') ?? '').split('|')
-  const redirectTo = rest.join('|')
+  const redirectTo = safeRedirectPath(rest.join('|'), '/dashboard')
+  const locale = redirectLocale(redirectTo)
+  const signInPath = localePath(locale, '/sign-in')
   deleteCookie(c, 'oauth_state', { path: '/api/auth/google' })
   const state = c.req.query('state') ?? ''
   const code = c.req.query('code')
   if (!expectedState || !verifier || !nonce || !code || !constantTimeEqual(state, expectedState)) {
-    return c.redirect('/sign-in?error=oauth_state')
+    return c.redirect(`${signInPath}?error=oauth_state&redirect=${encodeURIComponent(redirectTo)}`)
   }
   const config = googleOAuthConfig(c.env, new URL(c.env.SITE_URL).origin)
   if (!config) throw new ApiError(503, 'google_not_configured')
@@ -275,15 +277,16 @@ app.get('/api/auth/google/callback', async (c) => {
       picture: profile.picture,
       googleSub: profile.sub,
       country: c.req.header('cf-ipcountry') ?? null,
-      locale: null,
+      locale,
       attribution: requestAttribution(c, 'first'),
       referral: await requestReferral(c),
     })
+    await rememberLocale(c.env, user, locale)
     await startSession(c, user.id)
   } catch (error) {
     const code = error instanceof ApiError ? error.code : 'oauth_failed'
     if (!(error instanceof ApiError)) console.error(error)
-    return c.redirect(`/sign-in?error=${code}`)
+    return c.redirect(`${signInPath}?error=${encodeURIComponent(code)}&redirect=${encodeURIComponent(redirectTo)}`)
   }
   return c.redirect(safeRedirectPath(redirectTo, '/dashboard'))
 })
@@ -307,7 +310,7 @@ app.post('/api/auth/google/one-tap', async (c) => {
   await rateLimit(c.env.AUTH_LIMITER, c.req.header('cf-connecting-ip') ?? 'local')
   const clientId = googleClientId(c.env)
   if (!clientId) throw new ApiError(503, 'google_not_configured')
-  const { credential } = await readJson<{ credential: string }>(c)
+  const { credential, locale } = await readJson<{ credential: string; locale?: string }>(c)
   if (!credential) throw new ApiError(400, 'missing_credential')
   const nonce = getCookie(c, ONE_TAP_NONCE_COOKIE) ?? ''
   deleteCookie(c, ONE_TAP_NONCE_COOKIE, { path: '/api/auth/google', secure: isProduction(c.env) })
@@ -318,10 +321,11 @@ app.post('/api/auth/google/one-tap', async (c) => {
     picture: profile.picture,
     googleSub: profile.sub,
     country: c.req.header('cf-ipcountry') ?? null,
-    locale: null,
+    locale: isLocale(locale) ? locale : null,
     attribution: requestAttribution(c, 'first'),
     referral: await requestReferral(c),
   })
+  await rememberLocale(c.env, user, isLocale(locale) ? locale : undefined)
   await startSession(c, user.id)
   return c.json({ user: publicUser(user) })
 })
@@ -556,7 +560,9 @@ app.get('/i/:code', async (c) => {
     setCookie(c, REFERRAL_COOKIE, code, { httpOnly: true, secure: isProduction(c.env), sameSite: 'Lax', path: '/', maxAge: 30 * 86400 })
   }
   c.header('X-Robots-Tag', 'noindex')
-  return c.redirect('/?ref=invite', 302)
+  const locale = c.req.query('locale')
+  const home = isLocale(locale) ? localePath(locale, '/') : '/'
+  return c.redirect(`${home}?ref=invite`, 302)
 })
 
 // 邀请卡片：第一次打开时生成邀请码
@@ -565,10 +571,12 @@ app.get('/api/referral', async (c) => {
   const { referralRewardPercent } = await getSettings(c.env)
   if (referralRewardPercent <= 0) return c.json({ enabled: false })
   const code = await ensureReferralCode(c.env.DB, user.id)
+  const locale = c.req.query('locale')
+  const localeQuery = isLocale(locale) ? `?locale=${encodeURIComponent(locale)}` : ''
   return c.json({
     enabled: true,
     code,
-    url: `${new URL(c.req.url).origin}/i/${code}`,
+    url: `${new URL(c.req.url).origin}/i/${code}${localeQuery}`,
     rewardPercent: referralRewardPercent,
     ...(await referralSummary(c.env.DB, user.id)),
   })

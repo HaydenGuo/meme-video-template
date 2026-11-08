@@ -405,3 +405,6 @@
 文章可用 `locales` 限定语言，并用 `slugs` 配置翻译路径；未翻译文章不进入该语言的指南、RSS、sitemap 或 hreflang。`LOCALE_STATIC_PATHS` 可限制新增语言的公开页面。文章支持独立 `metaTitle`、带说明的配图和段落后链接。阅读页提供桌面固定目录与手机折叠目录，外框最大 1440px、正文最大 952px。
 
 `Sync template remotely` 工作流供不下载本地源码的维护使用：先导入明确 SHA 的公开模板历史，再用 `git merge` 与已审阅的站点 resolution tree 合并；更新 main 前校验预期 SHA。首次引入工作流是远程同步的引导步骤；后续架构更新沿用真正的模板合并。
+
+
+- 2026-11-08：修复 Google 登录错误回跳、One Tap 用户语言和邀请链接的语言丢失；补齐西语用户通知模板，保持管理员邮件中文。

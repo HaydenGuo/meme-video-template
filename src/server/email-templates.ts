@@ -55,6 +55,7 @@ function date(ctx: Ctx, iso: string, withTime = false) {
 }
 
 const AI_FOOTER: Partial<Record<KnownLocale, string>> = {
+  es: `Los videos creados con ${brand} son generados con IA. Indícalo al compartirlos.`,
   en: `Videos made with ${brand} are AI-generated. Please label them as AI when you share them.`,
   zh: `${brand} 生成的视频均为 AI 生成，分享时请注明。`,
   de: `Mit ${brand} erstellte Videos sind KI-generiert. Kennzeichne sie beim Teilen als KI-generiert.`,
@@ -126,8 +127,73 @@ const ALERTS_ZH: Record<AlertKind, (p: AlertParams) => { title: string; summary:
   }),
 }
 
+const userTemplatesEs = {
+  auth_code: (p: TemplateParams['auth_code']) => ({
+    subject: `${brand}: restablece tu contraseña`,
+    heading: 'Restablece tu contraseña',
+    paragraphs: [`Tu código de verificación es ${p.code}. Caduca en ${p.minutes} minutos y solo puede usarse una vez.`, 'No compartas este código. Si no lo has solicitado, ignora este correo.'],
+  }),
+  generation_succeeded: (p: TemplateParams['generation_succeeded'], ctx: Ctx) => ({
+    subject: `Tu video de ${brand} está listo`,
+    heading: 'Tu video está listo',
+    paragraphs: [
+      'Ya puedes ver y descargar tu video con IA.',
+      p.expiresAt ? `Lo conservaremos hasta el ${date(ctx, p.expiresAt)} y después se eliminará automáticamente. Descarga una copia si quieres guardarlo.` : '',
+    ],
+    cta: { label: 'Abrir mis videos', url: link(ctx, '/dashboard') },
+    footer: AI_FOOTER.es,
+  }),
+  generation_failed: (p: TemplateParams['generation_failed'], ctx: Ctx) => ({
+    subject: `Tu video de ${brand} ha fallado; créditos devueltos`,
+    heading: 'No hemos podido crear tu video',
+    paragraphs: [
+      `Se ha producido un error al generar tu video. Hemos devuelto ${p.credits} créditos a tu saldo.`,
+      'Puedes volver a intentarlo con la misma foto o usar una foto frontal y nítida.',
+    ],
+    cta: { label: 'Volver a intentarlo', url: link(ctx, '/') },
+  }),
+  order_paid: (p: TemplateParams['order_paid'], ctx: Ctx) => ({
+    subject: `${p.credits} créditos añadidos a tu cuenta de ${brand}`,
+    heading: 'Créditos añadidos',
+    paragraphs: [
+      `¡Gracias por tu compra! Se han añadido ${p.credits} créditos a tu cuenta (pedido ${p.orderId}, ${p.amount}).`,
+      'Nuestro proveedor de pagos te enviará el recibo por separado.',
+    ],
+    cta: { label: 'Crear un video', url: link(ctx, '/') },
+  }),
+  takedown_received: (p: TemplateParams['takedown_received'], ctx: Ctx) => ({
+    subject: `Hemos recibido tu denuncia (${p.reportId})`,
+    heading: 'Denuncia recibida',
+    paragraphs: [
+      `Referencia: ${p.reportId}. La revisaremos antes del ${date(ctx, p.dueAt, true)} y te enviaremos el resultado por correo.`,
+      'Para añadir información, como un enlace o el nombre del archivo de video, responde a este correo.',
+    ],
+  }),
+  takedown_resolved: (p: TemplateParams['takedown_resolved']) => ({
+    subject: `Novedades sobre tu denuncia (${p.reportId})`,
+    heading: p.outcome === 'removed' ? 'Contenido retirado' : 'No se han tomado medidas',
+    paragraphs: p.outcome === 'removed'
+      ? ['Hemos revisado tu denuncia y retirado el contenido. La foto original está bloqueada para impedir que vuelva a subirse.']
+      : [
+          'Con la información recibida, no hemos podido identificar el contenido que se debe retirar.',
+          'Si tienes un enlace o el nombre del archivo de video (contiene un ID que empieza por gen_), responde a este correo y lo revisaremos de nuevo.',
+        ],
+  }),
+  content_removed: (p: TemplateParams['content_removed']) => ({
+    subject: `Se ha retirado un video de tu cuenta de ${brand}`,
+    heading: 'Video retirado',
+    paragraphs: [
+      `Tras recibir una denuncia (${p.reportId}), hemos retirado ${p.videos} ${p.videos === 1 ? 'video creado' : 'videos creados'} con la misma foto y hemos bloqueado esa foto para futuras subidas.`,
+      'Sube solo fotos tuyas o de personas que hayan dado su consentimiento. Si crees que se trata de un error, responde a este correo.',
+    ],
+  }),
+}
+
+
+
 const USER_TEMPLATES: { [K in UserTemplate]: Partial<Record<KnownLocale, Render<K>>> & Record<'en', Render<K>> } = {
   auth_code: {
+    es: userTemplatesEs.auth_code,
     en: (p) => ({
       subject: `${brand}: reset your password`,
       heading: 'Reset your password',
@@ -145,6 +211,7 @@ const USER_TEMPLATES: { [K in UserTemplate]: Partial<Record<KnownLocale, Render<
     }),
   },
   generation_succeeded: {
+    es: userTemplatesEs.generation_succeeded,
     en: (p, ctx) => ({
       subject: `Your ${brand} video is ready`,
       heading: 'Your video is ready',
@@ -170,6 +237,7 @@ const USER_TEMPLATES: { [K in UserTemplate]: Partial<Record<KnownLocale, Render<
   },
 
   generation_failed: {
+    es: userTemplatesEs.generation_failed,
     en: (p, ctx) => ({
       subject: `Your ${brand} video failed — credits refunded`,
       heading: "We couldn't make your video",
@@ -193,6 +261,7 @@ const USER_TEMPLATES: { [K in UserTemplate]: Partial<Record<KnownLocale, Render<
   },
 
   order_paid: {
+    es: userTemplatesEs.order_paid,
     en: (p, ctx) => ({
       subject: `${p.credits} credits added to your ${brand} account`,
       heading: 'Credits added',
@@ -216,6 +285,7 @@ const USER_TEMPLATES: { [K in UserTemplate]: Partial<Record<KnownLocale, Render<
   },
 
   takedown_received: {
+    es: userTemplatesEs.takedown_received,
     en: (p, ctx) => ({
       subject: `We received your report (${p.reportId})`,
       heading: 'Report received',
@@ -239,6 +309,7 @@ const USER_TEMPLATES: { [K in UserTemplate]: Partial<Record<KnownLocale, Render<
   },
 
   takedown_resolved: {
+    es: userTemplatesEs.takedown_resolved,
     en: (p) => ({
       subject: `Update on your report (${p.reportId})`,
       heading: p.outcome === 'removed' ? 'Content removed' : 'No action taken',
@@ -271,6 +342,7 @@ const USER_TEMPLATES: { [K in UserTemplate]: Partial<Record<KnownLocale, Render<
   },
 
   content_removed: {
+    es: userTemplatesEs.content_removed,
     en: (p) => ({
       subject: `A video in your ${brand} account was removed`,
       heading: 'Video removed',
