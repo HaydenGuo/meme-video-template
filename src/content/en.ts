@@ -6,6 +6,7 @@ import { reviewPoliciesEn } from './review-policies-en'
 type S = typeof Site
 export type ArticleContent = { metaTitle?: string; image?: { src: string; alt: string; width: number; height: number }; title: string; description: string; intro: string; sections: Array<{ h: string; p: string[]; links?: Array<{ href: string; label: string }> }>; faq?: Array<{ q: string; a: string }> }
 // FAQ 答案可附一条文章链接；锚文本用与文章标题不同的长尾词
+export type ArticleCollection = Partial<Record<ArticleKey, ArticleContent>> & Record<'trend' | 'howTo', ArticleContent>
 type FaqItem = { q: string; a: string; guide?: { article: ArticleKey; label: string } }
 // 首页可选转化区块，设为 null 就不渲染。痛点只写不用本站时的麻烦，不提产品；对比逐行写“自己做”和“用本站”，不承诺生成效果
 type ProblemBlock = { eyebrow: string; title: string; items: Array<{ title: string; body: string }> }
@@ -686,8 +687,8 @@ export function en(s: S) {
           { q: 'Which photo should I use?', a: 'Choose a recent, clear photo of one adult facing the camera in even light. Avoid sunglasses, face coverings and heavy filters.' },
         ],
       },
-    } as Partial<Record<ArticleKey, ArticleContent>>,
+    } as ArticleCollection,
   }
 }
 
-export type Content = Omit<ReturnType<typeof en>, 'articles'> & { articles: Partial<Record<ArticleKey, ArticleContent>> }
+export type Content = Omit<ReturnType<typeof en>, 'articles'> & { articles: ArticleCollection }

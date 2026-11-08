@@ -67,7 +67,7 @@ function ArticlePage() {
   const lp = useLocalePath()
   const text = c.articles[article.key]
   if (!text) throw notFound()
-  const related = relatedArticles(article, articlesForLocale(locale).length).filter((a) => articlesForLocale(locale).includes(a) && c.articles[a.key]).slice(0, 3)
+  const related = relatedArticles(article, Number.MAX_SAFE_INTEGER).filter((a) => articlesForLocale(locale).includes(a) && c.articles[a.key]).slice(0, 3)
   const toc = text.sections.map((section, index) => ({ id: `section-${index + 1}`, label: section.h }))
   const tocLinks = <ul>{toc.map((item) => <li key={item.id}><a href={`#${item.id}`}>{item.label}</a></li>)}</ul>
   return (
