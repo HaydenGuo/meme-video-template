@@ -1,7 +1,7 @@
 import { DEFAULT_LOCALE, LOCALE_META, isLocale, localePath, site, type KnownLocale, type Locale } from '#/config/site'
 import type { AlertKind } from './alerts'
 
-// 交易邮件模板。用户邮件每种语言一份（新增语言时类型检查会要求补齐），管理员邮件固定中文（后台是中文）。
+// 交易邮件按已提供的翻译发送；局部翻译站点缺少邮件翻译时回退英文。管理员邮件固定中文。
 // 用户输入（姓名、留言内容等）只出现在正文并全部转义，不进 Subject。
 
 export interface TemplateParams {
@@ -54,7 +54,7 @@ function date(ctx: Ctx, iso: string, withTime = false) {
   }).format(new Date(iso)) + (withTime ? ' UTC' : '')
 }
 
-const AI_FOOTER: Record<KnownLocale, string> = {
+const AI_FOOTER: Partial<Record<KnownLocale, string>> = {
   en: `Videos made with ${brand} are AI-generated. Please label them as AI when you share them.`,
   zh: `${brand} 生成的视频均为 AI 生成，分享时请注明。`,
   de: `Mit ${brand} erstellte Videos sind KI-generiert. Kennzeichne sie beim Teilen als KI-generiert.`,
@@ -126,7 +126,7 @@ const ALERTS_ZH: Record<AlertKind, (p: AlertParams) => { title: string; summary:
   }),
 }
 
-const USER_TEMPLATES: { [K in UserTemplate]: Record<KnownLocale, Render<K>> } = {
+const USER_TEMPLATES: { [K in UserTemplate]: Partial<Record<KnownLocale, Render<K>>> & Record<'en', Render<K>> } = {
   auth_code: {
     en: (p) => ({
       subject: `${brand}: reset your password`,
@@ -340,7 +340,7 @@ function isAdminTemplate(template: EmailTemplate): template is AdminTemplate {
 
 export function renderEmail<K extends EmailTemplate>(template: K, params: TemplateParams[K], options: { siteUrl: string; locale: string | null }): RenderedEmail {
   const ctx: Ctx = { siteUrl: options.siteUrl.replace(/\/$/, ''), locale: isLocale(options.locale ?? undefined) ? (options.locale as Locale) : DEFAULT_LOCALE }
-  const render = (isAdminTemplate(template) ? ADMIN_RENDERERS[template] : USER_TEMPLATES[template as UserTemplate][ctx.locale]) as Render<K>
+  const render = (isAdminTemplate(template) ? ADMIN_RENDERERS[template] : (USER_TEMPLATES[template as UserTemplate][ctx.locale] ?? USER_TEMPLATES[template as UserTemplate].en)) as Render<K>
   const block = render(params, ctx)
   const paragraphs = block.paragraphs.filter(Boolean)
   // Subject 只由固定文案和系统生成的 id 组成；仍去掉换行，防止邮件头注入
