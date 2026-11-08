@@ -18,7 +18,7 @@
   --accent: #ef5a35;
   /* 小号强调文字用：对 --bg 的对比度需 ≥ 4.5:1（WCAG AA），--accent 只适合图标、大字和背景 */
   --accent-text: #bd3d20;
-  --accent-2: #5546e8;
+  --accent-2: #9f3b2b;
   --glow: rgba(239, 90, 53, 0.15);
   color-scheme: light;
 }
@@ -34,7 +34,7 @@
   --ink-fg: #14151b;
   --accent: #ff704c;
   --accent-text: #ff8a69;
-  --accent-2: #9b91ff;
+  --accent-2: #ad4937;
   --glow: rgba(255, 112, 76, 0.16);
   color-scheme: dark;
 }
