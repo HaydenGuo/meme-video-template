@@ -85,6 +85,16 @@ function pageKind(path) {
   return 'page'
 }
 
+
+// 只检查实际可抓取的 URL，路由 manifest 中的模式字符串不属于页面链接。
+function containsRoutePlaceholder(value) {
+  try {
+    return /\{[^}]*\}|\$(?:slug|locale)(?:[/?#]|$)|\/undefined(?:[/?#]|$)/.test(decodeURIComponent(value))
+  } catch {
+    return true
+  }
+}
+
 async function fetchText(url, init) {
   const response = await fetch(url, { redirect: 'manual', ...init })
   return { response, text: await response.text() }
@@ -137,6 +147,10 @@ export async function runSeoCheck({ base = 'http://127.0.0.1:3000', production =
     for (const url of urls) {
       const loc = decode(url.match(/<loc>([^<]*)<\/loc>/)?.[1] ?? '')
       if (!loc.startsWith(origin)) sm('error', 'sitemap 的 loc 不在 site.domain 下', loc)
+      if (containsRoutePlaceholder(loc)) {
+        sm('error', 'sitemap 泄露路由占位符', loc)
+        continue
+      }
       paths.push(loc.slice(origin.length) || '/')
     }
     for (const locale of LOCALES) {
@@ -156,6 +170,10 @@ export async function runSeoCheck({ base = 'http://127.0.0.1:3000', production =
     if (response.status !== 200) {
       report('error', '页面状态码不是 200', `HTTP ${response.status}`)
       continue
+    }
+    for (const [tag] of html.matchAll(/<(?:a|link|form)\b[^>]*>/gi)) {
+      const target = attr(tag, 'href') ?? attr(tag, 'action')
+      if (target && containsRoutePlaceholder(target)) report('error', '页面链接泄露路由占位符', target)
     }
     const kind = pageKind(path)
     const expectedCanonical = `${origin}${path === '/' ? '' : path}`

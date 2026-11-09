@@ -7,7 +7,8 @@ import { runDailyBackup } from './server/backup'
 import { PERMISSIONS_POLICY, contentSecurityPolicy, createNonce } from './server/csp'
 import { handleDeadLetterBatch, handleQueueBatch, runScheduledMaintenance } from './server/jobs'
 import { runNotificationCron } from './server/notifications'
-import { isSeoPath } from './server/seo'
+import { isSeoPath, PUBLIC_PATHS } from './server/seo'
+import { legacyTemplateRoute } from './server/legacy-routes'
 import { SHARE_PAGE, loadShare, shareHttpStatus } from './server/shares'
 import { isProduction } from './server/util'
 import type { VideoJobMessage } from './server/types'
@@ -28,6 +29,23 @@ export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
     const url = new URL(request.url)
     const { pathname } = url
+    // 在路由解析前处理历史占位网址，避免 $slug 被插值为 undefined 或产生多次跳转。
+    if (request.method === 'GET' || request.method === 'HEAD') {
+      const legacy = legacyTemplateRoute(pathname, PUBLIC_PATHS)
+      if (legacy?.status === 301) {
+        url.protocol = 'https:'
+        url.hostname = site.domain
+        url.port = ''
+        url.pathname = legacy.path
+        return withSecurityHeaders(Response.redirect(url.toString(), 301), env, url)
+      }
+      if (legacy?.status === 410) {
+        return withSecurityHeaders(new Response(request.method === 'HEAD' ? null : 'Gone', {
+          status: 410,
+          headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=3600' },
+        }), env, url)
+      }
+    }
     if (isProduction(env) && (url.hostname === site.domain || url.hostname === `www.${site.domain}`) && (url.protocol !== 'https:' || url.hostname !== site.domain)) {
       url.protocol = 'https:'
       url.hostname = site.domain

@@ -513,3 +513,8 @@ tests/                  unit, e2e (mock providers), smoke (post-deploy), sandbox
 ### Locale continuity
 
 Localized account flows retain the page language in Google sign-in error redirects, user email preferences and invitation links. Spanish user email templates cover password resets, video results, receipts and content reports. Enable Spanish routes only with the corresponding site content translations; private account routes remain noindex.
+
+
+### Historical route placeholders
+
+Legacy `/{-$locale}` URLs permanently redirect to their actual public page. Unmapped placeholders such as `$slug` return410 before router interpolation. The SEO check rejects placeholder URLs in sitemaps and rendered links.
