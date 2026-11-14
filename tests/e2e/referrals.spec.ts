@@ -6,7 +6,9 @@ type Referral = { enabled: true; code: string; url: string; rewardPercent: numbe
 type Recent = { inviteeId: string; inviterId: string; status: string; rejectReason: string | null; orderId: string | null; credits: number | null }
 
 const ADMIN_EMAIL = 'admin@example.com'
-const REWARD = Math.floor(site.packages[0]!.credits * site.referralRewardPercent / 100)
+// The Playwright runner imports this module outside Vite, so site.packages is
+// empty even though the e2e-mode app server uses its 25-credit fixture pack.
+const REWARD = Math.floor((site.packages[0]?.credits ?? 25) * site.referralRewardPercent / 100)
 
 // 访问邀请链接：302 回首页并种下 vt_ref cookie（同一个 request context 里后续注册会带上）
 async function visitInvite(request: APIRequestContext, code: string) {
